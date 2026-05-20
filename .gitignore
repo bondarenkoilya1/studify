@@ -1,1 +1,4 @@
 .idea
+
+backend/tmp
+backend/.air.toml
