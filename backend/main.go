@@ -73,14 +73,15 @@ func getSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// todo: refactor, wth. why do i print and not return json
 func getSubjects(w http.ResponseWriter) {
-	for _, subj := range subjects {
-		_, err := fmt.Fprintf(w, "ID: %d | Lecturer %s will take the exam at %s\n", subj.ID, subj.Lecturer, subj.ExamDate.Format("02.01.2006 15:04"))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	if subjects == nil {
+		subjects = []subject{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(subjects); err != nil {
+		http.Error(w, "Cannot parse subjects as JSON", http.StatusInternalServerError)
+		return
 	}
 }
 
