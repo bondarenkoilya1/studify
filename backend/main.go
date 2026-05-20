@@ -28,9 +28,11 @@ func main() {
 func subjectsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
-		getSubjects(w, r)
+		getSubjects(w)
 	case http.MethodPost:
 		addSubjects(w, r)
+	case http.MethodDelete:
+		deleteSubjects(w)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -71,7 +73,8 @@ func getSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getSubjects(w http.ResponseWriter, r *http.Request) {
+// todo: refactor, wth. why do i print and not return json
+func getSubjects(w http.ResponseWriter) {
 	for _, subj := range subjects {
 		_, err := fmt.Fprintf(w, "ID: %d | Lecturer %s will take the exam at %s\n", subj.ID, subj.Lecturer, subj.ExamDate.Format("02.01.2006 15:04"))
 		if err != nil {
@@ -104,4 +107,10 @@ func addSubjects(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(subjects)
 	w.WriteHeader(http.StatusCreated)
+}
+
+func deleteSubjects(w http.ResponseWriter) {
+	subjects = nil
+	nextID = 1
+	w.WriteHeader(http.StatusNoContent)
 }
