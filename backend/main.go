@@ -21,7 +21,7 @@ var nextID = 1
 
 func main() {
 	http.HandleFunc("/subjects", subjectsHandler)
-	http.HandleFunc("/subjects/", getSubject)
+	http.HandleFunc("/subjects/", subjectHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -35,6 +35,15 @@ func subjectsHandler(w http.ResponseWriter, r *http.Request) {
 		deleteSubjects(w)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func subjectHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getSubject(w, r)
+	case http.MethodDelete:
+		deleteSubject(w, r)
 	}
 }
 
@@ -112,6 +121,30 @@ func addSubjects(w http.ResponseWriter, r *http.Request) {
 
 func deleteSubjects(w http.ResponseWriter) {
 	subjects = nil
-	nextID = 1
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func deleteSubject(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/subjects/")
+
+	if idStr == "" {
+		http.Error(w, "Missing subject ID", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID must be an integer", http.StatusBadRequest)
+		return
+	}
+
+	for i, subj := range subjects {
+		if subj.ID == id {
+			subjects = append(subjects[:i], subjects[i+1:]...)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+
+	http.Error(w, "No such element with this ID", http.StatusNotFound)
 }
