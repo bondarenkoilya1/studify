@@ -109,6 +109,11 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func ReplaceTask(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
+		return
+	}
+
 	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

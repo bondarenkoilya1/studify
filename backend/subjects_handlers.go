@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -83,25 +85,39 @@ func AddSubjects(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//
-//func editSubject(w http.ResponseWriter, r *http.Request) {
-//id, err := GetID(r.URL.Path, "/subjects/")
-//if err != nil {
-//http.Error(w, err.Error(), http.StatusBadRequest)
-//return
-//}
-//
-//
-//
-//	for _, subj := range Subjects {
-//		if subj.ID == id {
-//			subj =
-//		}
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//
-//}
+func ReplaceSubject(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	id, err := GetID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var newSubject Subject
+	if err = json.NewDecoder(r.Body).Decode(&newSubject); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	for i, subj := range Subjects {
+		if subj.ID == id {
+			newSubject.ID = id
+			Subjects[i] = newSubject
+
+			w.Header().Set("Content-Type", "application/json")
+			if err = json.NewEncoder(w).Encode(Subjects[i]); err != nil {
+				log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
+			}
+			return
+		}
+	}
+
+	http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
+}
 
 func DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 	Subjects = []Subject{}
