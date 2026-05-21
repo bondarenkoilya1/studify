@@ -131,3 +131,31 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 
 	http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 }
+
+func ReplaceTask(w http.ResponseWriter, r *http.Request) {
+	id, err := GetID(r.URL.Path, "/tasks/")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var newTask Task
+	if err = json.NewDecoder(r.Body).Decode(&newTask); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	for i, task := range Tasks {
+		if task.ID == id {
+			newTask.ID = id
+			Tasks[i] = newTask
+
+			if err = json.NewEncoder(w).Encode(Tasks[i]); err != nil {
+				log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
+			}
+			return
+		}
+	}
+
+	http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
+}
