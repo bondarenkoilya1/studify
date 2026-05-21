@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -24,9 +24,10 @@ func TaskHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		getTask(w, r)
+	case http.MethodDelete:
+		deleteTask(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-
 	}
 }
 
@@ -85,15 +86,9 @@ func getTasks(w http.ResponseWriter, _ *http.Request) {
 }
 
 func getTask(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/tasks/")
-	if idStr == "" {
-		http.Error(w, "Missing task id", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
+	id, err := GetID(r.URL.Path, "/tasks/")
 	if err != nil {
-		http.Error(w, "ID must be an integer", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -115,6 +110,24 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteTasks(w http.ResponseWriter, _ *http.Request) {
-	Tasks = nil
+	Tasks = []Task{}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func deleteTask(w http.ResponseWriter, r *http.Request) {
+	id, err := GetID(r.URL.Path, "/tasks/")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	for i, task := range Tasks {
+		if task.ID == id {
+			Tasks = append(Tasks[:i], Tasks[i+1:]...)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+
+	http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 }

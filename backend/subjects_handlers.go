@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -15,7 +14,7 @@ type Subject struct {
 	ExamDate time.Time `json:"exam_date"`
 }
 
-var Subjects []Subject
+var Subjects = []Subject{}
 var nextSubjectID = 1
 
 func SubjectHandler(w http.ResponseWriter, r *http.Request) {
@@ -45,15 +44,9 @@ func SubjectsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSubject(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/subjects/")
-	if idStr == "" {
-		http.Error(w, "Missing subject id", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
+	id, err := GetID(r.URL.Path, "/subjects/")
 	if err != nil {
-		http.Error(w, "Invalid subject id", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -79,11 +72,7 @@ func getSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getSubjects(w http.ResponseWriter, r *http.Request) {
-	if Subjects == nil {
-		Subjects = []Subject{}
-	}
-
+func getSubjects(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(Subjects); err != nil {
 		http.Error(w, "Cannot parse subjects as JSON", http.StatusInternalServerError)
@@ -122,17 +111,11 @@ func addSubjects(w http.ResponseWriter, r *http.Request) {
 
 //
 //func editSubject(w http.ResponseWriter, r *http.Request) {
-//	idStr := r.URL.Query().Get("id")
-//	if idStr == "" {
-//		http.Error(w, "Missing subject ID", http.StatusBadRequest)
-//		return
-//	}
-//
-//	id, err := strconv.Atoi(idStr)
-//	if err != nil {
-//		http.Error(w, "ID must be an integer", http.StatusBadRequest)
-//		return
-//	}
+//id, err := GetID(r.URL.Path, "/subjects/")
+//if err != nil {
+//http.Error(w, err.Error(), http.StatusBadRequest)
+//return
+//}
 //
 //
 //
@@ -146,22 +129,15 @@ func addSubjects(w http.ResponseWriter, r *http.Request) {
 //
 //}
 
-func deleteSubjects(w http.ResponseWriter, r *http.Request) {
-	Subjects = nil
+func deleteSubjects(w http.ResponseWriter, _ *http.Request) {
+	Subjects = []Subject{}
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func deleteSubject(w http.ResponseWriter, r *http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/subjects/")
-
-	if idStr == "" {
-		http.Error(w, "Missing subject ID", http.StatusBadRequest)
-		return
-	}
-
-	id, err := strconv.Atoi(idStr)
+	id, err := GetID(r.URL.Path, "/subjects/")
 	if err != nil {
-		http.Error(w, "ID must be an integer", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
