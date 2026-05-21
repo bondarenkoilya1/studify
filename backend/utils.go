@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
-	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func GetID(path, prefix string) (int, error) {
-	idStr := strings.TrimPrefix(path, prefix)
+func GetID(r *http.Request) (int, error) {
+	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
 		return 0, fmt.Errorf("missing ID")
 	}

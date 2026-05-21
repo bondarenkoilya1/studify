@@ -18,7 +18,7 @@ var Subjects = []Subject{}
 var nextSubjectID = 1
 
 func GetSubject(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r.URL.Path, "/subjects/")
+	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -109,7 +109,7 @@ func DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 }
 
 func DeleteSubject(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r.URL.Path, "/subjects/")
+	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

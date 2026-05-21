@@ -31,5 +31,9 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
-// TODO: validate data
-// ? I use PATCH, PUT only for specified entity. Not all of them
+/* TODO:
+- Validate data
+- Refactor some code from subjects files
+- Write patch methods
+- Add logger middleware
+*/

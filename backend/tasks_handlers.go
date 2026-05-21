@@ -62,7 +62,7 @@ func GetTasks(w http.ResponseWriter, _ *http.Request) {
 }
 
 func GetTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r.URL.Path, "/tasks/")
+	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -91,7 +91,7 @@ func DeleteTasks(w http.ResponseWriter, _ *http.Request) {
 }
 
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r.URL.Path, "/tasks/")
+	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -109,7 +109,7 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func ReplaceTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r.URL.Path, "/tasks/")
+	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
