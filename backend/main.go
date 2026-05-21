@@ -8,5 +8,8 @@ import (
 func main() {
 	http.HandleFunc("/subjects", SubjectsHandler)
 	http.HandleFunc("/subjects/", SubjectHandler)
+	http.HandleFunc("/tasks", TasksHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+
+// TODO: validate data
