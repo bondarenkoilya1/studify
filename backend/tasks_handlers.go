@@ -20,31 +20,7 @@ type Task struct {
 var Tasks = []Task{}
 var nextTaskID = 1
 
-func TaskHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		getTask(w, r)
-	case http.MethodDelete:
-		deleteTask(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func TasksHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		getTasks(w, r)
-	case http.MethodPost:
-		addTasks(w, r)
-	case http.MethodDelete:
-		deleteTasks(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func addTasks(w http.ResponseWriter, r *http.Request) {
+func AddTasks(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
 		return
@@ -72,7 +48,7 @@ func addTasks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getTasks(w http.ResponseWriter, _ *http.Request) {
+func GetTasks(w http.ResponseWriter, _ *http.Request) {
 	response, err := json.Marshal(Tasks)
 	if err != nil {
 		http.Error(w, "Cannot encode tasks as JSON", http.StatusInternalServerError)
@@ -85,7 +61,7 @@ func getTasks(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func getTask(w http.ResponseWriter, r *http.Request) {
+func GetTask(w http.ResponseWriter, r *http.Request) {
 	id, err := GetID(r.URL.Path, "/tasks/")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -109,12 +85,12 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func deleteTasks(w http.ResponseWriter, _ *http.Request) {
+func DeleteTasks(w http.ResponseWriter, _ *http.Request) {
 	Tasks = []Task{}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func deleteTask(w http.ResponseWriter, r *http.Request) {
+func DeleteTask(w http.ResponseWriter, r *http.Request) {
 	id, err := GetID(r.URL.Path, "/tasks/")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -150,6 +126,7 @@ func ReplaceTask(w http.ResponseWriter, r *http.Request) {
 			newTask.ID = id
 			Tasks[i] = newTask
 
+			w.Header().Set("Content-Type", "application/json")
 			if err = json.NewEncoder(w).Encode(Tasks[i]); err != nil {
 				log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
 			}

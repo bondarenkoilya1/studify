@@ -17,33 +17,7 @@ type Subject struct {
 var Subjects = []Subject{}
 var nextSubjectID = 1
 
-func SubjectHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		getSubject(w, r)
-	case http.MethodDelete:
-		deleteSubject(w, r)
-	//case http.MethodPatch:
-	//	editSubject(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func SubjectsHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		getSubjects(w, r)
-	case http.MethodPost:
-		addSubjects(w, r)
-	case http.MethodDelete:
-		deleteSubjects(w, r)
-	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func getSubject(w http.ResponseWriter, r *http.Request) {
+func GetSubject(w http.ResponseWriter, r *http.Request) {
 	id, err := GetID(r.URL.Path, "/subjects/")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -72,7 +46,7 @@ func getSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getSubjects(w http.ResponseWriter, _ *http.Request) {
+func GetSubjects(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(Subjects); err != nil {
 		http.Error(w, "Cannot parse subjects as JSON", http.StatusInternalServerError)
@@ -80,7 +54,7 @@ func getSubjects(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func addSubjects(w http.ResponseWriter, r *http.Request) {
+func AddSubjects(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
 		return
@@ -129,12 +103,12 @@ func addSubjects(w http.ResponseWriter, r *http.Request) {
 //
 //}
 
-func deleteSubjects(w http.ResponseWriter, _ *http.Request) {
+func DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 	Subjects = []Subject{}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func deleteSubject(w http.ResponseWriter, r *http.Request) {
+func DeleteSubject(w http.ResponseWriter, r *http.Request) {
 	id, err := GetID(r.URL.Path, "/subjects/")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
