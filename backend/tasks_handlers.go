@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,6 +19,16 @@ type Task struct {
 
 var Tasks = []Task{}
 var nextTaskID = 1
+
+func TaskHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getTask(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+
+	}
+}
 
 func TasksHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -69,4 +80,34 @@ func getTasks(w http.ResponseWriter, _ *http.Request) {
 	if _, err = w.Write(response); err != nil {
 		log.Println("Cannot write response: ", err)
 	}
+}
+
+func getTask(w http.ResponseWriter, r *http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/tasks/")
+	if idStr == "" {
+		http.Error(w, "Missing task id", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID must be an integer", http.StatusBadRequest)
+		return
+	}
+
+	for _, task := range Tasks {
+		if task.ID == id {
+			w.Header().Set("Content-Type", "application/json")
+
+			if err = json.NewEncoder(w).Encode(task); err != nil {
+				http.Error(w, "Cannot encode task as JSON", http.StatusInternalServerError)
+				return
+			}
+
+			return
+		}
+	}
+
+	http.Error(w, "Task with such ID was not found", http.StatusNotFound)
+	return
 }
