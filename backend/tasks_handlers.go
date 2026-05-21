@@ -36,6 +36,8 @@ func TasksHandler(w http.ResponseWriter, r *http.Request) {
 		getTasks(w, r)
 	case http.MethodPost:
 		addTasks(w, r)
+	case http.MethodDelete:
+		deleteTasks(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -110,4 +112,9 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 
 	http.Error(w, "Task with such ID was not found", http.StatusNotFound)
 	return
+}
+
+func deleteTasks(w http.ResponseWriter, _ *http.Request) {
+	Tasks = nil
+	w.WriteHeader(http.StatusNoContent)
 }
