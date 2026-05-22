@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-
 	"studify/database"
 
 	"github.com/go-chi/chi/v5"
@@ -30,12 +29,12 @@ func main() {
 	r := chi.NewRouter()
 	r.Route("/subjects", func(r chi.Router) {
 		r.Get("/", h.GetSubjects)
-		r.Post("/", AddSubjects)
-		r.Delete("/", DeleteSubjects)
+		r.Post("/", h.AddSubjects)
+		r.Delete("/", h.DeleteSubjects)
 
 		r.Get("/{id}", h.GetSubject)
 		r.Delete("/{id}", h.DeleteSubject)
-		r.Put("/{id}", ReplaceSubject)
+		r.Put("/{id}", h.ReplaceSubject)
 	})
 
 	r.Route("/tasks", func(r chi.Router) {

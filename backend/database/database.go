@@ -26,8 +26,8 @@ func CreateSubjectsTable(db *sql.DB) error {
 CREATE TABLE IF NOT EXISTS subjects (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
    	name TEXT NOT NULL,
-   	lecturer TEXT,
-   	exam_date TEXT
+   	lecturer TEXT DEFAULT '',
+   	exam_date TEXT DEFAULT ''
 );`
 
 	_, err := db.Exec(query)
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS subjects (
 
 func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
 	query := `
-SELECT id, name, lecturer, exam_date 
+SELECT id, name, COALESCE(lecturer, ''), COALESCE(exam_date, '') 
 FROM subjects 
 WHERE id = ?;
 	`
@@ -54,7 +54,7 @@ WHERE id = ?;
 
 func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 	query := `
-SELECT id, name, lecturer, exam_date
+SELECT id, name, COALESCE(lecturer, ''), COALESCE(exam_date, '')
 FROM subjects;
 `
 
@@ -75,10 +75,6 @@ FROM subjects;
 		}
 
 		subjects = append(subjects, s)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
 	}
 
 	return subjects, nil

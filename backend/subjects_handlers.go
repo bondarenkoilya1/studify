@@ -1,9 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
 	"net/http"
+	"strings"
 	"studify/database"
+	"studify/models"
 )
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
@@ -40,68 +46,85 @@ func (h *Handler) GetSubjects(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-//func AddSubjects(w http.ResponseWriter, r *http.Request) {
-//	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-//		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-//		return
-//	}
-//
-//	var newSubjects []models.Subject
-//
-//	err := json.NewDecoder(r.Body).Decode(&newSubjects)
-//	if err != nil {
-//		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-//		return
-//	}
-//
-//	for i := range newSubjects {
-//		newSubjects[i].ID = models.NextSubjectID
-//		models.NextSubjectID++
-//	}
-//
-//	models.Subjects = append(models.Subjects, newSubjects...)
-//	w.Header().Set("Content-Type", "application/json")
-//	w.WriteHeader(http.StatusCreated)
-//
-//	if err = json.NewEncoder(w).Encode(&newSubjects); err != nil {
-//		http.Error(w, "Cannot parse subjects as JSON", http.StatusInternalServerError)
-//		return
-//	}
-//}
+func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
+		return
+	}
 
-//func ReplaceSubject(w http.ResponseWriter, r *http.Request) {
-//	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-//		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-//		return
-//	}
-//
-//	id, err := GetID(r)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusBadRequest)
-//		return
-//	}
-//
-//	var newSubject models.Subject
-//	if err = json.NewDecoder(r.Body).Decode(&newSubject); err != nil {
-//		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-//		return
-//	}
-//
-//	for i, subj := range models.Subjects {
-//		if subj.ID == id {
-//			newSubject.ID = id
-//			models.Subjects[i] = newSubject
-//
-//			w.Header().Set("Content-Type", "application/json")
-//			if err = json.NewEncoder(w).Encode(models.Subjects[i]); err != nil {
-//				log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
-//			}
-//			return
-//		}
-//	}
-//
-//	http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
-//}
+	var newSubjects []models.Subject
+
+	err := json.NewDecoder(r.Body).Decode(&newSubjects)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if len(newSubjects) == 0 {
+		http.Error(w, "Subjects list cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	createdSubjects := make([]models.Subject, 0, len(newSubjects))
+
+	for _, s := range newSubjects {
+		subject, err := database.InsertSubject(h.DB, s.Name, s.Lecturer, s.ExamDate)
+		if err != nil {
+			http.Error(w, "Failed to insert subjects", http.StatusInternalServerError)
+			return
+		}
+		createdSubjects = append(createdSubjects, *subject)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	if err = json.NewEncoder(w).Encode(createdSubjects); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	id, err := GetID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var newSubject models.Subject
+	if err = json.NewDecoder(r.Body).Decode(&newSubject); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if newSubject.Name == "" {
+		http.Error(w, "Subject name is required", http.StatusBadRequest)
+		return
+	}
+
+	if err = database.UpdateSubject(h.DB, id, newSubject.Name, newSubject.Lecturer, newSubject.ExamDate); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "Failed to replace subject", http.StatusInternalServerError)
+		return
+	}
+
+	newSubject.ID = id
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(newSubject); err != nil {
+		log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
+		return
+	}
+}
 
 func (h *Handler) DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 	err := database.DeleteSubjects(h.DB)
