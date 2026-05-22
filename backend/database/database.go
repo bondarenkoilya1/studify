@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"studify/models"
 
-	_ "github.com/glebarez/go-sqlite"
+	_ "modernc.org/sqlite"
 )
 
 func OpenDB() (*sql.DB, error) {
@@ -40,6 +40,7 @@ SELECT id, name, COALESCE(lecturer, ''), COALESCE(exam_date, '')
 FROM subjects 
 WHERE id = ?;
 	`
+
 	row := db.QueryRow(query, id)
 
 	s := &models.Subject{}
