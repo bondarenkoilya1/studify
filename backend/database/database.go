@@ -52,6 +52,38 @@ WHERE id = ?;
 	return s, nil
 }
 
+func GetSubjects(db *sql.DB) ([]models.Subject, error) {
+	query := `
+SELECT id, name, lecturer, exam_date
+FROM subjects;
+`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	subjects := []models.Subject{}
+
+	for rows.Next() {
+		var s models.Subject
+
+		err = rows.Scan(&s.ID, &s.Name, &s.Lecturer, &s.ExamDate)
+		if err != nil {
+			return nil, err
+		}
+
+		subjects = append(subjects, s)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return subjects, nil
+}
+
 func InsertSubject(db *sql.DB, name, lecturer, examDate string) (*models.Subject, error) {
 	query := `
 INSERT INTO subjects(name, lecturer, exam_date)

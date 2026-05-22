@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 
@@ -8,6 +9,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+type Handler struct {
+	DB *sql.DB
+}
 
 func main() {
 	db, err := database.OpenDB()
@@ -20,14 +25,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	h := &Handler{DB: db}
+
 	r := chi.NewRouter()
 	r.Route("/subjects", func(r chi.Router) {
-		r.Get("/", GetSubjects)
+		r.Get("/", h.GetSubjects)
 		r.Post("/", AddSubjects)
 		r.Delete("/", DeleteSubjects)
 
-		r.Get("/{id}", GetSubject)
-		r.Delete("/{id}", DeleteSubject)
+		r.Get("/{id}", h.GetSubject)
+		r.Delete("/{id}", h.DeleteSubject)
 		r.Put("/{id}", ReplaceSubject)
 	})
 
