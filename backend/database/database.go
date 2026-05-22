@@ -100,6 +100,15 @@ WHERE id = ?;
 	return nil
 }
 
+func DeleteSubjects(db *sql.DB) error {
+	query := `
+DELETE FROM subjects;
+`
+
+	_, err := db.Exec(query)
+	return err
+}
+
 func DeleteSubject(db *sql.DB, id int64) error {
 	query := `
 DELETE FROM subjects
