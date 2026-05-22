@@ -4,10 +4,22 @@ import (
 	"log"
 	"net/http"
 
+	"studify/database"
+
 	"github.com/go-chi/chi/v5"
 )
 
 func main() {
+	db, err := database.OpenDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	if err = database.CreateSubjectsTable(db); err != nil {
+		log.Fatal(err)
+	}
+
 	r := chi.NewRouter()
 	r.Route("/subjects", func(r chi.Router) {
 		r.Get("/", GetSubjects)

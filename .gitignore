@@ -2,3 +2,4 @@
 
 backend/tmp
 backend/.air.toml
+backend/data/*.db

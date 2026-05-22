@@ -8,13 +8,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func GetID(r *http.Request) (int, error) {
+func GetID(r *http.Request) (int64, error) {
 	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
 		return 0, fmt.Errorf("missing ID")
 	}
 
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("ID must be an integer")
 	}

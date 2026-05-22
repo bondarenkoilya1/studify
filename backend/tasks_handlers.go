@@ -6,19 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
+
+	"studify/models"
 )
-
-type Task struct {
-	ID      int       `json:"id"`
-	Name    string    `json:"name"`
-	Subject string    `json:"subject"`
-	DueDate time.Time `json:"due_date"`
-	Status  string    `json:"status"`
-}
-
-var Tasks = []Task{}
-var nextTaskID = 1
 
 func AddTasks(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
@@ -26,7 +16,7 @@ func AddTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newTasks []Task
+	var newTasks []models.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&newTasks); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -34,11 +24,11 @@ func AddTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range newTasks {
-		newTasks[i].ID = nextTaskID
-		nextTaskID++
+		newTasks[i].ID = models.NextTaskID
+		models.NextTaskID++
 	}
 
-	Tasks = append(Tasks, newTasks...)
+	models.Tasks = append(models.Tasks, newTasks...)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
@@ -49,7 +39,7 @@ func AddTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTasks(w http.ResponseWriter, _ *http.Request) {
-	response, err := json.Marshal(Tasks)
+	response, err := json.Marshal(models.Tasks)
 	if err != nil {
 		http.Error(w, "Cannot encode tasks as JSON", http.StatusInternalServerError)
 		return
@@ -68,7 +58,7 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, task := range Tasks {
+	for _, task := range models.Tasks {
 		if task.ID == id {
 			w.Header().Set("Content-Type", "application/json")
 
@@ -86,7 +76,7 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteTasks(w http.ResponseWriter, _ *http.Request) {
-	Tasks = []Task{}
+	models.Tasks = []models.Task{}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -97,9 +87,9 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for i, task := range Tasks {
+	for i, task := range models.Tasks {
 		if task.ID == id {
-			Tasks = append(Tasks[:i], Tasks[i+1:]...)
+			models.Tasks = append(models.Tasks[:i], models.Tasks[i+1:]...)
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -120,19 +110,19 @@ func ReplaceTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newTask Task
+	var newTask models.Task
 	if err = json.NewDecoder(r.Body).Decode(&newTask); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	for i, task := range Tasks {
+	for i, task := range models.Tasks {
 		if task.ID == id {
 			newTask.ID = id
-			Tasks[i] = newTask
+			models.Tasks[i] = newTask
 
 			w.Header().Set("Content-Type", "application/json")
-			if err = json.NewEncoder(w).Encode(Tasks[i]); err != nil {
+			if err = json.NewEncoder(w).Encode(models.Tasks[i]); err != nil {
 				log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
 			}
 			return

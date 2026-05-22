@@ -6,18 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
+
+	"studify/models"
 )
-
-type Subject struct {
-	ID       int       `json:"id"`
-	Name     string    `json:"name"`
-	Lecturer string    `json:"lecturer"`
-	ExamDate time.Time `json:"exam_date"`
-}
-
-var Subjects = []Subject{}
-var nextSubjectID = 1
 
 func GetSubject(w http.ResponseWriter, r *http.Request) {
 	id, err := GetID(r)
@@ -26,9 +17,9 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var selectedSubj Subject
+	var selectedSubj models.Subject
 	found := false
-	for _, subj := range Subjects {
+	for _, subj := range models.Subjects {
 		if subj.ID == id {
 			selectedSubj = subj
 			found = true
@@ -50,7 +41,7 @@ func GetSubject(w http.ResponseWriter, r *http.Request) {
 
 func GetSubjects(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(Subjects); err != nil {
+	if err := json.NewEncoder(w).Encode(models.Subjects); err != nil {
 		http.Error(w, "Cannot parse subjects as JSON", http.StatusInternalServerError)
 		return
 	}
@@ -62,7 +53,7 @@ func AddSubjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newSubjects []Subject
+	var newSubjects []models.Subject
 
 	err := json.NewDecoder(r.Body).Decode(&newSubjects)
 	if err != nil {
@@ -71,11 +62,11 @@ func AddSubjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range newSubjects {
-		newSubjects[i].ID = nextSubjectID
-		nextSubjectID++
+		newSubjects[i].ID = models.NextSubjectID
+		models.NextSubjectID++
 	}
 
-	Subjects = append(Subjects, newSubjects...)
+	models.Subjects = append(models.Subjects, newSubjects...)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
@@ -97,19 +88,19 @@ func ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newSubject Subject
+	var newSubject models.Subject
 	if err = json.NewDecoder(r.Body).Decode(&newSubject); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	for i, subj := range Subjects {
+	for i, subj := range models.Subjects {
 		if subj.ID == id {
 			newSubject.ID = id
-			Subjects[i] = newSubject
+			models.Subjects[i] = newSubject
 
 			w.Header().Set("Content-Type", "application/json")
-			if err = json.NewEncoder(w).Encode(Subjects[i]); err != nil {
+			if err = json.NewEncoder(w).Encode(models.Subjects[i]); err != nil {
 				log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
 			}
 			return
@@ -120,7 +111,7 @@ func ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
-	Subjects = []Subject{}
+	models.Subjects = []models.Subject{}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -131,9 +122,9 @@ func DeleteSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for i, subj := range Subjects {
+	for i, subj := range models.Subjects {
 		if subj.ID == id {
-			Subjects = append(Subjects[:i], Subjects[i+1:]...)
+			models.Subjects = append(models.Subjects[:i], models.Subjects[i+1:]...)
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
