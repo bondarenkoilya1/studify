@@ -61,3 +61,29 @@ func InsertTask(db *sql.DB, name, dueDate, status string, subjectID int64) (*mod
 		SubjectID: subjectID,
 	}, nil
 }
+
+func UpdateTask(db *sql.DB, id int64, name, dueDate, status string, subjectID int64) (*models.Task, error) {
+	query := `UPDATE tasks SET name = ?, due_date = ?, status = ?, subject_id = ? WHERE id = ?;`
+
+	result, err := db.Exec(query, id, name, dueDate, status, subjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	return &models.Task{
+		ID:        id,
+		Name:      name,
+		DueDate:   dueDate,
+		Status:    status,
+		SubjectID: subjectID,
+	}, nil
+}

@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -80,30 +82,7 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func DeleteTasks(w http.ResponseWriter, _ *http.Request) {
-	models.Tasks = []models.Task{}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func DeleteTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	for i, task := range models.Tasks {
-		if task.ID == id {
-			models.Tasks = append(models.Tasks[:i], models.Tasks[i+1:]...)
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-	}
-
-	http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
-}
-
-func ReplaceTask(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
 		return
@@ -121,15 +100,40 @@ func ReplaceTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	task, err := database.UpdateTask(h.DB, id, newTask.Name, newTask.DueDate, newTask.Status, newTask.SubjectID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, "Failed to replace task", http.StatusInternalServerError)
+		return
+	}
+
+	newTask.ID = id
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(task); err != nil {
+		log.Printf("Element was changed. Failed to return as JSON because of encoding error: %v", err)
+	}
+}
+
+func DeleteTasks(w http.ResponseWriter, _ *http.Request) {
+	models.Tasks = []models.Task{}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func DeleteTask(w http.ResponseWriter, r *http.Request) {
+	id, err := GetID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	for i, task := range models.Tasks {
 		if task.ID == id {
-			newTask.ID = id
-			models.Tasks[i] = newTask
-
-			w.Header().Set("Content-Type", "application/json")
-			if err = json.NewEncoder(w).Encode(models.Tasks[i]); err != nil {
-				log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
-			}
+			models.Tasks = append(models.Tasks[:i], models.Tasks[i+1:]...)
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 	}
