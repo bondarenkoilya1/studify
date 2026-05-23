@@ -8,11 +8,11 @@ type Subject struct {
 }
 
 type Task struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
-	Subject string `json:"subject"`
-	DueDate string `json:"due_date"`
-	Status  string `json:"status"`
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	DueDate   string `json:"due_date"`
+	Status    string `json:"status"`
+	SubjectID string `json:"subject_id"`
 }
 
 var Tasks = []Task{}

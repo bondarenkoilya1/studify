@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
@@ -6,9 +6,29 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
+	"studify/database"
 	"studify/models"
 )
+
+func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
+	id, err := GetID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	task, err := database.GetTaskByID(h.DB, id)
+	if err != nil {
+		http.Error(w, "Subject was not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(task); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
 
 func AddTasks(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
@@ -49,30 +69,6 @@ func GetTasks(w http.ResponseWriter, _ *http.Request) {
 	if _, err = w.Write(response); err != nil {
 		log.Println("Cannot write response: ", err)
 	}
-}
-
-func GetTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	for _, task := range models.Tasks {
-		if task.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-
-			if err = json.NewEncoder(w).Encode(task); err != nil {
-				http.Error(w, "Cannot encode task as JSON", http.StatusInternalServerError)
-				return
-			}
-
-			return
-		}
-	}
-
-	http.Error(w, "Task with such ID was not found", http.StatusNotFound)
-	return
 }
 
 func DeleteTasks(w http.ResponseWriter, _ *http.Request) {

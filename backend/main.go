@@ -1,17 +1,13 @@
 package main
 
 import (
-	"database/sql"
 	"log"
 	"net/http"
 	"studify/database"
+	"studify/handlers"
 
 	"github.com/go-chi/chi/v5"
 )
-
-type Handler struct {
-	DB *sql.DB
-}
 
 func main() {
 	db, err := database.OpenDB()
@@ -24,7 +20,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	h := &Handler{DB: db}
+	h := &handlers.Handler{DB: db}
 
 	r := chi.NewRouter()
 	r.Route("/subjects", func(r chi.Router) {
@@ -38,13 +34,13 @@ func main() {
 	})
 
 	r.Route("/tasks", func(r chi.Router) {
-		r.Get("/", GetTasks)
-		r.Post("/", AddTasks)
-		r.Delete("/", DeleteTasks)
+		r.Get("/", handlers.GetTasks)
+		r.Post("/", handlers.AddTasks)
+		r.Delete("/", handlers.DeleteTasks)
 
-		r.Get("/{id}", GetTask)
-		r.Delete("/{id}", DeleteTask)
-		r.Put("/{id}", ReplaceTask)
+		r.Get("/{id}", h.GetTask)
+		r.Delete("/{id}", handlers.DeleteTask)
+		r.Put("/{id}", handlers.ReplaceTask)
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", r))
