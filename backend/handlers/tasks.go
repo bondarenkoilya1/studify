@@ -30,6 +30,19 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) GetTasks(w http.ResponseWriter, _ *http.Request) {
+	tasks, err := database.GetTasks(h.DB)
+	if err != nil {
+		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(tasks); err != nil {
+		log.Println("Failed to encode response: ", err)
+	}
+}
+
 func AddTasks(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
@@ -55,19 +68,6 @@ func AddTasks(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(newTasks); err != nil {
 		log.Println("Tasks were created but cannot be encoded as JSON: ", err)
 		return
-	}
-}
-
-func GetTasks(w http.ResponseWriter, _ *http.Request) {
-	response, err := json.Marshal(models.Tasks)
-	if err != nil {
-		http.Error(w, "Cannot encode tasks as JSON", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if _, err = w.Write(response); err != nil {
-		log.Println("Cannot write response: ", err)
 	}
 }
 

@@ -34,7 +34,7 @@ func main() {
 	})
 
 	r.Route("/tasks", func(r chi.Router) {
-		r.Get("/", handlers.GetTasks)
+		r.Get("/", h.GetTasks)
 		r.Post("/", handlers.AddTasks)
 		r.Delete("/", handlers.DeleteTasks)
 

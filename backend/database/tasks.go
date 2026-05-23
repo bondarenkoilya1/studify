@@ -18,3 +18,24 @@ func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
 
 	return t, nil
 }
+
+func GetTasks(db *sql.DB) ([]models.Task, error) {
+	query := `SELECT id, name, due_date, status, subject_id FROM tasks;`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	tasks := []models.Task{}
+	for rows.Next() {
+		t := &models.Task{}
+		err = rows.Scan(&t.ID, &t.Name, &t.DueDate, &t.Status, &t.SubjectID)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, *t)
+	}
+
+	return tasks, nil
+}
