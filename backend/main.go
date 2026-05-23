@@ -20,7 +20,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err = database.CreateSubjectsTable(db); err != nil {
+	if err = database.CreateTables(db); err != nil {
 		log.Fatal(err)
 	}
 

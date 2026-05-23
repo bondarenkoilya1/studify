@@ -1,11 +1,5 @@
 package models
 
-import "database/sql"
-
-type Handler struct {
-	DB *sql.DB
-}
-
 type Subject struct {
 	ID       int64  `json:"id"`
 	Name     string `json:"name"`
@@ -21,8 +15,6 @@ type Task struct {
 	Status  string `json:"status"`
 }
 
-var Subjects = []Subject{}
 var Tasks = []Task{}
 
-var NextSubjectID int64 = 1
 var NextTaskID int64 = 1
