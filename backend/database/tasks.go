@@ -11,7 +11,7 @@ func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
 	row := db.QueryRow(query, id)
 	t := &models.Task{}
 
-	err := row.Scan(&t.ID, &t.Name, &t.SubjectID, &t.DueDate, &t.Status)
+	err := row.Scan(&t.ID, &t.Name, &t.DueDate, &t.Status, &t.SubjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -38,4 +38,26 @@ func GetTasks(db *sql.DB) ([]models.Task, error) {
 	}
 
 	return tasks, nil
+}
+
+func InsertTask(db *sql.DB, name, dueDate, status string, subjectID int64) (*models.Task, error) {
+	query := `INSERT INTO tasks (name, due_date, status, subject_id) VALUES (?, ?, ?, ?);`
+
+	result, err := db.Exec(query, name, dueDate, status, subjectID)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.Task{
+		ID:        id,
+		Name:      name,
+		DueDate:   dueDate,
+		Status:    status,
+		SubjectID: subjectID,
+	}, nil
 }

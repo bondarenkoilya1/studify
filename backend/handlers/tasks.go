@@ -43,7 +43,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func AddTasks(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
 		return
@@ -56,17 +56,26 @@ func AddTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for i := range newTasks {
-		newTasks[i].ID = models.NextTaskID
-		models.NextTaskID++
+	if len(newTasks) == 0 {
+		http.Error(w, "Subjects list cannot be empty", http.StatusBadRequest)
+		return
 	}
 
-	models.Tasks = append(models.Tasks, newTasks...)
+	createdSubjects := make([]models.Task, 0, len(newTasks))
+	for _, t := range newTasks {
+		task, err := database.InsertTask(h.DB, t.Name, t.DueDate, t.Status, t.SubjectID)
+		if err != nil {
+			http.Error(w, "Failed to insert tasks", http.StatusInternalServerError)
+			return
+		}
+
+		createdSubjects = append(createdSubjects, *task)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(newTasks); err != nil {
-		log.Println("Tasks were created but cannot be encoded as JSON: ", err)
+	if err := json.NewEncoder(w).Encode(createdSubjects); err != nil {
+		log.Println("Failed to encode response: ", err)
 		return
 	}
 }

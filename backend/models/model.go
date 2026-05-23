@@ -12,7 +12,7 @@ type Task struct {
 	Name      string `json:"name"`
 	DueDate   string `json:"due_date"`
 	Status    string `json:"status"`
-	SubjectID string `json:"subject_id"`
+	SubjectID int64  `json:"subject_id"`
 }
 
 var Tasks = []Task{}

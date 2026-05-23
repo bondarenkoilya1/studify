@@ -35,7 +35,7 @@ func main() {
 
 	r.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.GetTasks)
-		r.Post("/", handlers.AddTasks)
+		r.Post("/", h.AddTasks)
 		r.Delete("/", handlers.DeleteTasks)
 
 		r.Get("/{id}", h.GetTask)
@@ -47,6 +47,7 @@ func main() {
 }
 
 /* TODO:
+- Each subjects should have an array of tasks
 - Validate data
 - Refactor some code from subjects files
 - Write patch methods
