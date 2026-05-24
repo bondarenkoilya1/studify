@@ -1,11 +1,11 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import './index.css'
-import { App } from './app/App.tsx'
-import { QueryProvider } from './app/providers/query-provider.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import "./index.css";
+import { App } from "./app/App.tsx";
+import { QueryProvider } from "./app/providers/query-provider.tsx";
 
-createRoot(document.getElementById('root')!).render(
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <QueryProvider>
@@ -13,4 +13,4 @@ createRoot(document.getElementById('root')!).render(
       </QueryProvider>
     </BrowserRouter>
   </StrictMode>,
-)
+);

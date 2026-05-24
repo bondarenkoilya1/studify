@@ -1,75 +1,68 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { TaskForm } from '../../features/tasks/ui/TaskForm.tsx'
-import { getSubjects } from '../../features/subjects/api/subjects-api.ts'
-import { createTask, getTasks } from '../../features/tasks/api/tasks-api.ts'
-import { type CreateTaskPayload } from '../../entities/task/types.ts'
-import {
-  getStatusClass,
-  getStatusLabel,
-} from '../../shared/lib/taskStatus.ts'
-import { SectionHeader } from '../../shared/ui/SectionHeader.tsx'
-import { StatCard } from '../../shared/ui/StatCard.tsx'
-import { AppLayout } from '../../widgets/app-layout/AppLayout.tsx'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { TaskForm } from "../../features/tasks/ui/TaskForm.tsx";
+import { getSubjects } from "../../features/subjects/api/subjects-api.ts";
+import { createTask, getTasks } from "../../features/tasks/api/tasks-api.ts";
+import { type CreateTaskPayload } from "../../entities/task/types.ts";
+import { getStatusClass, getStatusLabel } from "../../shared/lib/taskStatus.ts";
+import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
+import { StatCard } from "../../shared/ui/StatCard.tsx";
+import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
 export function TasksPage() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const subjectsQuery = useQuery({
-    queryKey: ['subjects'],
+    queryKey: ["subjects"],
     queryFn: getSubjects,
-  })
+  });
   const tasksQuery = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ["tasks"],
     queryFn: getTasks,
-  })
+  });
   const createTaskMutation = useMutation({
     mutationFn: createTask,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
-  })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+  });
 
-  const subjects = subjectsQuery.data ?? []
-  const tasks = tasksQuery.data ?? []
-  const subjectNames = new Map(
-    subjects.map((subject) => [subject.id, subject.name]),
-  )
-  const openTasks = tasks.filter((task) => task.status !== 'completed')
-  const inProgressTasks = tasks.filter((task) => task.status === 'in_progress')
-  const completedTasks = tasks.filter((task) => task.status === 'completed')
+  const subjects = subjectsQuery.data ?? [];
+  const tasks = tasksQuery.data ?? [];
+  const subjectNames = new Map(subjects.map((subject) => [subject.id, subject.name]));
+  const openTasks = tasks.filter((task) => task.status !== "completed");
+  const inProgressTasks = tasks.filter((task) => task.status === "in_progress");
+  const completedTasks = tasks.filter((task) => task.status === "completed");
 
   const taskStats = [
     {
-      label: 'Open tasks',
-      value: tasksQuery.isLoading ? '...' : String(openTasks.length),
-      detail: 'Need attention',
+      label: "Open tasks",
+      value: tasksQuery.isLoading ? "..." : String(openTasks.length),
+      detail: "Need attention",
     },
     {
-      label: 'In progress',
-      value: tasksQuery.isLoading ? '...' : String(inProgressTasks.length),
-      detail: 'Currently active',
+      label: "In progress",
+      value: tasksQuery.isLoading ? "..." : String(inProgressTasks.length),
+      detail: "Currently active",
     },
     {
-      label: 'Completed',
-      value: tasksQuery.isLoading ? '...' : String(completedTasks.length),
-      detail: 'Recently closed',
+      label: "Completed",
+      value: tasksQuery.isLoading ? "..." : String(completedTasks.length),
+      detail: "Recently closed",
     },
-  ]
+  ];
 
   async function handleCreateTask(task: CreateTaskPayload) {
-    await createTaskMutation.mutateAsync(task)
+    await createTaskMutation.mutateAsync(task);
   }
 
   return (
     <AppLayout>
       <section className="grid gap-8">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-            Tasks
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Tasks</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
             Plan and track study work
           </h1>
           <p className="mt-4 text-lg leading-8 text-slate-600">
-            Create study tasks, connect them to subjects, and keep deadlines
-            visible from the backend data.
+            Create study tasks, connect them to subjects, and keep deadlines visible from the
+            backend data.
           </p>
         </div>
 
@@ -96,9 +89,7 @@ export function TasksPage() {
 
               <div className="divide-y divide-slate-100 bg-white">
                 {tasksQuery.isLoading ? (
-                  <p className="px-4 py-5 text-sm text-slate-600">
-                    Loading tasks...
-                  </p>
+                  <p className="px-4 py-5 text-sm text-slate-600">Loading tasks...</p>
                 ) : null}
 
                 {tasksQuery.error ? (
@@ -113,30 +104,29 @@ export function TasksPage() {
                   </p>
                 ) : null}
 
-                {!tasksQuery.isLoading && !tasksQuery.error ? tasks.map((task) => (
-                  <article
-                    key={task.id}
-                    className="grid gap-3 px-4 py-4 sm:grid-cols-[1fr_140px_120px] sm:items-center"
-                  >
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-950">
-                        {task.name}
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        {subjectNames.get(task.subject_id) ??
-                          `Subject ${task.subject_id}`}
-                      </p>
-                    </div>
-                    <p className="text-sm font-medium text-slate-700">
-                      {task.due_date || 'No due date'}
-                    </p>
-                    <span
-                      className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(task.status)}`}
-                    >
-                      {getStatusLabel(task.status)}
-                    </span>
-                  </article>
-                )) : null}
+                {!tasksQuery.isLoading && !tasksQuery.error
+                  ? tasks.map((task) => (
+                      <article
+                        key={task.id}
+                        className="grid gap-3 px-4 py-4 sm:grid-cols-[1fr_140px_120px] sm:items-center"
+                      >
+                        <div>
+                          <h3 className="text-sm font-semibold text-slate-950">{task.name}</h3>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {subjectNames.get(task.subject_id) ?? `Subject ${task.subject_id}`}
+                          </p>
+                        </div>
+                        <p className="text-sm font-medium text-slate-700">
+                          {task.due_date || "No due date"}
+                        </p>
+                        <span
+                          className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(task.status)}`}
+                        >
+                          {getStatusLabel(task.status)}
+                        </span>
+                      </article>
+                    ))
+                  : null}
               </div>
             </div>
           </section>
@@ -152,5 +142,5 @@ export function TasksPage() {
         </div>
       </section>
     </AppLayout>
-  )
+  );
 }

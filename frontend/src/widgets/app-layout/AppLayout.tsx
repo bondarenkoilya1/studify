@@ -1,17 +1,17 @@
-import { type ReactNode } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { type ReactNode } from "react";
+import { Link, NavLink } from "react-router-dom";
 
 type AppLayoutProps = {
-  children: ReactNode
-}
+  children: ReactNode;
+};
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    'rounded-md px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950',
-    isActive ? 'bg-slate-100 text-slate-950' : '',
+    "rounded-md px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950",
+    isActive ? "bg-slate-100 text-slate-950" : "",
   ]
     .filter(Boolean)
-    .join(' ')
+    .join(" ");
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
@@ -43,5 +43,5 @@ export function AppLayout({ children }: AppLayoutProps) {
         {children}
       </main>
     </div>
-  )
+  );
 }

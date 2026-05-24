@@ -1,7 +1,7 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
-import { HomePage } from '../pages/home/HomePage.tsx'
-import { SubjectsPage } from '../pages/subjects/SubjectsPage.tsx'
-import { TasksPage } from '../pages/tasks/TasksPage.tsx'
+import { Navigate, Route, Routes } from "react-router-dom";
+import { HomePage } from "../pages/home/HomePage.tsx";
+import { SubjectsPage } from "../pages/subjects/SubjectsPage.tsx";
+import { TasksPage } from "../pages/tasks/TasksPage.tsx";
 
 export function App() {
   return (
@@ -11,5 +11,5 @@ export function App() {
       <Route path="/subjects" element={<SubjectsPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }

@@ -1,8 +1,8 @@
 export type Subject = {
-  id: number
-  name: string
-  lecturer: string
-  exam_date: string
-}
+  id: number;
+  name: string;
+  lecturer: string;
+  exam_date: string;
+};
 
-export type CreateSubjectPayload = Omit<Subject, 'id'>
+export type CreateSubjectPayload = Omit<Subject, "id">;
