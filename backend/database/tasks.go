@@ -87,3 +87,30 @@ func UpdateTask(db *sql.DB, id int64, name, dueDate, status string, subjectID in
 		SubjectID: subjectID,
 	}, nil
 }
+
+func DeleteTasks(db *sql.DB) error {
+	query := `DELETE FROM tasks;`
+
+	_, err := db.Exec(query)
+	return err
+}
+
+func DeleteTask(db *sql.DB, id int64) error {
+	query := `DELETE FROM tasks WHERE id = ?`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
