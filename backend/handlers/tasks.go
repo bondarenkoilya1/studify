@@ -118,25 +118,32 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func DeleteTasks(w http.ResponseWriter, _ *http.Request) {
-	models.Tasks = []models.Task{}
+func (h *Handler) DeleteTasks(w http.ResponseWriter, _ *http.Request) {
+	err := database.DeleteTasks(h.DB)
+	if err != nil {
+		http.Error(w, "Failed to delete tasks", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func DeleteTask(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	for i, task := range models.Tasks {
-		if task.ID == id {
-			models.Tasks = append(models.Tasks[:i], models.Tasks[i+1:]...)
-			w.WriteHeader(http.StatusNoContent)
+	err = database.DeleteTask(h.DB, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 			return
 		}
+
+		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+		return
 	}
 
-	http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -14,7 +14,3 @@ type Task struct {
 	Status    string `json:"status"`
 	SubjectID int64  `json:"subject_id"`
 }
-
-var Tasks = []Task{}
-
-var NextTaskID int64 = 1

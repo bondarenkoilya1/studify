@@ -36,11 +36,11 @@ func main() {
 	r.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.GetTasks)
 		r.Post("/", h.AddTasks)
-		r.Delete("/", handlers.DeleteTasks)
+		r.Delete("/", h.DeleteTasks)
 
 		r.Get("/{id}", h.GetTask)
-		r.Delete("/{id}", handlers.DeleteTask)
-		r.Put("/{id}", handlers.ReplaceTask)
+		r.Delete("/{id}", h.DeleteTask)
+		r.Put("/{id}", h.ReplaceTask)
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", r))
