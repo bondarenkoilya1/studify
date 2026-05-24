@@ -21,7 +21,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	task, err := database.GetTaskByID(h.DB, id)
 	if err != nil {
-		http.Error(w, "Subject was not found", http.StatusNotFound)
+		http.Error(w, "Task was not found", http.StatusNotFound)
 		return
 	}
 
@@ -59,7 +59,7 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(newTasks) == 0 {
-		http.Error(w, "Subjects list cannot be empty", http.StatusBadRequest)
+		http.Error(w, "Tasks list cannot be empty", http.StatusBadRequest)
 		return
 	}
 

@@ -65,7 +65,7 @@ func InsertTask(db *sql.DB, name, dueDate, status string, subjectID int64) (*mod
 func UpdateTask(db *sql.DB, id int64, name, dueDate, status string, subjectID int64) (*models.Task, error) {
 	query := `UPDATE tasks SET name = ?, due_date = ?, status = ?, subject_id = ? WHERE id = ?;`
 
-	result, err := db.Exec(query, id, name, dueDate, status, subjectID)
+	result, err := db.Exec(query, name, dueDate, status, subjectID, id)
 	if err != nil {
 		return nil, err
 	}

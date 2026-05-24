@@ -29,7 +29,6 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	subjects := []models.Subject{}
 
