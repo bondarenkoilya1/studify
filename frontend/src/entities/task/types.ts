@@ -1,7 +1,7 @@
 export type Task = {
   id: number;
   name: string;
-  due_date: string;
+  deadline: string;
   status: TaskStatus | string;
   subject_id: number;
 };

@@ -65,7 +65,7 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 
 	createdSubjects := make([]models.Task, 0, len(newTasks))
 	for _, t := range newTasks {
-		task, err := database.InsertTask(h.DB, t.Name, t.DueDate, t.Status, t.SubjectID)
+		task, err := database.InsertTask(h.DB, t.Name, t.Deadline, t.Status, t.SubjectID)
 		if err != nil {
 			http.Error(w, "Failed to insert tasks", http.StatusInternalServerError)
 			return
@@ -100,7 +100,7 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := database.UpdateTask(h.DB, id, newTask.Name, newTask.DueDate, newTask.Status, newTask.SubjectID)
+	task, err := database.UpdateTask(h.DB, id, newTask.Name, newTask.Deadline, newTask.Status, newTask.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)

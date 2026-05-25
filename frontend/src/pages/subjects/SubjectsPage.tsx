@@ -25,7 +25,7 @@ export function SubjectsPage() {
   const subjects = subjectsQuery.data ?? [];
   const tasks = tasksQuery.data ?? [];
   const openTasks = tasks.filter((task) => task.status !== "completed");
-  const nextDeadlineTask = tasks.find((task) => task.due_date);
+  const nextDeadlineTask = tasks.find((task) => task.deadline);
   const subjectStats = [
     {
       label: "Subjects",
@@ -39,7 +39,7 @@ export function SubjectsPage() {
     },
     {
       label: "Next deadline",
-      value: nextDeadlineTask?.due_date ?? "-",
+      value: nextDeadlineTask?.deadline ?? "-",
       detail: nextDeadlineTask?.name ?? "No dated tasks yet",
     },
   ];
@@ -98,7 +98,7 @@ export function SubjectsPage() {
                     const subjectOpenTasks = subjectTasks.filter(
                       (task) => task.status !== "completed",
                     );
-                    const nextTask = subjectTasks.find((task) => task.due_date);
+                    const nextTask = subjectTasks.find((task) => task.deadline);
 
                     return (
                       <article
@@ -133,7 +133,7 @@ export function SubjectsPage() {
                           <div className="flex items-center justify-between">
                             <dt className="text-slate-500">Next deadline</dt>
                             <dd className="font-semibold text-slate-950">
-                              {nextTask?.due_date ?? subject.exam_date ?? "-"}
+                              {nextTask?.deadline ?? subject.exam_date ?? "-"}
                             </dd>
                           </div>
                         </dl>

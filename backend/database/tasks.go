@@ -6,12 +6,12 @@ import (
 )
 
 func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
-	query := `SELECT id, name, due_date, status, subject_id FROM tasks WHERE id = ?;`
+	query := `SELECT id, name, deadline, status, subject_id FROM tasks WHERE id = ?;`
 
 	row := db.QueryRow(query, id)
 	t := &models.Task{}
 
-	err := row.Scan(&t.ID, &t.Name, &t.DueDate, &t.Status, &t.SubjectID)
+	err := row.Scan(&t.ID, &t.Name, &t.Deadline, &t.Status, &t.SubjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -20,7 +20,7 @@ func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
 }
 
 func GetTasks(db *sql.DB) ([]models.Task, error) {
-	query := `SELECT id, name, due_date, status, subject_id FROM tasks;`
+	query := `SELECT id, name, deadline, status, subject_id FROM tasks;`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -30,7 +30,7 @@ func GetTasks(db *sql.DB) ([]models.Task, error) {
 	tasks := []models.Task{}
 	for rows.Next() {
 		t := &models.Task{}
-		err = rows.Scan(&t.ID, &t.Name, &t.DueDate, &t.Status, &t.SubjectID)
+		err = rows.Scan(&t.ID, &t.Name, &t.Deadline, &t.Status, &t.SubjectID)
 		if err != nil {
 			return nil, err
 		}
@@ -40,10 +40,10 @@ func GetTasks(db *sql.DB) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func InsertTask(db *sql.DB, name, dueDate, status string, subjectID int64) (*models.Task, error) {
-	query := `INSERT INTO tasks (name, due_date, status, subject_id) VALUES (?, ?, ?, ?);`
+func InsertTask(db *sql.DB, name, deadline, status string, subjectID int64) (*models.Task, error) {
+	query := `INSERT INTO tasks (name, deadline, status, subject_id) VALUES (?, ?, ?, ?);`
 
-	result, err := db.Exec(query, name, dueDate, status, subjectID)
+	result, err := db.Exec(query, name, deadline, status, subjectID)
 	if err != nil {
 		return nil, err
 	}
@@ -56,16 +56,16 @@ func InsertTask(db *sql.DB, name, dueDate, status string, subjectID int64) (*mod
 	return &models.Task{
 		ID:        id,
 		Name:      name,
-		DueDate:   dueDate,
+		Deadline:  deadline,
 		Status:    status,
 		SubjectID: subjectID,
 	}, nil
 }
 
-func UpdateTask(db *sql.DB, id int64, name, dueDate, status string, subjectID int64) (*models.Task, error) {
-	query := `UPDATE tasks SET name = ?, due_date = ?, status = ?, subject_id = ? WHERE id = ?;`
+func UpdateTask(db *sql.DB, id int64, name, deadline, status string, subjectID int64) (*models.Task, error) {
+	query := `UPDATE tasks SET name = ?, deadline = ?, status = ?, subject_id = ? WHERE id = ?;`
 
-	result, err := db.Exec(query, name, dueDate, status, subjectID, id)
+	result, err := db.Exec(query, name, deadline, status, subjectID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func UpdateTask(db *sql.DB, id int64, name, dueDate, status string, subjectID in
 	return &models.Task{
 		ID:        id,
 		Name:      name,
-		DueDate:   dueDate,
+		Deadline:  deadline,
 		Status:    status,
 		SubjectID: subjectID,
 	}, nil

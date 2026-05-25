@@ -118,7 +118,7 @@ Task JSON shape:
 {
   "id": 1,
   "name": "Read chapter 4",
-  "due_date": "2026-05-30",
+  "deadline": "2026-05-30",
   "status": "in_progress",
   "subject_id": 1
 }
@@ -130,7 +130,7 @@ Task JSON shape:
 [
   {
     "name": "Read chapter 4",
-    "due_date": "2026-05-30",
+    "deadline": "2026-05-30",
     "status": "in_progress",
     "subject_id": 1
   }

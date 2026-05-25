@@ -10,7 +10,7 @@ type Subject struct {
 type Task struct {
 	ID        int64  `json:"id"`
 	Name      string `json:"name"`
-	DueDate   string `json:"due_date"`
-	Status    string `json:"status"`
 	SubjectID int64  `json:"subject_id"`
+	Deadline  string `json:"deadline"`
+	Status    string `json:"status"`
 }

@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS subjects (
 CREATE TABLE IF NOT EXISTS tasks (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
    	name TEXT NOT NULL,
-   	due_date TEXT,
+   	deadline TEXT,
    	status TEXT NOT NULL,
    	subject_id INTEGER NOT NULL,
    	

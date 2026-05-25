@@ -83,7 +83,7 @@ export function TasksPage() {
             <div className="mt-6 overflow-hidden rounded-lg border border-slate-200">
               <div className="grid grid-cols-[1fr_140px_120px] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <span>Task</span>
-                <span>Due date</span>
+                <span>Deadline</span>
                 <span>Status</span>
               </div>
 
@@ -117,7 +117,7 @@ export function TasksPage() {
                           </p>
                         </div>
                         <p className="text-sm font-medium text-slate-700">
-                          {task.due_date || "No due date"}
+                          {task.deadline || "No deadline"}
                         </p>
                         <span
                           className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(task.status)}`}

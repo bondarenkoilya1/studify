@@ -5,7 +5,7 @@ import { type Subject } from "../../../entities/subject/types.ts";
 type TaskFormState = {
   name: string;
   subject_id: number;
-  due_date: string;
+  deadline: string;
   status: TaskStatus;
 };
 
@@ -21,7 +21,7 @@ type TaskFormProps = {
 const emptyFormState: TaskFormState = {
   name: "",
   subject_id: 0,
-  due_date: "",
+  deadline: "",
   status: "not_completed",
 };
 
@@ -46,7 +46,7 @@ export function TaskForm({
     await onSubmit({
       name: form.name.trim(),
       subject_id: selectedSubjectId,
-      due_date: form.due_date,
+      deadline: form.deadline,
       status: form.status,
     });
 
@@ -116,19 +116,19 @@ export function TaskForm({
           </select>
         </label>
 
-        <label htmlFor="task-due-date" className="grid gap-2 text-sm font-medium text-slate-700">
-          Due date
+        <label htmlFor="task-deadline" className="grid gap-2 text-sm font-medium text-slate-700">
+          Deadline
           <input
-            id="task-due-date"
-            aria-label="Due date"
+            id="task-deadline"
+            aria-label="Deadline"
             required
             type="date"
-            value={form.due_date}
+            value={form.deadline}
             disabled={isSubmitting}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
-                due_date: event.target.value,
+                deadline: event.target.value,
               }))
             }
             className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
@@ -172,7 +172,7 @@ export function TaskForm({
 
       <button
         type="submit"
-        disabled={isDisabled || !form.name.trim() || !form.due_date}
+        disabled={isDisabled || !form.name.trim() || !form.deadline}
         className="mt-6 h-11 w-full rounded-md bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100"
       >
         {isSubmitting ? "Creating task..." : "Create task"}
