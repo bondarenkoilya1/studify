@@ -7,6 +7,7 @@ import (
 	"studify/handlers"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
@@ -24,7 +25,7 @@ func main() {
 	h := &handlers.Handler{DB: db}
 
 	r := chi.NewRouter()
-
+	r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{
 			"http://localhost:5173",
@@ -64,5 +65,4 @@ func main() {
 - Validate data
 - Refactor some code from subjects files
 - Write patch methods
-- Add logger middleware
 */
