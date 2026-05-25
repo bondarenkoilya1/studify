@@ -57,12 +57,14 @@ func main() {
 		r.Put("/{id}", h.ReplaceTask)
 	})
 
+	r.Route("/dashboard", func(r chi.Router) {
+		r.Get("/status", h.GetDashboardStatus)
+	})
+
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
 /* TODO:
-- Each subjects should have an array of tasks
 - Validate data
-- Refactor some code from subjects files
 - Write patch methods
 */
