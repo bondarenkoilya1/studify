@@ -22,19 +22,9 @@ func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
 func GetTasks(db *sql.DB) ([]models.Task, error) {
 	query := `SELECT id, name, deadline, status, subject_id FROM tasks;`
 
-	rows, err := db.Query(query)
+	tasks, err := scanTasks(db, query)
 	if err != nil {
 		return nil, err
-	}
-
-	tasks := []models.Task{}
-	for rows.Next() {
-		t := &models.Task{}
-		err = rows.Scan(&t.ID, &t.Name, &t.Deadline, &t.Status, &t.SubjectID)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, *t)
 	}
 
 	return tasks, nil
