@@ -1,0 +1,6 @@
+@baseUrl = http://localhost:8080
+
+### Get dashboard status
+# Run subjects.http setup and tasks.http setup first to see non-empty totals.
+GET {{baseUrl}}/dashboard/status
+Accept: application/json

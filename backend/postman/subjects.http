@@ -1,0 +1,79 @@
+@baseUrl = http://localhost:8080
+@subjectId = 1
+
+### Setup: create 8 subjects
+POST {{baseUrl}}/subjects/
+Content-Type: application/json
+Accept: application/json
+
+[
+  {
+    "name": "Mathematics",
+    "lecturer": "Dr. Elena Petrova",
+    "exam_date": "2026-06-24"
+  },
+  {
+    "name": "Physics",
+    "lecturer": "Prof. Ivan Sokolov",
+    "exam_date": "2026-06-27"
+  },
+  {
+    "name": "Computer Science",
+    "lecturer": "Dr. Maria Kuznetsova",
+    "exam_date": "2026-07-01"
+  },
+  {
+    "name": "Databases",
+    "lecturer": "Prof. Alexey Morozov",
+    "exam_date": "2026-07-04"
+  },
+  {
+    "name": "Economics",
+    "lecturer": "Dr. Olga Smirnova",
+    "exam_date": "2026-07-08"
+  },
+  {
+    "name": "Psychology",
+    "lecturer": "Dr. Pavel Volkov",
+    "exam_date": "2026-07-11"
+  },
+  {
+    "name": "Spanish",
+    "lecturer": "Sofia Garcia",
+    "exam_date": "2026-07-15"
+  },
+  {
+    "name": "Art History",
+    "lecturer": "Dr. Anna Lebedeva",
+    "exam_date": "2026-07-18"
+  }
+]
+
+### Get all subjects
+GET {{baseUrl}}/subjects/
+Accept: application/json
+
+### Get one subject
+GET {{baseUrl}}/subjects/{{subjectId}}
+Accept: application/json
+
+### Replace one subject
+PUT {{baseUrl}}/subjects/{{subjectId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Advanced Mathematics",
+  "lecturer": "Dr. Elena Petrova",
+  "exam_date": "2026-06-25"
+}
+
+### Delete one subject
+# Delete related tasks first if this subject is referenced by tasks.
+DELETE {{baseUrl}}/subjects/{{subjectId}}
+Accept: application/json
+
+### Delete all subjects
+# Delete all tasks first because tasks reference subjects.
+DELETE {{baseUrl}}/subjects/
+Accept: application/json
