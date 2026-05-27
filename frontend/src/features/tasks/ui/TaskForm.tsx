@@ -152,7 +152,7 @@ export function TaskForm({
             className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           >
             <option value="not_completed">not_completed</option>
-            <option value="in_progress">in_progress</option>
+            <option value="ongoing">ongoing</option>
             <option value="completed">completed</option>
           </select>
         </label>

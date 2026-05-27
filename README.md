@@ -119,7 +119,7 @@ Task JSON shape:
   "id": 1,
   "name": "Read chapter 4",
   "deadline": "2026-05-30",
-  "status": "in_progress",
+  "status": "ongoing",
   "subject_id": 1
 }
 ```
@@ -131,7 +131,7 @@ Task JSON shape:
   {
     "name": "Read chapter 4",
     "deadline": "2026-05-30",
-    "status": "in_progress",
+    "status": "ongoing",
     "subject_id": 1
   }
 ]
@@ -140,7 +140,7 @@ Task JSON shape:
 Supported frontend status values are:
 
 - `not_completed`
-- `in_progress`
+- `ongoing`
 - `completed`
 
 ## Local Setup

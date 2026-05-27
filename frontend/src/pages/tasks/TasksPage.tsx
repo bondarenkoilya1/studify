@@ -27,7 +27,7 @@ export function TasksPage() {
   const tasks = tasksQuery.data ?? [];
   const subjectNames = new Map(subjects.map((subject) => [subject.id, subject.name]));
   const openTasks = tasks.filter((task) => task.status !== "completed");
-  const inProgressTasks = tasks.filter((task) => task.status === "in_progress");
+  const ongoingTasks = tasks.filter((task) => task.status === "ongoing");
   const completedTasks = tasks.filter((task) => task.status === "completed");
 
   const taskStats = [
@@ -38,7 +38,7 @@ export function TasksPage() {
     },
     {
       label: "In progress",
-      value: tasksQuery.isLoading ? "..." : String(inProgressTasks.length),
+      value: tasksQuery.isLoading ? "..." : String(ongoingTasks.length),
       detail: "Currently active",
     },
     {

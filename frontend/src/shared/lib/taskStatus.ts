@@ -2,13 +2,13 @@ import { type TaskStatus } from "../../entities/task/types.ts";
 
 export const statusLabels: Record<TaskStatus, string> = {
   not_completed: "Not completed",
-  in_progress: "In progress",
+  ongoing: "Ongoing",
   completed: "Completed",
 };
 
 export const statusClasses: Record<TaskStatus, string> = {
   not_completed: "bg-slate-100 text-slate-700",
-  in_progress: "bg-blue-50 text-blue-700",
+  ongoing: "bg-blue-50 text-blue-700",
   completed: "bg-emerald-50 text-emerald-700",
 };
 

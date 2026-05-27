@@ -3,7 +3,7 @@ import { z } from "zod";
 export const taskSchema = z.object({
   name: z.string().min(1, "Task name is required"),
   deadline: z.string().optional(),
-  status: z.enum(["not_completed", "in_progress", "completed"]),
+  status: z.enum(["not_completed", "ongoing", "completed"]),
   subject_id: z.number().min(1, "Subject is required"),
 });
 

@@ -6,6 +6,6 @@ export type Task = {
   subject_id: number;
 };
 
-export type TaskStatus = "not_completed" | "in_progress" | "completed";
+export type TaskStatus = "not_completed" | "ongoing" | "completed";
 
 export type CreateTaskPayload = Omit<Task, "id">;

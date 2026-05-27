@@ -11,13 +11,13 @@ Accept: application/json
   {
     "name": "Read chapters 1-3",
     "deadline": "2026-06-03",
-    "status": "done",
+    "status": "completed",
     "subject_id": 1
   },
   {
     "name": "Solve linear algebra worksheet",
     "deadline": "2026-06-05",
-    "status": "in_progress",
+    "status": "ongoing",
     "subject_id": 1
   },
   {
@@ -29,7 +29,7 @@ Accept: application/json
   {
     "name": "Implement REST API exercise",
     "deadline": "2026-06-10",
-    "status": "in_progress",
+    "status": "ongoing",
     "subject_id": 3
   },
   {
@@ -47,13 +47,13 @@ Accept: application/json
   {
     "name": "Complete psychology reading notes",
     "deadline": "2026-06-15",
-    "status": "done",
+    "status": "completed",
     "subject_id": 6
   },
   {
     "name": "Practice Spanish speaking prompts",
     "deadline": "2026-06-17",
-    "status": "in_progress",
+    "status": "ongoing",
     "subject_id": 7
   },
   {
@@ -86,7 +86,7 @@ Accept: application/json
 {
   "name": "Read chapters 1-4",
   "deadline": "2026-06-04",
-  "status": "in_progress",
+  "status": "ongoing",
   "subject_id": 1
 }
 
