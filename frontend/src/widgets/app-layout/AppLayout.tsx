@@ -24,8 +24,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             to="/"
             className="flex items-center gap-3 text-xl font-semibold tracking-tight text-[var(--color-text)]"
           >
-            <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--color-primary)] text-sm font-bold text-white shadow-sm">
-              S
+            <span className="flex size-10 items-center justify-center overflow-hidden rounded-xl">
+              <img src="/favicon.svg" alt="" className="size-10" aria-hidden="true" />
             </span>
             Studify
           </Link>
