@@ -8,8 +8,8 @@ export const statusLabels: Record<TaskStatus, string> = {
 
 export const statusClasses: Record<TaskStatus, string> = {
   not_completed: "bg-slate-100 text-slate-700",
-  ongoing: "bg-blue-50 text-blue-700",
-  completed: "bg-emerald-50 text-emerald-700",
+  ongoing: "bg-amber-100 text-amber-800",
+  completed: "bg-green-100 text-green-700",
 };
 
 export function getStatusLabel(status: string) {

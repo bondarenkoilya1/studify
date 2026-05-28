@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { type CreateTaskPayload, type TaskStatus } from "../../../entities/task/types.ts";
 import { type Subject } from "../../../entities/subject/types.ts";
+import { Button } from "../../../shared/ui/Button.tsx";
 
 type TaskFormState = {
   name: string;
@@ -24,6 +25,9 @@ const emptyFormState: TaskFormState = {
   deadline: "",
   status: "not_completed",
 };
+
+const controlClassName =
+  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)]";
 
 export function TaskForm({
   subjects,
@@ -63,18 +67,25 @@ export function TaskForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]"
     >
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">New task</p>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">Add study task</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">
+          New task
+        </p>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight text-[var(--color-text)]">
+          Add study task
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
           Keep task details structured for the API shape you will connect later.
         </p>
       </div>
 
       <div className="mt-6 grid gap-5">
-        <label htmlFor="task-name" className="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          htmlFor="task-name"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
+        >
           Task name
           <input
             id="task-name"
@@ -84,11 +95,14 @@ export function TaskForm({
             disabled={isSubmitting}
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
             placeholder="Read chapter 4"
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            className={controlClassName}
           />
         </label>
 
-        <label htmlFor="task-subject" className="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          htmlFor="task-subject"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
+        >
           Subject
           <select
             id="task-subject"
@@ -102,7 +116,7 @@ export function TaskForm({
                 subject_id: Number(event.target.value),
               }))
             }
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            className={controlClassName}
           >
             {isSubjectsLoading ? <option value="">Loading subjects...</option> : null}
             {!isSubjectsLoading && !hasSubjects ? (
@@ -116,7 +130,10 @@ export function TaskForm({
           </select>
         </label>
 
-        <label htmlFor="task-deadline" className="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          htmlFor="task-deadline"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
+        >
           Deadline
           <input
             id="task-deadline"
@@ -131,11 +148,14 @@ export function TaskForm({
                 deadline: event.target.value,
               }))
             }
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            className={controlClassName}
           />
         </label>
 
-        <label htmlFor="task-status" className="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          htmlFor="task-status"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
+        >
           Status
           <select
             id="task-status"
@@ -149,7 +169,7 @@ export function TaskForm({
                 status: event.target.value as TaskStatus,
               }))
             }
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            className={controlClassName}
           >
             <option value="not_completed">not_completed</option>
             <option value="ongoing">ongoing</option>
@@ -159,24 +179,24 @@ export function TaskForm({
       </div>
 
       {subjectsError ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-4 rounded-xl border border-red-200 bg-[var(--color-danger-soft)] px-3 py-2 text-sm text-red-700">
           Failed to load subjects: {subjectsError.message}
         </p>
       ) : null}
 
       {submitError ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-4 rounded-xl border border-red-200 bg-[var(--color-danger-soft)] px-3 py-2 text-sm text-red-700">
           Failed to create task: {submitError.message}
         </p>
       ) : null}
 
-      <button
+      <Button
         type="submit"
         disabled={isDisabled || !form.name.trim() || !form.deadline}
-        className="mt-6 h-11 w-full rounded-md bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100"
+        className="mt-6 w-full"
       >
         {isSubmitting ? "Creating task..." : "Create task"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { type CreateSubjectPayload } from "../../../entities/subject/types.ts";
+import { Button } from "../../../shared/ui/Button.tsx";
 
 type SubjectFormProps = {
   isSubmitting?: boolean;
@@ -12,6 +13,9 @@ const emptyFormState: CreateSubjectPayload = {
   lecturer: "",
   exam_date: "",
 };
+
+const controlClassName =
+  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)]";
 
 export function SubjectForm({
   isSubmitting = false,
@@ -39,18 +43,25 @@ export function SubjectForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
+      className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 shadow-[var(--shadow-card)]"
     >
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">New subject</p>
-        <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950">Add subject</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">
+          New subject
+        </p>
+        <h2 className="mt-2 text-xl font-semibold tracking-tight text-[var(--color-text)]">
+          Add subject
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
           Create a subject first, then connect study tasks to it.
         </p>
       </div>
 
       <div className="mt-6 grid gap-5">
-        <label htmlFor="subject-name" className="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          htmlFor="subject-name"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
+        >
           Subject name
           <input
             id="subject-name"
@@ -60,11 +71,14 @@ export function SubjectForm({
             disabled={isSubmitting}
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
             placeholder="Databases"
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            className={controlClassName}
           />
         </label>
 
-        <label htmlFor="subject-lecturer" className="grid gap-2 text-sm font-medium text-slate-700">
+        <label
+          htmlFor="subject-lecturer"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
+        >
           Lecturer
           <input
             id="subject-lecturer"
@@ -78,13 +92,13 @@ export function SubjectForm({
               }))
             }
             placeholder="Dr. Smith"
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            className={controlClassName}
           />
         </label>
 
         <label
           htmlFor="subject-exam-date"
-          className="grid gap-2 text-sm font-medium text-slate-700"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
         >
           Exam date
           <input
@@ -99,24 +113,20 @@ export function SubjectForm({
                 exam_date: event.target.value,
               }))
             }
-            className="h-11 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            className={controlClassName}
           />
         </label>
       </div>
 
       {submitError ? (
-        <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p className="mt-4 rounded-xl border border-red-200 bg-[var(--color-danger-soft)] px-3 py-2 text-sm text-red-700">
           Failed to create subject: {submitError.message}
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={isSubmitting || !form.name.trim()}
-        className="mt-6 h-11 w-full rounded-md bg-blue-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-300"
-      >
+      <Button type="submit" disabled={isSubmitting || !form.name.trim()} className="mt-6 w-full">
         {isSubmitting ? "Creating subject..." : "Create subject"}
-      </button>
+      </Button>
     </form>
   );
 }

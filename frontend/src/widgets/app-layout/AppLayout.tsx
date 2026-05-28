@@ -7,28 +7,33 @@ type AppLayoutProps = {
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    "rounded-md px-3 py-2 transition hover:bg-slate-100 hover:text-slate-950",
-    isActive ? "bg-slate-100 text-slate-950" : "",
+    "rounded-xl px-4 py-2 transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-text)]",
+    isActive
+      ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
+      : "text-[var(--color-text-muted)]",
   ]
     .filter(Boolean)
     .join(" ");
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="min-h-screen bg-[#f4f6f8]">
-      <header className="border-b border-slate-200/80 bg-white/85 backdrop-blur">
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <header className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-white/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <Link
             to="/"
-            className="flex items-center gap-3 text-xl font-semibold tracking-tight text-slate-950"
+            className="flex items-center gap-3 text-xl font-semibold tracking-tight text-[var(--color-text)]"
           >
-            <span className="flex size-9 items-center justify-center rounded-lg bg-blue-700 text-sm font-bold text-white shadow-sm">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-[var(--color-primary)] text-sm font-bold text-white shadow-sm">
               S
             </span>
             Studify
           </Link>
 
-          <nav className="flex flex-wrap items-center gap-1 text-sm font-medium text-slate-600">
+          <nav className="flex flex-wrap items-center gap-1 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm font-medium shadow-[var(--shadow-card)]">
+            <NavLink to="/dashboard" className={navLinkClass}>
+              Dashboard
+            </NavLink>
             <NavLink to="/tasks" className={navLinkClass}>
               Tasks
             </NavLink>
