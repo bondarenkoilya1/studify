@@ -2,7 +2,7 @@
 
 Studify is a focused study workspace for students who want their coursework to
 feel organized instead of scattered across notebooks, chats, calendars, and
-random todo lists.
+random task lists.
 
 The app brings subjects, study tasks, deadlines, and progress tracking into one
 clean interface. It is built for university students and junior developers who
@@ -83,7 +83,7 @@ Dashboard JSON shape:
   "total_tasks": 8,
   "total_completed_tasks": 2,
   "total_ongoing_tasks": 4,
-  "total_todo_tasks": 2,
+  "total_not_completed_tasks": 2,
   "completion_percent": 25,
   "nearest_deadline_task": {
     "id": 5,

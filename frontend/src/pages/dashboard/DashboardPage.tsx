@@ -82,9 +82,9 @@ export function DashboardPage() {
                   </p>
                 </div>
                 <div className="rounded-xl bg-[var(--color-primary-soft)] p-3">
-                  <p className="text-xs font-medium text-[var(--color-primary)]">Todo</p>
+                  <p className="text-xs font-medium text-[var(--color-primary)]">Not completed</p>
                   <p className="mt-1 text-2xl font-semibold text-[var(--color-text)]">
-                    {dashboardQuery.isLoading ? "..." : (dashboard?.total_todo_tasks ?? 0)}
+                    {dashboardQuery.isLoading ? "..." : (dashboard?.total_not_completed_tasks ?? 0)}
                   </p>
                 </div>
               </div>

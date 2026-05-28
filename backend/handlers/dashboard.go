@@ -14,7 +14,7 @@ type DashboardStatus struct {
 	TotalTasks          int64         `json:"total_tasks"`
 	TotalCompletedTasks int64         `json:"total_completed_tasks"`
 	TotalOngoingTasks   int64         `json:"total_ongoing_tasks"`
-	TotalTodoTasks      int64         `json:"total_todo_tasks"`
+	TotalNotCompleted   int64         `json:"total_not_completed_tasks"`
 	CompletionPercent   float64       `json:"completion_percent"`
 	NearestDeadlineTask *models.Task  `json:"nearest_deadline_task"`
 	OverdueTasks        []models.Task `json:"overdue_tasks"`
@@ -46,9 +46,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalTodoTasks, err := database.GetTodoTasksCount(h.DB)
+	totalNotCompletedTasks, err := database.GetNotCompletedTasksCount(h.DB)
 	if err != nil {
-		http.Error(w, "Failed to get completed tasks count", http.StatusInternalServerError)
+		http.Error(w, "Failed to get not completed tasks count", http.StatusInternalServerError)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 		TotalTasks:          totalTasks,
 		TotalCompletedTasks: totalCompletedTasks,
 		TotalOngoingTasks:   totalOngoingTasks,
-		TotalTodoTasks:      totalTodoTasks,
+		TotalNotCompleted:   totalNotCompletedTasks,
 		CompletionPercent:   completionPercent,
 		NearestDeadlineTask: nearestDeadlineTask,
 		OverdueTasks:        overdueTasks,

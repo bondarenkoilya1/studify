@@ -62,10 +62,10 @@ func GetOngoingTasksCount(db *sql.DB) (int64, error) {
 	return count, nil
 }
 
-// GetTodoTasksCount returns the number of todo tasks.
-// If there is no todo tasks, it returns 0, nil
-func GetTodoTasksCount(db *sql.DB) (int64, error) {
-	query := `SELECT COUNT (*) FROM tasks WHERE status = 'todo';`
+// GetNotCompletedTasksCount returns the number of not completed tasks.
+// If there are no not completed tasks, it returns 0, nil.
+func GetNotCompletedTasksCount(db *sql.DB) (int64, error) {
+	query := `SELECT COUNT (*) FROM tasks WHERE status = 'not_completed';`
 
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
