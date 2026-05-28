@@ -45,6 +45,7 @@ func main() {
 		r.Get("/{id}", h.GetSubject)
 		r.Delete("/{id}", h.DeleteSubject)
 		r.Put("/{id}", h.ReplaceSubject)
+		r.Patch("/{id}", h.UpdateSubject)
 	})
 
 	r.Route("/tasks", func(r chi.Router) {

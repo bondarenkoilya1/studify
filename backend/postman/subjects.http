@@ -68,6 +68,15 @@ Accept: application/json
   "exam_date": "2026-06-25"
 }
 
+### Update one subject
+PATCH {{baseUrl}}/subjects/{{subjectId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "lecturer": "Prof. Elena Petrova"
+}
+
 ### Delete one subject
 # Delete related tasks first if this subject is referenced by tasks.
 DELETE {{baseUrl}}/subjects/{{subjectId}}

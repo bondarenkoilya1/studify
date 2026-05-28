@@ -126,6 +126,59 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	var req *models.UpdateSubjectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == nil && req.Lecturer == nil && req.ExamDate == nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	id, err := GetID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	subject, err := database.GetSubjectByID(h.DB, id)
+	if err != nil {
+		http.Error(w, "Subject not found", http.StatusNotFound)
+		return
+	}
+
+	if req.Name != nil {
+		subject.Name = *req.Name
+	}
+
+	if req.Lecturer != nil {
+		subject.Lecturer = *req.Lecturer
+	}
+
+	if req.ExamDate != nil {
+		subject.ExamDate = *req.ExamDate
+	}
+
+	if err = database.UpdateSubject(h.DB, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {
+		http.Error(w, "Failed to update subject", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(subject); err != nil {
+		http.Error(w, "Failed to encode subject as JSON", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *Handler) DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 	err := database.DeleteSubjects(h.DB)
 	if err != nil {

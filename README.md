@@ -106,6 +106,7 @@ POST   /subjects/
 DELETE /subjects/
 GET    /subjects/{id}
 PUT    /subjects/{id}
+PATCH  /subjects/{id}
 DELETE /subjects/{id}
 ```
 
@@ -130,6 +131,15 @@ Subject JSON shape:
     "exam_date": "2026-06-10"
   }
 ]
+```
+
+`PATCH /subjects/{id}` accepts a partial subject object. Send only the fields
+that should change:
+
+```json
+{
+  "lecturer": "Prof. Elena Petrova"
+}
 ```
 
 ### Tasks
