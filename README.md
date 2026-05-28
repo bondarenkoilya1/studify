@@ -19,10 +19,12 @@ to it, set a deadline, choose a status, and keep moving without extra noise.
 - Create tasks connected to a subject through `subject_id`.
 - Track task deadline and status.
 - View subject-level task counts.
+- View dashboard totals, completion percentage, nearest deadline, and overdue
+  tasks.
 - Use a calm, minimal React interface backed by a Go API.
 
-The current version focuses on the most important loop first: organize subjects
-and manage the tasks connected to them.
+The current version focuses on the most important loop first: organize subjects,
+manage the tasks connected to them, and keep the main study metrics visible.
 
 ## Stack
 
@@ -50,14 +52,14 @@ and manage the tasks connected to them.
 .
 ├── backend/
 │   ├── database/      # SQLite connection and query functions
-│   ├── handlers/      # HTTP handlers for subjects and tasks
+│   ├── handlers/      # HTTP handlers for subjects, tasks, and dashboard stats
 │   ├── models/        # API/data models
 │   └── main.go        # Router and server entrypoint
 ├── frontend/
 │   ├── src/app/       # App routes and providers
 │   ├── src/entities/  # Shared TypeScript entity types
 │   ├── src/features/  # Feature APIs and UI forms
-│   ├── src/pages/     # Tasks and subjects pages
+│   ├── src/pages/     # Home, tasks, and subjects pages
 │   ├── src/shared/    # API client, config, helpers, UI
 │   └── src/widgets/   # App layout
 └── preview.png
@@ -66,6 +68,35 @@ and manage the tasks connected to them.
 ## API Overview
 
 The backend runs on port `8080` by default.
+
+### Dashboard
+
+```http
+GET /dashboard
+```
+
+Dashboard JSON shape:
+
+```json
+{
+  "total_subjects": 3,
+  "total_tasks": 8,
+  "total_completed_tasks": 2,
+  "total_ongoing_tasks": 4,
+  "total_todo_tasks": 2,
+  "completion_percent": 25,
+  "nearest_deadline_task": {
+    "id": 5,
+    "name": "Prepare lab report",
+    "deadline": "2026-06-01",
+    "status": "ongoing",
+    "subject_id": 1
+  },
+  "overdue_tasks": []
+}
+```
+
+If there is no upcoming unfinished task, `nearest_deadline_task` is `null`.
 
 ### Subjects
 
@@ -181,8 +212,8 @@ Set the backend URL:
 VITE_API_BASE_URL=http://localhost:8080
 ```
 
-The frontend calls the backend directly. If the browser blocks requests, enable
-CORS in the Go backend for the frontend origin.
+The frontend calls the backend directly. The Go backend is configured to allow
+local Vite origins such as `http://localhost:5173`.
 
 ### 3. Start the Frontend
 
