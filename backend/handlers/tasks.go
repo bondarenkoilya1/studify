@@ -118,6 +118,64 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	var req *models.UpdateTaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == nil && req.Deadline == nil && req.Status == nil && req.SubjectID == nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	id, err := GetID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	task, err := database.GetTaskByID(h.DB, id)
+	if err != nil {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	}
+
+	if req.Name != nil {
+		task.Name = *req.Name
+	}
+
+	if req.Status != nil {
+		task.Status = *req.Status
+	}
+
+	if req.SubjectID != nil {
+		task.SubjectID = *req.SubjectID
+	}
+
+	if req.Deadline != nil {
+		task.Deadline = *req.Deadline
+	}
+
+	updatedTask, err := database.UpdateTask(h.DB, id, task.Name, task.Deadline, task.Status, task.SubjectID)
+	if err != nil {
+		http.Error(w, "Failed to update task", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(updatedTask); err != nil {
+		http.Error(w, "Failed to encode task as JSON", http.StatusInternalServerError)
+		return
+	}
+}
+
 func (h *Handler) DeleteTasks(w http.ResponseWriter, _ *http.Request) {
 	err := database.DeleteTasks(h.DB)
 	if err != nil {

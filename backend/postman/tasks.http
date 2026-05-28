@@ -84,10 +84,20 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "name": "Read chapters 1-4",
+  "name": "Read chapters 1-47",
   "deadline": "2026-06-04",
   "status": "ongoing",
   "subject_id": 1
+}
+
+### Update one task
+# Requires a PATCH route wired to handlers.UpdateTask.
+PATCH {{baseUrl}}/tasks/{{taskId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "status": "completed"
 }
 
 ### Delete one task
