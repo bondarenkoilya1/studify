@@ -34,32 +34,6 @@ func GetTasksCount(db *sql.DB) (int64, error) {
 	return count, nil
 }
 
-// GetNearestDeadlineTask returns closest unfinished task.
-// If there is no task, it returns nil, nil
-func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
-	query := `
-SELECT id, name, deadline, status, subject_id 
-FROM tasks 
-WHERE status <> 'completed' 
-	AND deadline >= CURRENT_TIMESTAMP
-ORDER BY deadline 
-LIMIT 1;
-`
-
-	var task models.Task
-
-	err := db.QueryRow(query).Scan(&task.ID, &task.Name, &task.Deadline, &task.Status, &task.SubjectID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return &task, nil
-}
-
 // GetCompletedTasksCount returns the number of completed tasks.
 // If there is no completed tasks, it returns 0, nil
 func GetCompletedTasksCount(db *sql.DB) (int64, error) {
@@ -119,4 +93,30 @@ ORDER BY deadline DESC;
 	}
 
 	return tasks, nil
+}
+
+// GetNearestDeadlineTask returns closest unfinished task.
+// If there is no task, it returns nil, nil
+func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
+	query := `
+SELECT id, name, deadline, status, subject_id 
+FROM tasks 
+WHERE status <> 'completed' 
+	AND deadline >= CURRENT_TIMESTAMP
+ORDER BY deadline 
+LIMIT 1;
+`
+
+	var task models.Task
+
+	err := db.QueryRow(query).Scan(&task.ID, &task.Name, &task.Deadline, &task.Status, &task.SubjectID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	return &task, nil
 }

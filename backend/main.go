@@ -57,9 +57,7 @@ func main() {
 		r.Put("/{id}", h.ReplaceTask)
 	})
 
-	r.Route("/dashboard", func(r chi.Router) {
-		r.Get("/status", h.GetDashboardStatus)
-	})
+	r.Get("/dashboard", h.GetDashboardStatus)
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
