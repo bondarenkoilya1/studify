@@ -7,7 +7,7 @@ import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
-import { statusLabels } from "../../shared/lib/taskStatus.ts";
+import { getStatusClass, statusLabels } from "../../shared/lib/taskStatus.ts";
 import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
 const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
@@ -146,7 +146,7 @@ export function TasksPage() {
                           onChange={(event) =>
                             handleStatusChange(task.id, event.target.value as TaskStatus)
                           }
-                          className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-[var(--color-text)] shadow-sm outline-none transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100"
+                          className={`h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold shadow-sm outline-none ring-1 ring-[var(--color-border)] transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${getStatusClass(task.status)}`}
                         >
                           {taskStatusOptions.map((status) => (
                             <option key={status} value={status}>
