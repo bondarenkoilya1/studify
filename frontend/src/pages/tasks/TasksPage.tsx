@@ -7,7 +7,7 @@ import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
-import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
+import { formatOptionalDate, isOverdueDate } from "../../shared/lib/dateFormat.ts";
 import { getStatusClass, statusLabels } from "../../shared/lib/taskStatus.ts";
 import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
@@ -121,42 +121,69 @@ export function TasksPage() {
                 ) : null}
 
                 {!tasksQuery.isLoading && !tasksQuery.error
-                  ? tasks.map((task) => (
-                      <article
-                        key={task.id}
-                        className="grid gap-3 px-4 py-4 transition hover:bg-slate-50 sm:grid-cols-[1fr_140px_160px] sm:items-center"
-                      >
-                        <div>
-                          <h3 className="text-sm font-semibold text-[var(--color-text)]">
-                            {task.name}
-                          </h3>
-                          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-                            {subjectNames.get(task.subject_id) ?? `Subject ${task.subject_id}`}
-                          </p>
-                        </div>
-                        <p className="text-sm font-medium text-[var(--color-text-muted)]">
-                          {formatOptionalDate(task.deadline, "No deadline")}
-                        </p>
-                        <label className="sr-only" htmlFor={`task-status-${task.id}`}>
-                          Update status for {task.name}
-                        </label>
-                        <select
-                          id={`task-status-${task.id}`}
-                          value={task.status}
-                          disabled={updateTaskMutation.isPending}
-                          onChange={(event) =>
-                            handleStatusChange(task.id, event.target.value as TaskStatus)
-                          }
-                          className={`h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold shadow-sm outline-none ring-1 ring-[var(--color-border)] transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${getStatusClass(task.status)}`}
+                  ? tasks.map((task) => {
+                      const isOverdue = task.status !== "completed" && isOverdueDate(task.deadline);
+
+                      return (
+                        <article
+                          key={task.id}
+                          className={`grid gap-3 border-l-4 px-4 py-4 transition sm:grid-cols-[1fr_140px_160px] sm:items-center ${
+                            isOverdue
+                              ? "border-l-red-500 bg-red-50/80 hover:bg-red-50"
+                              : "border-l-transparent hover:bg-slate-50"
+                          }`}
                         >
-                          {taskStatusOptions.map((status) => (
-                            <option key={status} value={status}>
-                              {statusLabels[status]}
-                            </option>
-                          ))}
-                        </select>
-                      </article>
-                    ))
+                          <div>
+                            <h3
+                              className={`text-sm font-semibold ${
+                                isOverdue ? "text-red-900" : "text-[var(--color-text)]"
+                              }`}
+                            >
+                              {task.name}
+                            </h3>
+                            <p
+                              className={`mt-1 text-sm ${
+                                isOverdue ? "text-red-700" : "text-[var(--color-text-muted)]"
+                              }`}
+                            >
+                              {subjectNames.get(task.subject_id) ?? `Subject ${task.subject_id}`}
+                            </p>
+                          </div>
+                          <div className="grid gap-1">
+                            <p
+                              className={`text-sm font-semibold ${
+                                isOverdue ? "text-red-700" : "text-[var(--color-text-muted)]"
+                              }`}
+                            >
+                              {formatOptionalDate(task.deadline, "No deadline")}
+                            </p>
+                            {isOverdue ? (
+                              <span className="w-fit rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-red-200">
+                                Overdue
+                              </span>
+                            ) : null}
+                          </div>
+                          <label className="sr-only" htmlFor={`task-status-${task.id}`}>
+                            Update status for {task.name}
+                          </label>
+                          <select
+                            id={`task-status-${task.id}`}
+                            value={task.status}
+                            disabled={updateTaskMutation.isPending}
+                            onChange={(event) =>
+                              handleStatusChange(task.id, event.target.value as TaskStatus)
+                            }
+                            className={`h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold shadow-sm outline-none ring-1 ring-[var(--color-border)] transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${getStatusClass(task.status)}`}
+                          >
+                            {taskStatusOptions.map((status) => (
+                              <option key={status} value={status}>
+                                {statusLabels[status]}
+                              </option>
+                            ))}
+                          </select>
+                        </article>
+                      );
+                    })
                   : null}
               </div>
             </div>
