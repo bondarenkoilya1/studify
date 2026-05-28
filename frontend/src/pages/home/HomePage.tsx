@@ -1,5 +1,5 @@
-import { TasksPage } from "../tasks/TasksPage.tsx";
+import { DashboardPage } from "../dashboard/DashboardPage.tsx";
 
 export function HomePage() {
-  return <TasksPage />;
+  return <DashboardPage />;
 }
