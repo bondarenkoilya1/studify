@@ -6,6 +6,7 @@ import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
 import { StatusBadge } from "../../shared/ui/StatusBadge.tsx";
 import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
+import { getStatusLabel } from "../../shared/lib/taskStatus.ts";
 import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
 function formatPercent(value: number) {
@@ -83,7 +84,7 @@ export function DashboardPage() {
                   </p>
                 </div>
                 <div className="rounded-xl bg-[var(--color-primary-soft)] p-3">
-                  <p className="text-xs font-medium text-[var(--color-primary)]">Not completed</p>
+                  <p className="text-xs font-medium text-[var(--color-primary)]">Not Completed</p>
                   <p className="mt-1 text-2xl font-semibold text-[var(--color-text)]">
                     {dashboardQuery.isLoading ? "..." : (dashboard?.total_not_completed_tasks ?? 0)}
                   </p>
@@ -171,7 +172,7 @@ export function DashboardPage() {
                     <div className="rounded-xl bg-[var(--color-surface-muted)] p-3">
                       <dt className="text-[var(--color-text-muted)]">Status</dt>
                       <dd className="mt-1 font-semibold text-[var(--color-text)]">
-                        {nearestTask.status.replace("_", " ")}
+                        {getStatusLabel(nearestTask.status)}
                       </dd>
                     </div>
                   </dl>

@@ -1,7 +1,7 @@
 import { type TaskStatus } from "../../entities/task/types.ts";
 
 export const statusLabels: Record<TaskStatus, string> = {
-  not_completed: "Not completed",
+  not_completed: "Not Completed",
   ongoing: "Ongoing",
   completed: "Completed",
 };

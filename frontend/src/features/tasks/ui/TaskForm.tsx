@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { type CreateTaskPayload, type TaskStatus } from "../../../entities/task/types.ts";
 import { type Subject } from "../../../entities/subject/types.ts";
+import { statusLabels } from "../../../shared/lib/taskStatus.ts";
 import { Button } from "../../../shared/ui/Button.tsx";
 
 type TaskFormState = {
@@ -25,6 +26,8 @@ const emptyFormState: TaskFormState = {
   deadline: "",
   status: "not_completed",
 };
+
+const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
 
 const controlClassName =
   "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)]";
@@ -171,9 +174,11 @@ export function TaskForm({
             }
             className={controlClassName}
           >
-            <option value="not_completed">not_completed</option>
-            <option value="ongoing">ongoing</option>
-            <option value="completed">completed</option>
+            {taskStatusOptions.map((status) => (
+              <option key={status} value={status}>
+                {statusLabels[status]}
+              </option>
+            ))}
           </select>
         </label>
       </div>
