@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TaskForm } from "../../features/tasks/ui/TaskForm.tsx";
 import { getSubjects } from "../../features/subjects/api/subjects-api.ts";
-import { createTask, getTasks } from "../../features/tasks/api/tasks-api.ts";
-import { type CreateTaskPayload } from "../../entities/task/types.ts";
+import { createTask, getTasks, updateTask } from "../../features/tasks/api/tasks-api.ts";
+import { type CreateTaskPayload, type TaskStatus } from "../../entities/task/types.ts";
 import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
-import { StatusBadge } from "../../shared/ui/StatusBadge.tsx";
+import { statusLabels } from "../../shared/lib/taskStatus.ts";
 import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
+
+const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
 
 export function TasksPage() {
   const queryClient = useQueryClient();
@@ -22,6 +24,10 @@ export function TasksPage() {
   });
   const createTaskMutation = useMutation({
     mutationFn: createTask,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+  const updateTaskMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => updateTask(id, { status }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
@@ -60,6 +66,10 @@ export function TasksPage() {
     await createTaskMutation.mutateAsync(task);
   }
 
+  async function handleStatusChange(id: number, status: TaskStatus) {
+    await updateTaskMutation.mutateAsync({ id, status });
+  }
+
   return (
     <AppLayout>
       <section className="grid gap-8">
@@ -84,7 +94,7 @@ export function TasksPage() {
             />
 
             <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)]">
-              <div className="grid grid-cols-[1fr_140px_120px] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+              <div className="grid grid-cols-[1fr_140px_160px] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 <span>Task</span>
                 <span>Deadline</span>
                 <span>Status</span>
@@ -113,7 +123,7 @@ export function TasksPage() {
                   ? tasks.map((task) => (
                       <article
                         key={task.id}
-                        className="grid gap-3 px-4 py-4 transition hover:bg-slate-50 sm:grid-cols-[1fr_140px_120px] sm:items-center"
+                        className="grid gap-3 px-4 py-4 transition hover:bg-slate-50 sm:grid-cols-[1fr_140px_160px] sm:items-center"
                       >
                         <div>
                           <h3 className="text-sm font-semibold text-[var(--color-text)]">
@@ -126,7 +136,24 @@ export function TasksPage() {
                         <p className="text-sm font-medium text-[var(--color-text-muted)]">
                           {task.deadline || "No deadline"}
                         </p>
-                        <StatusBadge status={task.status} />
+                        <label className="sr-only" htmlFor={`task-status-${task.id}`}>
+                          Update status for {task.name}
+                        </label>
+                        <select
+                          id={`task-status-${task.id}`}
+                          value={task.status}
+                          disabled={updateTaskMutation.isPending}
+                          onChange={(event) =>
+                            handleStatusChange(task.id, event.target.value as TaskStatus)
+                          }
+                          className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-[var(--color-text)] shadow-sm outline-none transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100"
+                        >
+                          {taskStatusOptions.map((status) => (
+                            <option key={status} value={status}>
+                              {statusLabels[status]}
+                            </option>
+                          ))}
+                        </select>
                       </article>
                     ))
                   : null}

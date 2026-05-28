@@ -6,3 +6,4 @@ export type Subject = {
 };
 
 export type CreateSubjectPayload = Omit<Subject, "id">;
+export type UpdateSubjectPayload = Partial<CreateSubjectPayload>;

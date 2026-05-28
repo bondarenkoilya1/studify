@@ -31,7 +31,7 @@ func main() {
 			"http://localhost:5173",
 			"http://localhost:3000",
 		},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
 		AllowCredentials: false,
 		MaxAge:           300,
@@ -56,6 +56,7 @@ func main() {
 		r.Get("/{id}", h.GetTask)
 		r.Delete("/{id}", h.DeleteTask)
 		r.Put("/{id}", h.ReplaceTask)
+		r.Patch("/{id}", h.UpdateTask)
 	})
 
 	r.Get("/dashboard", h.GetDashboardStatus)

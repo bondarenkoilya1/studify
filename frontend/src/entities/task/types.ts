@@ -9,3 +9,4 @@ export type Task = {
 export type TaskStatus = "not_completed" | "ongoing" | "completed";
 
 export type CreateTaskPayload = Omit<Task, "id">;
+export type UpdateTaskPayload = Partial<CreateTaskPayload>;
