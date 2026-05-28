@@ -5,6 +5,7 @@ import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
 import { StatusBadge } from "../../shared/ui/StatusBadge.tsx";
+import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
 import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
 function formatPercent(value: number) {
@@ -152,7 +153,7 @@ export function DashboardPage() {
                     <div className="rounded-xl bg-[var(--color-surface-muted)] p-3">
                       <dt className="text-[var(--color-text-muted)]">Deadline</dt>
                       <dd className="mt-1 font-semibold text-[var(--color-text)]">
-                        {nearestTask.deadline || "No deadline"}
+                        {formatOptionalDate(nearestTask.deadline, "No deadline")}
                       </dd>
                     </div>
                     <div className="rounded-xl bg-[var(--color-surface-muted)] p-3">
@@ -233,7 +234,7 @@ export function DashboardPage() {
                             </p>
                           </div>
                           <p className="text-sm font-medium text-[var(--color-text-muted)]">
-                            {task.deadline || "No deadline"}
+                            {formatOptionalDate(task.deadline, "No deadline")}
                           </p>
                           <div className="flex items-center">
                             <StatusBadge status={task.status} tone="overdue" />

@@ -7,6 +7,7 @@ import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
+import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
 import { getStatusClass, statusLabels } from "../../shared/lib/taskStatus.ts";
 import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
@@ -134,7 +135,7 @@ export function TasksPage() {
                           </p>
                         </div>
                         <p className="text-sm font-medium text-[var(--color-text-muted)]">
-                          {task.deadline || "No deadline"}
+                          {formatOptionalDate(task.deadline, "No deadline")}
                         </p>
                         <label className="sr-only" htmlFor={`task-status-${task.id}`}>
                           Update status for {task.name}

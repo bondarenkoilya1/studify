@@ -11,6 +11,7 @@ import {
   type CreateSubjectPayload,
   type UpdateSubjectPayload,
 } from "../../entities/subject/types.ts";
+import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
 import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
@@ -67,7 +68,7 @@ export function SubjectsPage() {
     },
     {
       label: "Next deadline",
-      value: nextDeadlineTask?.deadline ?? "-",
+      value: formatOptionalDate(nextDeadlineTask?.deadline ?? "", "-"),
       detail: nextDeadlineTask?.name ?? "No dated tasks yet",
       icon: "D",
       iconClassName: "bg-amber-100 text-amber-800",
@@ -201,7 +202,7 @@ export function SubjectsPage() {
                           <div className="flex items-center justify-between">
                             <dt className="text-[var(--color-text-muted)]">Next deadline</dt>
                             <dd className="font-semibold text-[var(--color-text)]">
-                              {nextTask?.deadline ?? subject.exam_date ?? "-"}
+                              {formatOptionalDate(nextTask?.deadline ?? subject.exam_date, "-")}
                             </dd>
                           </div>
                         </dl>
