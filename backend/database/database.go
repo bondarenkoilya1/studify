@@ -27,12 +27,13 @@ func OpenDB() (*sql.DB, error) {
 
 func CreateTables(db *sql.DB) error {
 	query := `
-CREATE TABLE IF NOT EXISTS subjects (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-   	name TEXT NOT NULL,
-   	lecturer TEXT,
-   	exam_date TEXT
-);`
+	CREATE TABLE IF NOT EXISTS subjects (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		lecturer TEXT,
+		exam_date TEXT
+	);
+`
 
 	_, err := db.Exec(query)
 	if err != nil {
@@ -40,15 +41,16 @@ CREATE TABLE IF NOT EXISTS subjects (
 	}
 
 	query = `
-CREATE TABLE IF NOT EXISTS tasks (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-   	name TEXT NOT NULL,
-   	deadline TEXT,
-   	status TEXT NOT NULL,
-   	subject_id INTEGER NOT NULL,
-   	
-   	FOREIGN KEY (subject_id) REFERENCES subjects(id)
-);`
+	CREATE TABLE IF NOT EXISTS tasks (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		deadline TEXT,
+		status TEXT NOT NULL,
+		subject_id INTEGER NOT NULL,
+
+		FOREIGN KEY (subject_id) REFERENCES subjects(id)
+	);
+`
 
 	_, err = db.Exec(query)
 	return err

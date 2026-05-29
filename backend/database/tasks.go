@@ -6,7 +6,16 @@ import (
 )
 
 func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
-	query := `SELECT id, name, deadline, status, subject_id FROM tasks WHERE id = ?;`
+	query := `
+	SELECT
+		id,
+		name,
+		deadline,
+		status,
+		subject_id
+	FROM tasks
+	WHERE id = ?;
+`
 
 	row := db.QueryRow(query, id)
 	t := &models.Task{}
@@ -20,7 +29,15 @@ func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
 }
 
 func GetTasks(db *sql.DB) ([]models.Task, error) {
-	query := `SELECT id, name, deadline, status, subject_id FROM tasks;`
+	query := `
+	SELECT
+		id,
+		name,
+		deadline,
+		status,
+		subject_id
+	FROM tasks;
+`
 
 	tasks, err := scanTasks(db, query)
 	if err != nil {
@@ -31,7 +48,15 @@ func GetTasks(db *sql.DB) ([]models.Task, error) {
 }
 
 func InsertTask(db *sql.DB, name, deadline, status string, subjectID int64) (*models.Task, error) {
-	query := `INSERT INTO tasks (name, deadline, status, subject_id) VALUES (?, ?, ?, ?);`
+	query := `
+	INSERT INTO tasks (
+		name,
+		deadline,
+		status,
+		subject_id
+	)
+	VALUES (?, ?, ?, ?);
+`
 
 	result, err := db.Exec(query, name, deadline, status, subjectID)
 	if err != nil {
@@ -53,7 +78,15 @@ func InsertTask(db *sql.DB, name, deadline, status string, subjectID int64) (*mo
 }
 
 func UpdateTask(db *sql.DB, id int64, name, deadline, status string, subjectID int64) (*models.Task, error) {
-	query := `UPDATE tasks SET name = ?, deadline = ?, status = ?, subject_id = ? WHERE id = ?;`
+	query := `
+	UPDATE tasks
+	SET
+		name = ?,
+		deadline = ?,
+		status = ?,
+		subject_id = ?
+	WHERE id = ?;
+`
 
 	result, err := db.Exec(query, name, deadline, status, subjectID, id)
 	if err != nil {
@@ -79,14 +112,19 @@ func UpdateTask(db *sql.DB, id int64, name, deadline, status string, subjectID i
 }
 
 func DeleteTasks(db *sql.DB) error {
-	query := `DELETE FROM tasks;`
+	query := `
+	DELETE FROM tasks;
+`
 
 	_, err := db.Exec(query)
 	return err
 }
 
 func DeleteTask(db *sql.DB, id int64) error {
-	query := `DELETE FROM tasks WHERE id = ?`
+	query := `
+	DELETE FROM tasks
+	WHERE id = ?;
+`
 
 	result, err := db.Exec(query, id)
 	if err != nil {

@@ -6,10 +6,15 @@ import (
 )
 
 func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
-	query := `SELECT id, name, COALESCE(lecturer, ''), COALESCE(exam_date, '') 
-FROM subjects 
-WHERE id = ?;
-	`
+	query := `
+	SELECT
+		id,
+		name,
+		COALESCE(lecturer, ''),
+		COALESCE(exam_date, '')
+	FROM subjects
+	WHERE id = ?;
+`
 
 	row := db.QueryRow(query, id)
 	s := &models.Subject{}
@@ -23,7 +28,14 @@ WHERE id = ?;
 }
 
 func GetSubjects(db *sql.DB) ([]models.Subject, error) {
-	query := `SELECT id, name, COALESCE(lecturer, ''), COALESCE(exam_date, '') FROM subjects;`
+	query := `
+	SELECT
+		id,
+		name,
+		COALESCE(lecturer, ''),
+		COALESCE(exam_date, '')
+	FROM subjects;
+`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -47,7 +59,10 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 }
 
 func InsertSubject(db *sql.DB, name, lecturer, examDate string) (*models.Subject, error) {
-	query := `INSERT INTO subjects(name, lecturer, exam_date) VALUES (?, ?, ?);`
+	query := `
+	INSERT INTO subjects (name, lecturer, exam_date)
+	VALUES (?, ?, ?);
+`
 
 	result, err := db.Exec(query, name, lecturer, examDate)
 	if err != nil {
@@ -68,7 +83,14 @@ func InsertSubject(db *sql.DB, name, lecturer, examDate string) (*models.Subject
 }
 
 func UpdateSubject(db *sql.DB, id int64, name, lecturer, examDate string) error {
-	query := `UPDATE subjects SET name = ?, lecturer = ?, exam_date = ? WHERE id = ?;`
+	query := `
+	UPDATE subjects
+	SET
+		name = ?,
+		lecturer = ?,
+		exam_date = ?
+	WHERE id = ?;
+`
 
 	result, err := db.Exec(query, name, lecturer, examDate, id)
 	if err != nil {
@@ -88,14 +110,19 @@ func UpdateSubject(db *sql.DB, id int64, name, lecturer, examDate string) error 
 }
 
 func DeleteSubjects(db *sql.DB) error {
-	query := `DELETE FROM subjects;`
+	query := `
+	DELETE FROM subjects;
+`
 
 	_, err := db.Exec(query)
 	return err
 }
 
 func DeleteSubject(db *sql.DB, id int64) error {
-	query := `DELETE FROM subjects WHERE id = ?;`
+	query := `
+	DELETE FROM subjects
+	WHERE id = ?;
+`
 
 	result, err := db.Exec(query, id)
 	if err != nil {

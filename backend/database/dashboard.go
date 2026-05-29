@@ -9,7 +9,10 @@ import (
 // GetSubjectsCount returns the number of subjects.
 // If there is no tasks, it returns 0, nil
 func GetSubjectsCount(db *sql.DB) (int64, error) {
-	query := `SELECT COUNT (*) FROM subjects;`
+	query := `
+	SELECT COUNT(*)
+	FROM subjects;
+`
 
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
@@ -23,7 +26,10 @@ func GetSubjectsCount(db *sql.DB) (int64, error) {
 // GetTasksCount returns the number of tasks.
 // If there is no tasks, it returns 0, nil
 func GetTasksCount(db *sql.DB) (int64, error) {
-	query := `SELECT COUNT (*) FROM tasks;`
+	query := `
+	SELECT COUNT(*)
+	FROM tasks;
+`
 
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
@@ -37,7 +43,11 @@ func GetTasksCount(db *sql.DB) (int64, error) {
 // GetCompletedTasksCount returns the number of completed tasks.
 // If there is no completed tasks, it returns 0, nil
 func GetCompletedTasksCount(db *sql.DB) (int64, error) {
-	query := `SELECT COUNT (*) FROM tasks WHERE status = 'completed';`
+	query := `
+	SELECT COUNT(*)
+	FROM tasks
+	WHERE status = 'completed';
+`
 
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
@@ -51,7 +61,11 @@ func GetCompletedTasksCount(db *sql.DB) (int64, error) {
 // GetOngoingTasksCount returns the number of ongoing tasks.
 // If there is no ongoing tasks, it returns 0, nil
 func GetOngoingTasksCount(db *sql.DB) (int64, error) {
-	query := `SELECT COUNT (*) FROM tasks WHERE status = 'ongoing';`
+	query := `
+	SELECT COUNT(*)
+	FROM tasks
+	WHERE status = 'ongoing';
+`
 
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
@@ -65,7 +79,11 @@ func GetOngoingTasksCount(db *sql.DB) (int64, error) {
 // GetNotCompletedTasksCount returns the number of not completed tasks.
 // If there are no not completed tasks, it returns 0, nil.
 func GetNotCompletedTasksCount(db *sql.DB) (int64, error) {
-	query := `SELECT COUNT (*) FROM tasks WHERE status = 'not_completed';`
+	query := `
+	SELECT COUNT(*)
+	FROM tasks
+	WHERE status = 'not_completed';
+`
 
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
@@ -80,11 +98,17 @@ func GetNotCompletedTasksCount(db *sql.DB) (int64, error) {
 // If there is no task, it returns an empty slice and nil
 func GetOverdueTasks(db *sql.DB) ([]models.Task, error) {
 	query := `
-SELECT id, name, deadline, status, subject_id 
-FROM tasks 
-WHERE status <> 'completed' 
-	AND deadline < CURRENT_TIMESTAMP
-ORDER BY deadline DESC;
+	SELECT
+		id,
+		name,
+		deadline,
+		status,
+		subject_id
+	FROM tasks
+	WHERE
+		status <> 'completed'
+		AND deadline < CURRENT_TIMESTAMP
+	ORDER BY deadline DESC;
 `
 
 	tasks, err := scanTasks(db, query)
@@ -99,12 +123,18 @@ ORDER BY deadline DESC;
 // If there is no task, it returns nil, nil
 func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
 	query := `
-SELECT id, name, deadline, status, subject_id 
-FROM tasks 
-WHERE status <> 'completed' 
-	AND deadline >= CURRENT_TIMESTAMP
-ORDER BY deadline 
-LIMIT 1;
+	SELECT
+		id,
+		name,
+		deadline,
+		status,
+		subject_id
+	FROM tasks
+	WHERE
+		status <> 'completed'
+		AND deadline >= CURRENT_TIMESTAMP
+	ORDER BY deadline
+	LIMIT 1;
 `
 
 	var task models.Task
