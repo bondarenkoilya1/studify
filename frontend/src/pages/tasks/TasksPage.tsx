@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { TaskForm } from "../../features/tasks/ui/TaskForm.tsx";
 import { getSubjects } from "../../features/subjects/api/subjects-api.ts";
 import { createTask, getTasks, updateTask } from "../../features/tasks/api/tasks-api.ts";
-import { type CreateTaskPayload, type TaskStatus } from "../../entities/task/types.ts";
+import { type CreateTaskPayload, type Task, type TaskStatus } from "../../entities/task/types.ts";
 import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
@@ -13,8 +14,18 @@ import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
 const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
 
+type StatusUpdateContext = {
+  previousTasks?: Task[];
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Please try again.";
+}
+
 export function TasksPage() {
   const queryClient = useQueryClient();
+  const [statusUpdateErrors, setStatusUpdateErrors] = useState<Record<number, string>>({});
+  const [pendingStatusTaskId, setPendingStatusTaskId] = useState<number | null>(null);
   const subjectsQuery = useQuery({
     queryKey: ["subjects"],
     queryFn: getSubjects,
@@ -29,7 +40,48 @@ export function TasksPage() {
   });
   const updateTaskMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => updateTask(id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+
+      const previousTasks = queryClient.getQueryData<Task[]>(["tasks"]);
+      queryClient.setQueryData<Task[]>(["tasks"], (currentTasks) =>
+        currentTasks?.map((task) =>
+          task.id === variables.id ? { ...task, status: variables.status } : task,
+        ),
+      );
+
+      setStatusUpdateErrors((current) => {
+        const next = { ...current };
+        delete next[variables.id];
+        return next;
+      });
+
+      return { previousTasks };
+    },
+    onError: (_error, variables, context: StatusUpdateContext | undefined) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(["tasks"], context.previousTasks);
+      }
+
+      setStatusUpdateErrors((current) => ({
+        ...current,
+        [variables.id]: `Status was not saved. ${getErrorMessage(_error)}`,
+      }));
+    },
+    onSuccess: (updatedTask, variables) => {
+      queryClient.setQueryData<Task[]>(["tasks"], (currentTasks) =>
+        currentTasks?.map((task) => (task.id === variables.id ? updatedTask : task)),
+      );
+
+      setStatusUpdateErrors((current) => {
+        const next = { ...current };
+        delete next[variables.id];
+        return next;
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
   });
 
   const subjects = subjectsQuery.data ?? [];
@@ -68,7 +120,15 @@ export function TasksPage() {
   }
 
   async function handleStatusChange(id: number, status: TaskStatus) {
-    await updateTaskMutation.mutateAsync({ id, status });
+    setPendingStatusTaskId(id);
+
+    try {
+      await updateTaskMutation.mutateAsync({ id, status });
+    } catch {
+      // Rollback and row-level messaging are handled by the mutation callbacks.
+    } finally {
+      setPendingStatusTaskId(null);
+    }
   }
 
   return (
@@ -166,21 +226,41 @@ export function TasksPage() {
                           <label className="sr-only" htmlFor={`task-status-${task.id}`}>
                             Update status for {task.name}
                           </label>
-                          <select
-                            id={`task-status-${task.id}`}
-                            value={task.status}
-                            disabled={updateTaskMutation.isPending}
-                            onChange={(event) =>
-                              handleStatusChange(task.id, event.target.value as TaskStatus)
-                            }
-                            className={`h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold shadow-sm outline-none ring-1 ring-[var(--color-border)] transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${getStatusClass(task.status)}`}
-                          >
-                            {taskStatusOptions.map((status) => (
-                              <option key={status} value={status}>
-                                {statusLabels[status]}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="grid gap-2">
+                            <select
+                              id={`task-status-${task.id}`}
+                              value={task.status}
+                              disabled={pendingStatusTaskId === task.id}
+                              aria-invalid={Boolean(statusUpdateErrors[task.id])}
+                              aria-describedby={
+                                statusUpdateErrors[task.id]
+                                  ? `task-status-error-${task.id}`
+                                  : undefined
+                              }
+                              onChange={(event) =>
+                                handleStatusChange(task.id, event.target.value as TaskStatus)
+                              }
+                              className={`h-10 rounded-xl border px-3 text-sm font-semibold shadow-sm outline-none ring-1 transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${
+                                statusUpdateErrors[task.id]
+                                  ? "border-red-300 ring-red-200"
+                                  : "border-slate-300 ring-[var(--color-border)]"
+                              } ${getStatusClass(task.status)}`}
+                            >
+                              {taskStatusOptions.map((status) => (
+                                <option key={status} value={status}>
+                                  {statusLabels[status]}
+                                </option>
+                              ))}
+                            </select>
+                            {statusUpdateErrors[task.id] ? (
+                              <p
+                                id={`task-status-error-${task.id}`}
+                                className="rounded-lg border border-red-200 bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-medium leading-5 text-red-700"
+                              >
+                                {statusUpdateErrors[task.id]}
+                              </p>
+                            ) : null}
+                          </div>
                         </article>
                       );
                     })

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createSubject,
@@ -9,6 +9,7 @@ import { SubjectForm } from "../../features/subjects/ui/SubjectForm.tsx";
 import { getTasks } from "../../features/tasks/api/tasks-api.ts";
 import {
   type CreateSubjectPayload,
+  type Subject,
   type UpdateSubjectPayload,
 } from "../../entities/subject/types.ts";
 import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
@@ -21,9 +22,21 @@ import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 const subjectFieldClassName =
   "h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100";
 
+type SubjectUpdateContext = {
+  previousSubjects?: Subject[];
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Please try again.";
+}
+
 export function SubjectsPage() {
   const queryClient = useQueryClient();
+  const subjectSuccessTimeouts = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const [subjectDrafts, setSubjectDrafts] = useState<Record<number, UpdateSubjectPayload>>({});
+  const [subjectUpdateErrors, setSubjectUpdateErrors] = useState<Record<number, string>>({});
+  const [subjectUpdateSuccesses, setSubjectUpdateSuccesses] = useState<Record<number, string>>({});
+  const [pendingSubjectId, setPendingSubjectId] = useState<number | null>(null);
   const subjectsQuery = useQuery({
     queryKey: ["subjects"],
     queryFn: getSubjects,
@@ -39,12 +52,48 @@ export function SubjectsPage() {
   const updateSubjectMutation = useMutation({
     mutationFn: ({ id, subject }: { id: number; subject: UpdateSubjectPayload }) =>
       updateSubject(id, subject),
-    onSuccess: (_subject, variables) => {
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ["subjects"] });
+
+      const previousSubjects = queryClient.getQueryData<Subject[]>(["subjects"]);
+      queryClient.setQueryData<Subject[]>(["subjects"], (currentSubjects) =>
+        currentSubjects?.map((subject) =>
+          subject.id === variables.id ? { ...subject, ...variables.subject } : subject,
+        ),
+      );
+
+      setSubjectUpdateErrors((current) => {
+        const next = { ...current };
+        delete next[variables.id];
+        return next;
+      });
+      clearSubjectSuccess(variables.id);
+
+      return { previousSubjects };
+    },
+    onError: (_error, variables, context: SubjectUpdateContext | undefined) => {
+      if (context?.previousSubjects) {
+        queryClient.setQueryData(["subjects"], context.previousSubjects);
+      }
+
+      setSubjectUpdateErrors((current) => ({
+        ...current,
+        [variables.id]: `Changes were not saved. ${getErrorMessage(_error)}`,
+      }));
+    },
+    onSuccess: (updatedSubject, variables) => {
+      queryClient.setQueryData<Subject[]>(["subjects"], (currentSubjects) =>
+        currentSubjects?.map((subject) => (subject.id === variables.id ? updatedSubject : subject)),
+      );
+
       setSubjectDrafts((current) => {
         const next = { ...current };
         delete next[variables.id];
         return next;
       });
+      showSubjectSuccess(variables.id, "Changes saved.");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["subjects"] });
     },
   });
@@ -75,11 +124,50 @@ export function SubjectsPage() {
     },
   ];
 
+  useEffect(() => {
+    const timeouts = subjectSuccessTimeouts.current;
+
+    return () => {
+      Object.values(timeouts).forEach(clearTimeout);
+    };
+  }, []);
+
+  function clearSubjectSuccess(id: number) {
+    const timeout = subjectSuccessTimeouts.current[id];
+    if (timeout) {
+      clearTimeout(timeout);
+      delete subjectSuccessTimeouts.current[id];
+    }
+
+    setSubjectUpdateSuccesses((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+  }
+
+  function showSubjectSuccess(id: number, message: string) {
+    clearSubjectSuccess(id);
+    setSubjectUpdateSuccesses((current) => ({
+      ...current,
+      [id]: message,
+    }));
+    subjectSuccessTimeouts.current[id] = setTimeout(() => {
+      clearSubjectSuccess(id);
+    }, 1800);
+  }
+
   async function handleCreateSubject(subject: CreateSubjectPayload) {
     await createSubjectMutation.mutateAsync(subject);
   }
 
   function updateSubjectDraft(id: number, field: keyof UpdateSubjectPayload, value: string) {
+    setSubjectUpdateErrors((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+    clearSubjectSuccess(id);
     setSubjectDrafts((current) => ({
       ...current,
       [id]: {
@@ -101,6 +189,14 @@ export function SubjectsPage() {
       return;
     }
 
+    setPendingSubjectId(id);
+    setSubjectUpdateErrors((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+    clearSubjectSuccess(id);
+
     const payload = Object.fromEntries(
       Object.entries(draft).filter(([field, value]) => {
         return value !== currentSubject[field as keyof CreateSubjectPayload];
@@ -113,10 +209,17 @@ export function SubjectsPage() {
         delete next[id];
         return next;
       });
+      setPendingSubjectId(null);
       return;
     }
 
-    await updateSubjectMutation.mutateAsync({ id, subject: payload });
+    try {
+      await updateSubjectMutation.mutateAsync({ id, subject: payload });
+    } catch {
+      // Rollback and card-level messaging are handled by the mutation callbacks.
+    } finally {
+      setPendingSubjectId(null);
+    }
   }
 
   return (
@@ -166,6 +269,9 @@ export function SubjectsPage() {
                       (task) => task.status !== "completed",
                     );
                     const nextTask = subjectTasks.find((task) => task.deadline);
+                    const updateError = subjectUpdateErrors[subject.id];
+                    const updateSuccess = subjectUpdateSuccesses[subject.id];
+                    const isSavingSubject = pendingSubjectId === subject.id;
 
                     return (
                       <article
@@ -226,7 +332,7 @@ export function SubjectsPage() {
                               id={`subject-name-${subject.id}`}
                               aria-label={`Name for ${subject.name}`}
                               value={subjectDrafts[subject.id]?.name ?? subject.name}
-                              disabled={updateSubjectMutation.isPending}
+                              disabled={isSavingSubject}
                               onChange={(event) =>
                                 updateSubjectDraft(subject.id, "name", event.target.value)
                               }
@@ -243,7 +349,7 @@ export function SubjectsPage() {
                               id={`subject-lecturer-${subject.id}`}
                               aria-label={`Lecturer for ${subject.name}`}
                               value={subjectDrafts[subject.id]?.lecturer ?? subject.lecturer}
-                              disabled={updateSubjectMutation.isPending}
+                              disabled={isSavingSubject}
                               onChange={(event) =>
                                 updateSubjectDraft(subject.id, "lecturer", event.target.value)
                               }
@@ -262,7 +368,7 @@ export function SubjectsPage() {
                               aria-label={`Exam date for ${subject.name}`}
                               type="date"
                               value={subjectDrafts[subject.id]?.exam_date ?? subject.exam_date}
-                              disabled={updateSubjectMutation.isPending}
+                              disabled={isSavingSubject}
                               onChange={(event) =>
                                 updateSubjectDraft(subject.id, "exam_date", event.target.value)
                               }
@@ -270,12 +376,24 @@ export function SubjectsPage() {
                             />
                           </label>
 
+                          {updateError ? (
+                            <p className="rounded-lg border border-red-200 bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-medium leading-5 text-red-700">
+                              {updateError}
+                            </p>
+                          ) : null}
+
+                          {updateSuccess ? (
+                            <p className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium leading-5 text-green-700">
+                              {updateSuccess}
+                            </p>
+                          ) : null}
+
                           <button
                             type="submit"
-                            disabled={updateSubjectMutation.isPending || !subjectDrafts[subject.id]}
+                            disabled={isSavingSubject || !subjectDrafts[subject.id]}
                             className="h-10 rounded-xl bg-[var(--color-primary)] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-300"
                           >
-                            {updateSubjectMutation.isPending ? "Saving..." : "Save changes"}
+                            {isSavingSubject ? "Saving..." : "Save changes"}
                           </button>
                         </form>
                       </article>
