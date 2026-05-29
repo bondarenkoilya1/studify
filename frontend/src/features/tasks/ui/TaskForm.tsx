@@ -35,10 +35,10 @@ const emptyFormState: TaskFormState = {
 const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
 
 const controlClassName =
-  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)]";
+  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm transition placeholder:text-[var(--color-text-soft)] focus-visible:border-[var(--color-primary)] focus-visible:ring-4 focus-visible:ring-[var(--color-primary-soft)]";
 
 const invalidControlClassName =
-  "border-red-300 focus:border-red-500 focus:ring-[var(--color-danger-soft)]";
+  "border-red-300 focus-visible:border-red-500 focus-visible:ring-[var(--color-danger-soft)]";
 
 function validateTaskForm(form: TaskFormState, selectedSubjectId: number): TaskFormErrors {
   const result = taskSchema.safeParse({
@@ -146,6 +146,8 @@ export function TaskForm({
           Task name
           <input
             id="task-name"
+            name="name"
+            autoComplete="off"
             aria-label="Task name"
             aria-invalid={Boolean(nameError)}
             aria-describedby={nameError ? "task-name-error" : undefined}
@@ -171,6 +173,8 @@ export function TaskForm({
           Subject
           <select
             id="task-subject"
+            name="subject_id"
+            autoComplete="off"
             aria-label="Subject"
             aria-invalid={Boolean(subjectError)}
             aria-describedby={subjectError ? "task-subject-error" : undefined}
@@ -210,6 +214,8 @@ export function TaskForm({
           Deadline
           <input
             id="task-deadline"
+            name="deadline"
+            autoComplete="off"
             aria-label="Deadline"
             aria-invalid={Boolean(deadlineError)}
             aria-describedby={deadlineError ? "task-deadline-error" : undefined}
@@ -240,6 +246,8 @@ export function TaskForm({
           Status
           <select
             id="task-status"
+            name="status"
+            autoComplete="off"
             aria-label="Status"
             aria-invalid={Boolean(statusError)}
             aria-describedby={statusError ? "task-status-error" : undefined}

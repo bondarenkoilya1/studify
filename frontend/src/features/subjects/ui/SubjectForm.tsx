@@ -20,10 +20,10 @@ const emptyFormState: CreateSubjectPayload = {
 };
 
 const controlClassName =
-  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)]";
+  "h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm transition placeholder:text-[var(--color-text-soft)] focus-visible:border-[var(--color-primary)] focus-visible:ring-4 focus-visible:ring-[var(--color-primary-soft)]";
 
 const invalidControlClassName =
-  "border-red-300 focus:border-red-500 focus:ring-[var(--color-danger-soft)]";
+  "border-red-300 focus-visible:border-red-500 focus-visible:ring-[var(--color-danger-soft)]";
 
 function validateSubjectForm(form: CreateSubjectPayload): SubjectFormErrors {
   const result = subjectSchema.safeParse({
@@ -117,6 +117,8 @@ export function SubjectForm({
           Subject name
           <input
             id="subject-name"
+            name="name"
+            autoComplete="organization"
             aria-label="Subject name"
             aria-invalid={Boolean(nameError)}
             aria-describedby={nameError ? "subject-name-error" : undefined}
@@ -142,6 +144,8 @@ export function SubjectForm({
           Lecturer
           <input
             id="subject-lecturer"
+            name="lecturer"
+            autoComplete="name"
             aria-label="Lecturer"
             aria-invalid={Boolean(lecturerError)}
             aria-describedby={lecturerError ? "subject-lecturer-error" : undefined}
@@ -171,6 +175,8 @@ export function SubjectForm({
           Exam date
           <input
             id="subject-exam-date"
+            name="exam_date"
+            autoComplete="off"
             aria-label="Exam date"
             aria-invalid={Boolean(examDateError)}
             aria-describedby={examDateError ? "subject-exam-date-error" : undefined}

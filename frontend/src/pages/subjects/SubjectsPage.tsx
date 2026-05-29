@@ -13,14 +13,13 @@ import {
   type UpdateSubjectPayload,
 } from "../../entities/subject/types.ts";
 import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
-import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
 import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
 
 const subjectFieldClassName =
-  "h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm outline-none transition placeholder:text-[var(--color-text-soft)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100";
+  "h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-[var(--color-text)] shadow-sm transition placeholder:text-[var(--color-text-soft)] focus-visible:border-[var(--color-primary)] focus-visible:ring-4 focus-visible:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100";
 
 type SubjectUpdateContext = {
   previousSubjects?: Subject[];
@@ -240,7 +239,7 @@ export function SubjectsPage() {
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <Card>
+          <section>
             <SectionHeader
               eyebrow="Subject overview"
               title="Current subjects"
@@ -278,7 +277,7 @@ export function SubjectsPage() {
                     return (
                       <article
                         key={subject.id}
-                        className="rounded-2xl border border-[var(--color-border)] bg-slate-50 p-5 transition hover:bg-white hover:shadow-[var(--shadow-card)]"
+                        className="rounded-xl border border-[var(--color-border)] bg-white p-5 transition hover:border-slate-300"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div>
@@ -332,6 +331,8 @@ export function SubjectsPage() {
                             Name
                             <input
                               id={`subject-name-${subject.id}`}
+                              name={`subject-${subject.id}-name`}
+                              autoComplete="organization"
                               aria-label={`Name for ${subject.name}`}
                               value={subjectDrafts[subject.id]?.name ?? subject.name}
                               disabled={isSavingSubject}
@@ -349,6 +350,8 @@ export function SubjectsPage() {
                             Lecturer
                             <input
                               id={`subject-lecturer-${subject.id}`}
+                              name={`subject-${subject.id}-lecturer`}
+                              autoComplete="name"
                               aria-label={`Lecturer for ${subject.name}`}
                               value={subjectDrafts[subject.id]?.lecturer ?? subject.lecturer}
                               disabled={isSavingSubject}
@@ -367,6 +370,8 @@ export function SubjectsPage() {
                             Exam date
                             <input
                               id={`subject-exam-date-${subject.id}`}
+                              name={`subject-${subject.id}-exam-date`}
+                              autoComplete="off"
                               aria-label={`Exam date for ${subject.name}`}
                               type="date"
                               value={subjectDrafts[subject.id]?.exam_date ?? subject.exam_date}
@@ -393,7 +398,7 @@ export function SubjectsPage() {
                           <button
                             type="submit"
                             disabled={isSavingSubject || !subjectDrafts[subject.id]}
-                            className="h-10 rounded-xl bg-[var(--color-primary)] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover)] focus:outline-none focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-300"
+                            className="h-10 rounded-xl bg-[var(--color-primary)] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover)] focus-visible:ring-4 focus-visible:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-300"
                           >
                             {isSavingSubject ? "Saving..." : "Save changes"}
                           </button>
@@ -403,7 +408,7 @@ export function SubjectsPage() {
                   })
                 : null}
             </div>
-          </Card>
+          </section>
 
           <SubjectForm
             isSubmitting={createSubjectMutation.isPending}

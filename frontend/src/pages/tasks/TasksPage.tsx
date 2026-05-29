@@ -4,7 +4,6 @@ import { TaskForm } from "../../features/tasks/ui/TaskForm.tsx";
 import { getSubjects } from "../../features/subjects/api/subjects-api.ts";
 import { createTask, getTasks, updateTask } from "../../features/tasks/api/tasks-api.ts";
 import { type CreateTaskPayload, type Task, type TaskStatus } from "../../entities/task/types.ts";
-import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
@@ -147,14 +146,14 @@ export function TasksPage() {
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <Card>
+          <section>
             <SectionHeader
               eyebrow="Task board"
               title="All tasks"
               description="Live task rows from the Go backend."
             />
 
-            <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)]">
+            <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
               <div className="grid grid-cols-[1fr_140px_160px] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 <span>Task</span>
                 <span>Deadline</span>
@@ -229,6 +228,8 @@ export function TasksPage() {
                           <div className="grid gap-2">
                             <select
                               id={`task-status-${task.id}`}
+                              name={`task-${task.id}-status`}
+                              autoComplete="off"
                               value={task.status}
                               disabled={pendingStatusTaskId === task.id}
                               aria-invalid={Boolean(statusUpdateErrors[task.id])}
@@ -240,7 +241,7 @@ export function TasksPage() {
                               onChange={(event) =>
                                 handleStatusChange(task.id, event.target.value as TaskStatus)
                               }
-                              className={`h-10 rounded-xl border px-3 text-sm font-semibold shadow-sm outline-none ring-1 transition focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${
+                              className={`h-10 rounded-xl border px-3 text-sm font-semibold shadow-sm ring-1 transition focus-visible:border-[var(--color-primary)] focus-visible:ring-4 focus-visible:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${
                                 statusUpdateErrors[task.id]
                                   ? "border-red-300 ring-red-200"
                                   : "border-slate-300 ring-[var(--color-border)]"
@@ -267,7 +268,7 @@ export function TasksPage() {
                   : null}
               </div>
             </div>
-          </Card>
+          </section>
 
           <TaskForm
             subjects={subjects}

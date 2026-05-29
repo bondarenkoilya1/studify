@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { getDashboardStatus } from "../../features/dashboard/api/dashboard-api.ts";
-import { Card } from "../../shared/ui/Card.tsx";
 import { PageHeader } from "../../shared/ui/PageHeader.tsx";
 import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
 import { StatCard } from "../../shared/ui/StatCard.tsx";
@@ -64,35 +63,33 @@ export function DashboardPage() {
   return (
     <AppLayout>
       <section className="grid gap-8">
-        <Card className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] sm:p-8">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
-            <PageHeader
-              label="Dashboard"
-              title="Study progress at a glance"
-              description="Track tasks, completion, upcoming work, and overdue study items."
-            />
+        <div className="grid gap-6 border-b border-[var(--color-border)] pb-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+          <PageHeader
+            label="Dashboard"
+            title="Study progress at a glance"
+            description="Track tasks, completion, upcoming work, and overdue study items."
+          />
 
-            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-soft)]">
-                Current workload
-              </p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-[var(--color-warning-soft)] p-3">
-                  <p className="text-xs font-medium text-amber-800">Ongoing</p>
-                  <p className="mt-1 text-2xl font-semibold text-[var(--color-text)]">
-                    {dashboardQuery.isLoading ? "..." : (dashboard?.total_ongoing_tasks ?? 0)}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-[var(--color-primary-soft)] p-3">
-                  <p className="text-xs font-medium text-[var(--color-primary)]">Not Completed</p>
-                  <p className="mt-1 text-2xl font-semibold text-[var(--color-text)]">
-                    {dashboardQuery.isLoading ? "..." : (dashboard?.total_not_completed_tasks ?? 0)}
-                  </p>
-                </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-soft)]">
+              Current workload
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[var(--color-warning-soft)] p-3">
+                <p className="text-xs font-medium text-amber-800">Ongoing</p>
+                <p className="mt-1 text-2xl font-semibold text-[var(--color-text)]">
+                  {dashboardQuery.isLoading ? "..." : (dashboard?.total_ongoing_tasks ?? 0)}
+                </p>
+              </div>
+              <div className="rounded-xl bg-[var(--color-primary-soft)] p-3">
+                <p className="text-xs font-medium text-[var(--color-primary)]">Not Completed</p>
+                <p className="mt-1 text-2xl font-semibold text-[var(--color-text)]">
+                  {dashboardQuery.isLoading ? "..." : (dashboard?.total_not_completed_tasks ?? 0)}
+                </p>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
         {dashboardQuery.error ? (
           <p className="rounded-xl border border-red-200 bg-[var(--color-danger-soft)] px-4 py-3 text-sm font-medium text-red-700 shadow-[var(--shadow-card)]">
@@ -107,8 +104,8 @@ export function DashboardPage() {
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
-            <div className="border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] p-6">
+          <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
+            <div className="border-b border-[var(--color-border)] px-5 py-4">
               <SectionHeader
                 eyebrow="Next deadline"
                 title="Upcoming unfinished task"
@@ -116,7 +113,7 @@ export function DashboardPage() {
               />
             </div>
 
-            <div className="p-6">
+            <div className="p-5">
               {dashboardQuery.isLoading ? (
                 <div className="grid gap-4">
                   <LoadingLine className="h-5 w-2/3" />
@@ -126,7 +123,7 @@ export function DashboardPage() {
               ) : null}
 
               {!dashboardQuery.isLoading && !dashboardQuery.error && !nearestTask ? (
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-muted)] p-5">
+                <div className="rounded-xl bg-[var(--color-surface-muted)] p-5">
                   <p className="text-sm font-semibold text-[var(--color-text)]">
                     No upcoming unfinished task.
                   </p>
@@ -137,7 +134,7 @@ export function DashboardPage() {
               ) : null}
 
               {nearestTask ? (
-                <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-card)]">
+                <article className="p-1">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
@@ -151,25 +148,25 @@ export function DashboardPage() {
                   </div>
 
                   <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
-                    <div className="rounded-xl bg-[var(--color-surface-muted)] p-3">
+                    <div className="border-t border-[var(--color-border)] pt-3">
                       <dt className="text-[var(--color-text-muted)]">Deadline</dt>
                       <dd className="mt-1 font-semibold text-[var(--color-text)]">
                         {formatOptionalDate(nearestTask.deadline, "No deadline")}
                       </dd>
                     </div>
-                    <div className="rounded-xl bg-[var(--color-surface-muted)] p-3">
+                    <div className="border-t border-[var(--color-border)] pt-3">
                       <dt className="text-[var(--color-text-muted)]">Subject ID</dt>
                       <dd className="mt-1 font-semibold text-[var(--color-text)]">
                         {nearestTask.subject_id}
                       </dd>
                     </div>
-                    <div className="rounded-xl bg-[var(--color-surface-muted)] p-3">
+                    <div className="border-t border-[var(--color-border)] pt-3">
                       <dt className="text-[var(--color-text-muted)]">Task ID</dt>
                       <dd className="mt-1 font-semibold text-[var(--color-text)]">
                         {nearestTask.id}
                       </dd>
                     </div>
-                    <div className="rounded-xl bg-[var(--color-surface-muted)] p-3">
+                    <div className="border-t border-[var(--color-border)] pt-3">
                       <dt className="text-[var(--color-text-muted)]">Status</dt>
                       <dd className="mt-1 font-semibold text-[var(--color-text)]">
                         {getStatusLabel(nearestTask.status)}
@@ -181,8 +178,8 @@ export function DashboardPage() {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-card)]">
-            <div className="flex flex-col gap-4 border-b border-[var(--color-border)] bg-[var(--color-surface-muted)] p-6 sm:flex-row sm:items-start sm:justify-between">
+          <section className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
+            <div className="flex flex-col gap-4 border-b border-[var(--color-border)] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
               <SectionHeader
                 eyebrow="Overdue"
                 title="Tasks past deadline"
@@ -193,7 +190,7 @@ export function DashboardPage() {
               </span>
             </div>
 
-            <div className="p-6">
+            <div className="p-5">
               {dashboardQuery.isLoading ? (
                 <div className="grid gap-3">
                   <LoadingLine className="h-12 w-full rounded-xl" />
@@ -203,7 +200,7 @@ export function DashboardPage() {
               ) : null}
 
               {!dashboardQuery.isLoading && !dashboardQuery.error && overdueTasks.length === 0 ? (
-                <div className="rounded-xl border border-green-200 bg-[var(--color-success-soft)] p-5">
+                <div className="rounded-xl bg-[var(--color-success-soft)] p-5">
                   <p className="text-sm font-semibold text-green-800">No overdue tasks.</p>
                   <p className="mt-2 text-sm leading-6 text-green-700">
                     Your unfinished tasks are still inside their deadlines.

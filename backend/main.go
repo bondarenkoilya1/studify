@@ -66,9 +66,9 @@ func main() {
 
 /* Later:
 - Validate data
-- Write patch methods
 - Use JOIN methods for connectins tasks with it's subject
 - Allow to upload avatar for the lecturer
 - Allow to set description for the task
 - Allow to set the file with the task
+- Add calendar where you ca click on date an assign task
 */
