@@ -22,3 +22,10 @@ export function updateSubject(id: number, subject: UpdateSubjectPayload) {
     body: JSON.stringify(subject),
   });
 }
+
+export function replaceSubject(id: number, subject: CreateSubjectPayload) {
+  return request<Subject>(`/subjects/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(subject),
+  });
+}

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createSubject,
   getSubjects,
-  updateSubject,
+  replaceSubject,
 } from "../../features/subjects/api/subjects-api.ts";
 import { SubjectForm } from "../../features/subjects/ui/SubjectForm.tsx";
 import { getTasks } from "../../features/tasks/api/tasks-api.ts";
@@ -50,8 +50,8 @@ export function SubjectsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subjects"] }),
   });
   const updateSubjectMutation = useMutation({
-    mutationFn: ({ id, subject }: { id: number; subject: UpdateSubjectPayload }) =>
-      updateSubject(id, subject),
+    mutationFn: ({ id, subject }: { id: number; subject: CreateSubjectPayload }) =>
+      replaceSubject(id, subject),
     onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey: ["subjects"] });
 
@@ -197,13 +197,15 @@ export function SubjectsPage() {
     });
     clearSubjectSuccess(id);
 
-    const payload = Object.fromEntries(
-      Object.entries(draft).filter(([field, value]) => {
-        return value !== currentSubject[field as keyof CreateSubjectPayload];
-      }),
-    ) as UpdateSubjectPayload;
+    const nextSubject: CreateSubjectPayload = {
+      ...currentSubject,
+      ...draft,
+    };
+    const changedFields = Object.entries(draft).filter(([field, value]) => {
+      return value !== currentSubject[field as keyof CreateSubjectPayload];
+    });
 
-    if (Object.keys(payload).length === 0) {
+    if (changedFields.length === 0) {
       setSubjectDrafts((current) => {
         const next = { ...current };
         delete next[id];
@@ -214,7 +216,7 @@ export function SubjectsPage() {
     }
 
     try {
-      await updateSubjectMutation.mutateAsync({ id, subject: payload });
+      await updateSubjectMutation.mutateAsync({ id, subject: nextSubject });
     } catch {
       // Rollback and card-level messaging are handled by the mutation callbacks.
     } finally {
