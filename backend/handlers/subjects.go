@@ -5,11 +5,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"studify/database"
 	"studify/models"
+
+	"github.com/chai2010/webp"
+	"github.com/google/uuid"
 )
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +75,8 @@ func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
 	createdSubjects := make([]models.Subject, 0, len(newSubjects))
 
 	for _, s := range newSubjects {
-		subject, err := database.InsertSubject(h.DB, s.Name, s.Lecturer, s.ExamDate)
+		// here, operate with s.LecturerAvatarURL
+		subject, err := database.InsertSubject(h.DB, s.Name, s.Lecturer, s.LecturerAvatarURL, s.ExamDate)
 		if err != nil {
 			http.Error(w, "Failed to insert subjects", http.StatusInternalServerError)
 			return
@@ -201,4 +209,77 @@ func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	const (
+		maxAvatarBytes = 2 << 20 // 2 MiB
+		maxWidth       = 2560
+		maxHeight
+	)
+	r.Body = http.MaxBytesReader(w, r.Body, maxAvatarBytes)
+	// todo: 413 error
+
+	img, format, err := image.Decode(r.Body)
+	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			http.Error(w, "Avatar is too large", http.StatusRequestEntityTooLarge)
+		}
+
+		http.Error(w, "Invalid image", http.StatusBadRequest)
+		return
+	}
+
+	switch format {
+	case "png", "jpeg", "webp":
+		// ok
+	default:
+		http.Error(w, "Invalid file format. Use PNG/JPEG/WEBP", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	if width > maxWidth || height > maxHeight {
+		http.Error(w, fmt.Sprintf("File resolution is too large. Maximum resolution is %dx%d", maxWidth, maxHeight), http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	dir := "./data/lecturer-avatars/"
+	if err = EnsureDir(dir); err != nil {
+		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
+		return
+	}
+
+	filename := uuid.New().String() + ".webp"
+	fullPath := dir + filename
+
+	dst, err := os.Create(fullPath)
+	if err != nil {
+		http.Error(w, "Failed to create file", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	if err = webp.Encode(dst, img, &webp.Options{
+		Quality: 85,
+	}); err != nil {
+		http.Error(w, "Failed to save image", http.StatusInternalServerError)
+		return
+	}
+
+	type URL struct {
+		LecturerAvatarURL string `json:"lecturer_avatar_url"`
+	}
+
+	if err = json.NewEncoder(w).Encode(URL{LecturerAvatarURL: fullPath}); err != nil {
+		log.Printf("encode avatar upload response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }

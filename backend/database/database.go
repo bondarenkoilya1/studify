@@ -31,7 +31,8 @@ func CreateTables(db *sql.DB) error {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
 		lecturer TEXT,
-		exam_date TEXT
+		exam_date TEXT,
+		lecturer_avatar_url TEXT
 	);
 `
 

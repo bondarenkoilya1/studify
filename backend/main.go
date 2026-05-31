@@ -46,6 +46,8 @@ func main() {
 		r.Delete("/{id}", h.DeleteSubject)
 		r.Put("/{id}", h.ReplaceSubject)
 		r.Patch("/{id}", h.UpdateSubject)
+
+		r.Post("/avatar/", h.UploadLecturerAvatar)
 	})
 
 	r.Route("/tasks", func(r chi.Router) {
@@ -61,9 +63,13 @@ func main() {
 
 	r.Get("/dashboard", h.GetDashboardStatus)
 
+	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
+	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))
+
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
+// Аватарка будет в размер до 200кб мейби?
 /* Later:
 - Validate data
 - Use JOIN methods for connectins tasks with it's subject
@@ -71,4 +77,6 @@ func main() {
 - Allow to set description for the task
 - Allow to set the file with the task
 - Add calendar where you ca click on date an assign task
+
+- Convert all avatars to WebP
 */

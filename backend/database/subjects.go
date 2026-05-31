@@ -10,8 +10,9 @@ func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
 	SELECT
 		id,
 		name,
-		COALESCE(lecturer, ''),
-		COALESCE(exam_date, '')
+		COALESCE(lecturer, ''), 
+		COALESCE(exam_date, ''),
+		COALESCE(lecturer_avatar_url, '')
 	FROM subjects
 	WHERE id = ?;
 `
@@ -19,7 +20,7 @@ func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
 	row := db.QueryRow(query, id)
 	s := &models.Subject{}
 
-	err := row.Scan(&s.ID, &s.Name, &s.Lecturer, &s.ExamDate)
+	err := row.Scan(&s.ID, &s.Name, &s.Lecturer, &s.LecturerAvatarURL, &s.ExamDate)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +34,8 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 		id,
 		name,
 		COALESCE(lecturer, ''),
-		COALESCE(exam_date, '')
+		COALESCE(exam_date, ''),
+		COALESCE(lecturer_avatar_url, '')
 	FROM subjects;
 `
 
@@ -47,7 +49,7 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 	for rows.Next() {
 		var s models.Subject
 
-		err = rows.Scan(&s.ID, &s.Name, &s.Lecturer, &s.ExamDate)
+		err = rows.Scan(&s.ID, &s.Name, &s.Lecturer, &s.LecturerAvatarURL, &s.ExamDate)
 		if err != nil {
 			return nil, err
 		}
@@ -58,13 +60,13 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 	return subjects, nil
 }
 
-func InsertSubject(db *sql.DB, name, lecturer, examDate string) (*models.Subject, error) {
+func InsertSubject(db *sql.DB, name, lecturer, lecturerAvatarURL, examDate string) (*models.Subject, error) {
 	query := `
-	INSERT INTO subjects (name, lecturer, exam_date)
-	VALUES (?, ?, ?);
+	INSERT INTO subjects (name, lecturer, lecturer_avatar_url, exam_date)
+	VALUES (?, ?, ?, ?);
 `
 
-	result, err := db.Exec(query, name, lecturer, examDate)
+	result, err := db.Exec(query, name, lecturer, lecturerAvatarURL, examDate)
 	if err != nil {
 		return nil, err
 	}
@@ -75,10 +77,11 @@ func InsertSubject(db *sql.DB, name, lecturer, examDate string) (*models.Subject
 	}
 
 	return &models.Subject{
-		ID:       id,
-		Name:     name,
-		Lecturer: lecturer,
-		ExamDate: examDate,
+		ID:                id,
+		Name:              name,
+		Lecturer:          lecturer,
+		LecturerAvatarURL: lecturerAvatarURL,
+		ExamDate:          examDate,
 	}, nil
 }
 

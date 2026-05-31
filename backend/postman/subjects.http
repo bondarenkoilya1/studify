@@ -86,3 +86,9 @@ Accept: application/json
 # Delete all tasks first because tasks reference subjects.
 DELETE {{baseUrl}}/subjects/
 Accept: application/json
+
+### Send a file (image)
+POST {{baseUrl}}/subjects/avatar/
+Content-Type: image/png
+
+< ../avatar.png
