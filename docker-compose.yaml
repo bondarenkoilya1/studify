@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: studify-postgres
+    environment:
+      POSTGRES_USER: studify
+      POSTGRES_PASSWORD: studify
+      POSTGRES_DB: studify
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: studify-backend
+    working_dir: /app
+    command: air
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - backend_tmp:/app/tmp
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: studify-frontend
+    working_dir: /app
+    command: bun run dev -- --host 0.0.0.0
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_tmp:
+  frontend_node_modules:
+

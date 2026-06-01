@@ -69,7 +69,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
 
-// Аватарка будет в размер до 200кб мейби?
 /* Later:
 - Validate data
 - Use JOIN methods for connectins tasks with it's subject
