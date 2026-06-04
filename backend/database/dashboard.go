@@ -107,7 +107,8 @@ func GetOverdueTasks(db *sql.DB) ([]models.Task, error) {
 	FROM tasks
 	WHERE
 		status <> 'completed'
-		AND deadline < CURRENT_TIMESTAMP
+		AND deadline <> ''
+		AND deadline::timestamptz < CURRENT_TIMESTAMP
 	ORDER BY deadline DESC;
 `
 
@@ -132,7 +133,8 @@ func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
 	FROM tasks
 	WHERE
 		status <> 'completed'
-		AND deadline >= CURRENT_TIMESTAMP
+		AND deadline <> ''
+		AND deadline::timestamptz >= CURRENT_TIMESTAMP
 	ORDER BY deadline
 	LIMIT 1;
 `

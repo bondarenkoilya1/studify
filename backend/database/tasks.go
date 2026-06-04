@@ -14,7 +14,7 @@ func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
 		status,
 		subject_id
 	FROM tasks
-	WHERE id = ?;
+	WHERE id = $1;
 `
 
 	row := db.QueryRow(query, id)
@@ -55,16 +55,12 @@ func InsertTask(db *sql.DB, name, deadline, status string, subjectID int64) (*mo
 		status,
 		subject_id
 	)
-	VALUES (?, ?, ?, ?);
+	VALUES ($1, $2, $3, $4)
+	RETURNING id;
 `
 
-	result, err := db.Exec(query, name, deadline, status, subjectID)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
+	var id int64
+	if err := db.QueryRow(query, name, deadline, status, subjectID).Scan(&id); err != nil {
 		return nil, err
 	}
 
@@ -81,11 +77,11 @@ func UpdateTask(db *sql.DB, id int64, name, deadline, status string, subjectID i
 	query := `
 	UPDATE tasks
 	SET
-		name = ?,
-		deadline = ?,
-		status = ?,
-		subject_id = ?
-	WHERE id = ?;
+		name = $1,
+		deadline = $2,
+		status = $3,
+		subject_id = $4
+	WHERE id = $5;
 `
 
 	result, err := db.Exec(query, name, deadline, status, subjectID, id)
@@ -123,7 +119,7 @@ func DeleteTasks(db *sql.DB) error {
 func DeleteTask(db *sql.DB, id int64) error {
 	query := `
 	DELETE FROM tasks
-	WHERE id = ?;
+	WHERE id = $1;
 `
 
 	result, err := db.Exec(query, id)
