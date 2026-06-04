@@ -10,6 +10,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studify -d studify"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -18,13 +23,16 @@ services:
     container_name: studify-backend
     working_dir: /app
     command: air
+    environment:
+      DATABASE_URL: postgres://studify:studify@postgres:5432/studify?sslmode=disable
     ports:
       - "8080:8080"
     volumes:
       - ./backend:/app
       - backend_tmp:/app/tmp
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   frontend:
     build:
@@ -47,4 +55,3 @@ volumes:
   postgres_data:
   backend_tmp:
   frontend_node_modules:
-
