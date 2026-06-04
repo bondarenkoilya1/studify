@@ -1,30 +1,113 @@
+import { type FormEvent, type ReactNode, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { TaskForm } from "../../features/tasks/ui/TaskForm.tsx";
+import { Link } from "react-router-dom";
 import { getSubjects } from "../../features/subjects/api/subjects-api.ts";
 import { createTask, getTasks, updateTask } from "../../features/tasks/api/tasks-api.ts";
-import { type CreateTaskPayload, type Task, type TaskStatus } from "../../entities/task/types.ts";
-import { PageHeader } from "../../shared/ui/PageHeader.tsx";
-import { SectionHeader } from "../../shared/ui/SectionHeader.tsx";
-import { StatCard } from "../../shared/ui/StatCard.tsx";
+import { type Subject } from "../../entities/subject/types.ts";
+import { type Task, type TaskStatus } from "../../entities/task/types.ts";
 import { formatOptionalDate, isOverdueDate } from "../../shared/lib/dateFormat.ts";
-import { getStatusClass, statusLabels } from "../../shared/lib/taskStatus.ts";
-import { AppLayout } from "../../widgets/app-layout/AppLayout.tsx";
+import { statusLabels } from "../../shared/lib/taskStatus.ts";
+import markerPurple from "../../assets/shared/02_marker_purple_heading.png";
+import dotsPurple from "../../assets/shared/07_dots_purple.png";
+import dotsBlue from "../../assets/shared/08_dots_blue.png";
+import dotsGreen from "../../assets/shared/09_dots_green.png";
+import dotsYellow from "../../assets/shared/11_dots_yellow.png";
+import iconOpenTasks from "../../assets/tasks/12_icon_open_tasks_blue.png";
+import iconInProgress from "../../assets/tasks/13_icon_in_progress_yellow.png";
+import iconCompleted from "../../assets/tasks/14_icon_completed_green.png";
+import iconTaskName from "../../assets/tasks/15_icon_task_name_purple.png";
+import iconSubject from "../../assets/tasks/16_icon_subject_blue.png";
+import iconDeadline from "../../assets/tasks/17_icon_deadline_green.png";
+import iconStatus from "../../assets/tasks/18_icon_status_yellow.png";
+import sidebarDashboard from "../../assets/tasks/20_sidebar_dashboard.png";
+import sidebarSubjects from "../../assets/tasks/21_sidebar_subjects.png";
+import sidebarTasks from "../../assets/tasks/22_sidebar_tasks_active.png";
+import sidebarCalendar from "../../assets/tasks/23_sidebar_calendar.png";
+import sidebarNotes from "../../assets/tasks/24_sidebar_notes.png";
+import sidebarProgress from "../../assets/tasks/25_sidebar_progress.png";
+import sidebarSettings from "../../assets/tasks/26_sidebar_settings.png";
+import heroTasks from "../../assets/tasks/28_hero_tasks_clipboard_plant.png";
+import emptyInbox from "../../assets/tasks/29_empty_state_tasks_inbox.png";
+import tableHeaderBg from "../../assets/tasks/30_table_header_soft_bg.png";
+import formStrip from "../../assets/tasks/31_form_soft_background_strip.png";
+import sparkleButton from "../../assets/tasks/32_button_purple_sparkle.png";
+import dashedAddArea from "../../assets/tasks/33_dashed_add_task_area.png";
+import avatarLogan from "../../assets/tasks/34_avatar_placeholder_logan.png";
+import raysPurple from "../../assets/tasks/39_rays_purple.png";
+import chevronDown from "../../assets/tasks/42_chevron_down.png";
+import calendarInputIcon from "../../assets/tasks/43_calendar_input_icon.png";
 
 const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
+
+const sidebarItems = [
+  { label: "Dashboard", icon: sidebarDashboard, to: "/dashboard" },
+  { label: "Subjects", icon: sidebarSubjects, to: "/subjects" },
+  { label: "Tasks", icon: sidebarTasks, to: "/tasks", active: true },
+  { label: "Calendar", icon: sidebarCalendar, to: "/tasks" },
+  { label: "Notes", icon: sidebarNotes, to: "/subjects" },
+  { label: "Progress", icon: sidebarProgress, to: "/dashboard" },
+  { label: "Settings", icon: sidebarSettings, to: "/dashboard" },
+];
 
 type StatusUpdateContext = {
   previousTasks?: Task[];
 };
 
+type TaskFormState = {
+  name: string;
+  subject_id: number;
+  deadline: string;
+  status: TaskStatus;
+};
+
+type TaskFormErrors = Partial<Record<keyof TaskFormState, string>>;
+
+const emptyTaskForm: TaskFormState = {
+  name: "",
+  subject_id: 0,
+  deadline: "",
+  status: "not_completed",
+};
+
+const inputClassName =
+  "h-12 w-full rounded-[8px] border border-[#cfd7e4] bg-white px-4 text-base text-[#1a2740] shadow-[0_6px_18px_rgba(23,37,61,0.06)] outline-none transition placeholder:text-[#72809a] focus:border-[#6f2bd9] focus:ring-4 focus:ring-[#efe7ff] disabled:cursor-not-allowed disabled:bg-slate-100";
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Please try again.";
+}
+
+function formatCount(value: number | undefined) {
+  return String(value ?? 0);
+}
+
+function asTaskStatus(status: Task["status"]): TaskStatus {
+  return taskStatusOptions.includes(status as TaskStatus)
+    ? (status as TaskStatus)
+    : "not_completed";
+}
+
+function validateTaskForm(form: TaskFormState, hasSubjects: boolean): TaskFormErrors {
+  const errors: TaskFormErrors = {};
+  if (!form.name.trim()) {
+    errors.name = "Task name is required";
+  }
+  if (!hasSubjects || form.subject_id <= 0) {
+    errors.subject_id = "Create a subject before adding tasks.";
+  }
+  if (!form.deadline) {
+    errors.deadline = "Deadline is required";
+  }
+  return errors;
 }
 
 export function TasksPage() {
   const queryClient = useQueryClient();
   const [statusUpdateErrors, setStatusUpdateErrors] = useState<Record<number, string>>({});
   const [pendingStatusTaskId, setPendingStatusTaskId] = useState<number | null>(null);
+  const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm);
+  const [touchedFields, setTouchedFields] = useState<TaskFormErrors>({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
   const subjectsQuery = useQuery({
     queryKey: ["subjects"],
     queryFn: getSubjects,
@@ -86,36 +169,34 @@ export function TasksPage() {
   const subjects = subjectsQuery.data ?? [];
   const tasks = tasksQuery.data ?? [];
   const subjectNames = new Map(subjects.map((subject) => [subject.id, subject.name]));
+  const selectedSubjectId = taskForm.subject_id || subjects[0]?.id || 0;
+  const formWithSelectedSubject = { ...taskForm, subject_id: selectedSubjectId };
+  const formErrors = validateTaskForm(formWithSelectedSubject, subjects.length > 0);
   const openTasks = tasks.filter((task) => task.status !== "completed");
   const ongoingTasks = tasks.filter((task) => task.status === "ongoing");
   const completedTasks = tasks.filter((task) => task.status === "completed");
 
-  const taskStats = [
-    {
-      label: "Open tasks",
-      value: tasksQuery.isLoading ? "..." : String(openTasks.length),
-      detail: "Need attention",
-      icon: "O",
-    },
-    {
-      label: "In progress",
-      value: tasksQuery.isLoading ? "..." : String(ongoingTasks.length),
-      detail: "Currently active",
-      icon: "W",
-      iconClassName: "bg-amber-100 text-amber-800",
-    },
-    {
-      label: "Completed",
-      value: tasksQuery.isLoading ? "..." : String(completedTasks.length),
-      detail: "Recently closed",
-      icon: "C",
-      iconClassName: "bg-green-100 text-green-700",
-      valueClassName: "text-green-700",
-    },
-  ];
+  async function handleCreateTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setHasSubmitted(true);
 
-  async function handleCreateTask(task: CreateTaskPayload) {
-    await createTaskMutation.mutateAsync(task);
+    if (Object.keys(formErrors).length > 0) {
+      return;
+    }
+
+    await createTaskMutation.mutateAsync({
+      name: taskForm.name.trim(),
+      subject_id: selectedSubjectId,
+      deadline: taskForm.deadline,
+      status: taskForm.status,
+    });
+
+    setTaskForm({
+      ...emptyTaskForm,
+      subject_id: selectedSubjectId,
+    });
+    setTouchedFields({});
+    setHasSubmitted(false);
   }
 
   async function handleStatusChange(id: number, status: TaskStatus) {
@@ -131,155 +212,541 @@ export function TasksPage() {
   }
 
   return (
-    <AppLayout>
-      <section className="grid gap-8">
-        <PageHeader
-          label="Tasks"
-          title="Plan and track study work"
-          description="Create study tasks, connect them to subjects, and keep deadlines visible from the backend data."
-        />
+    <div className="min-h-screen bg-white text-[#08111f]">
+      <div className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-[1584px] lg:grid-cols-[250px_1fr]">
+        <TasksSidebar />
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {taskStats.map((stat) => (
-            <StatCard key={stat.label} {...stat} />
-          ))}
-        </div>
+        <main className="relative mx-auto w-full max-w-[350px] overflow-hidden px-5 py-8 sm:max-w-none sm:px-8 lg:px-8 lg:py-12">
+          <section className="relative grid gap-8 xl:grid-cols-[minmax(0,660px)_560px] xl:items-center xl:justify-between">
+            <div className="relative">
+              <img
+                src={raysPurple}
+                alt=""
+                aria-hidden="true"
+                className="absolute left-[-44px] top-0 hidden w-[58px] lg:block"
+              />
+              <h1 className="max-w-[560px] text-[clamp(3rem,13vw,4.1rem)] font-black leading-[1.03] tracking-[-0.01em]">
+                <span className="block">Plan and track</span>
+                <span className="relative inline-block px-3">
+                  <img
+                    src={markerPurple}
+                    alt=""
+                    aria-hidden="true"
+                    className="absolute inset-x-0 top-1/2 -z-0 h-[0.75em] w-full -translate-y-1/2"
+                  />
+                  <span className="relative z-10">study work.</span>
+                </span>
+              </h1>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <section>
-            <SectionHeader
-              eyebrow="Task board"
-              title="All tasks"
-              description="Live task rows from the Go backend."
-            />
+              <p className="mt-6 max-w-[330px] text-lg leading-[1.55] text-[#43516a] sm:max-w-[480px] sm:text-xl">
+                Create study tasks, connect them to subjects, and keep deadlines visible.
+              </p>
+            </div>
 
-            <div className="mt-6 overflow-hidden rounded-xl border border-[var(--color-border)] bg-white">
-              <div className="grid grid-cols-[1fr_140px_160px] gap-4 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                <span>Task</span>
-                <span>Deadline</span>
-                <span>Status</span>
-              </div>
-
-              <div className="divide-y divide-slate-100 bg-white">
-                {tasksQuery.isLoading ? (
-                  <p className="px-4 py-5 text-sm text-[var(--color-text-muted)]">
-                    Loading tasks...
-                  </p>
-                ) : null}
-
-                {tasksQuery.error ? (
-                  <p className="m-4 rounded-xl border border-red-200 bg-[var(--color-danger-soft)] px-3 py-2 text-sm text-red-700">
-                    Failed to load tasks: {tasksQuery.error.message}
-                  </p>
-                ) : null}
-
-                {!tasksQuery.isLoading && !tasksQuery.error && tasks.length === 0 ? (
-                  <p className="px-4 py-5 text-sm text-[var(--color-text-muted)]">
-                    No tasks yet. Create your first study task.
-                  </p>
-                ) : null}
-
-                {!tasksQuery.isLoading && !tasksQuery.error
-                  ? tasks.map((task) => {
-                      const isOverdue = task.status !== "completed" && isOverdueDate(task.deadline);
-
-                      return (
-                        <article
-                          key={task.id}
-                          className={`grid gap-3 border-l-4 px-4 py-4 transition sm:grid-cols-[1fr_140px_160px] sm:items-center ${
-                            isOverdue
-                              ? "border-l-red-500 bg-red-50/80 hover:bg-red-50"
-                              : "border-l-transparent hover:bg-slate-50"
-                          }`}
-                        >
-                          <div>
-                            <h3
-                              className={`text-sm font-semibold ${
-                                isOverdue ? "text-red-900" : "text-[var(--color-text)]"
-                              }`}
-                            >
-                              {task.name}
-                            </h3>
-                            <p
-                              className={`mt-1 text-sm ${
-                                isOverdue ? "text-red-700" : "text-[var(--color-text-muted)]"
-                              }`}
-                            >
-                              {subjectNames.get(task.subject_id) ?? `Subject ${task.subject_id}`}
-                            </p>
-                          </div>
-                          <div className="grid gap-1">
-                            <p
-                              className={`text-sm font-semibold ${
-                                isOverdue ? "text-red-700" : "text-[var(--color-text-muted)]"
-                              }`}
-                            >
-                              {formatOptionalDate(task.deadline, "No deadline")}
-                            </p>
-                            {isOverdue ? (
-                              <span className="w-fit rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-red-200">
-                                Overdue
-                              </span>
-                            ) : null}
-                          </div>
-                          <label className="sr-only" htmlFor={`task-status-${task.id}`}>
-                            Update status for {task.name}
-                          </label>
-                          <div className="grid gap-2">
-                            <select
-                              id={`task-status-${task.id}`}
-                              name={`task-${task.id}-status`}
-                              autoComplete="off"
-                              value={task.status}
-                              disabled={pendingStatusTaskId === task.id}
-                              aria-invalid={Boolean(statusUpdateErrors[task.id])}
-                              aria-describedby={
-                                statusUpdateErrors[task.id]
-                                  ? `task-status-error-${task.id}`
-                                  : undefined
-                              }
-                              onChange={(event) =>
-                                handleStatusChange(task.id, event.target.value as TaskStatus)
-                              }
-                              className={`h-10 rounded-xl border px-3 text-sm font-semibold shadow-sm ring-1 transition focus-visible:border-[var(--color-primary)] focus-visible:ring-4 focus-visible:ring-[var(--color-primary-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 ${
-                                statusUpdateErrors[task.id]
-                                  ? "border-red-300 ring-red-200"
-                                  : "border-slate-300 ring-[var(--color-border)]"
-                              } ${getStatusClass(task.status)}`}
-                            >
-                              {taskStatusOptions.map((status) => (
-                                <option key={status} value={status}>
-                                  {statusLabels[status]}
-                                </option>
-                              ))}
-                            </select>
-                            {statusUpdateErrors[task.id] ? (
-                              <p
-                                id={`task-status-error-${task.id}`}
-                                className="rounded-lg border border-red-200 bg-[var(--color-danger-soft)] px-3 py-2 text-xs font-medium leading-5 text-red-700"
-                              >
-                                {statusUpdateErrors[task.id]}
-                              </p>
-                            ) : null}
-                          </div>
-                        </article>
-                      );
-                    })
-                  : null}
-              </div>
+            <div className="relative hidden min-h-[230px] xl:block">
+              <img
+                src={dotsPurple}
+                alt=""
+                aria-hidden="true"
+                className="absolute right-[-16px] top-[-50px] w-[90px] opacity-75"
+              />
+              <img src={heroTasks} alt="" className="ml-auto w-[500px]" />
             </div>
           </section>
 
-          <TaskForm
-            subjects={subjects}
-            isSubjectsLoading={subjectsQuery.isLoading}
-            subjectsError={subjectsQuery.error}
-            isSubmitting={createTaskMutation.isPending}
-            submitError={createTaskMutation.error}
-            onSubmit={handleCreateTask}
-          />
+          <section className="mt-10 grid gap-7 lg:grid-cols-3">
+            <MetricCard
+              title="Open tasks"
+              value={formatCount(openTasks.length)}
+              caption="Need attention"
+              icon={iconOpenTasks}
+              dots={dotsBlue}
+              border="border-[#8bb6ff]"
+            />
+            <MetricCard
+              title="In progress"
+              value={formatCount(ongoingTasks.length)}
+              caption="Currently active"
+              icon={iconInProgress}
+              dots={dotsYellow}
+              border="border-[#f4bd46]"
+            />
+            <MetricCard
+              title="Completed"
+              value={formatCount(completedTasks.length)}
+              caption="Recently closed"
+              icon={iconCompleted}
+              dots={dotsGreen}
+              border="border-[#79c98d]"
+            />
+          </section>
+
+          <section className="mt-7 grid items-start gap-7 xl:grid-cols-[minmax(0,1fr)_430px]">
+            <TaskBoard
+              tasks={tasks}
+              subjects={subjects}
+              isLoading={tasksQuery.isLoading}
+              error={tasksQuery.error}
+              subjectNames={subjectNames}
+              pendingStatusTaskId={pendingStatusTaskId}
+              statusUpdateErrors={statusUpdateErrors}
+              onStatusChange={handleStatusChange}
+            />
+
+            <CreateTaskPanel
+              form={taskForm}
+              subjects={subjects}
+              selectedSubjectId={selectedSubjectId}
+              subjectsLoading={subjectsQuery.isLoading}
+              subjectsError={subjectsQuery.error}
+              errors={formErrors}
+              touched={touchedFields}
+              hasSubmitted={hasSubmitted}
+              isSubmitting={createTaskMutation.isPending}
+              submitError={createTaskMutation.error}
+              onSubmit={handleCreateTask}
+              onChange={(field, value) =>
+                setTaskForm((current) => ({ ...current, [field]: value }))
+              }
+              onTouch={(field) => setTouchedFields((current) => ({ ...current, [field]: true }))}
+            />
+          </section>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function TasksSidebar() {
+  return (
+    <aside className="hidden min-h-[calc(100vh-92px)] border-r border-[#e1e6ef] bg-white px-5 py-8 lg:flex lg:flex-col">
+      <nav className="grid gap-5">
+        {sidebarItems.map((item) => (
+          <Link
+            key={item.label}
+            to={item.to}
+            className={`flex h-14 items-center gap-5 rounded-[8px] px-5 text-base font-semibold transition ${
+              item.active
+                ? "bg-[#f3edff] text-[#5d20d8]"
+                : "text-[#43516a] hover:bg-[#f6f8fc] hover:text-[#5d20d8]"
+            }`}
+          >
+            <img src={item.icon} alt="" aria-hidden="true" className="size-7 shrink-0" />
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mt-auto">
+        <div className="rounded-[8px] bg-[#f5f1ff] px-6 py-8 text-center">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-[8px] text-[#6f2bd9]">
+            <span className="text-5xl leading-none">✧</span>
+          </div>
+          <p className="text-base font-bold leading-snug text-[#5d20d8]">
+            Stay consistent, see progress.
+          </p>
         </div>
-      </section>
-    </AppLayout>
+
+        <button
+          className="mt-8 flex h-14 w-full items-center justify-between rounded-[8px] border border-[#dce2eb] bg-white px-4 shadow-sm"
+          aria-label="Open profile menu"
+        >
+          <span className="flex items-center gap-3">
+            <img src={avatarLogan} alt="" className="size-8 rounded-[8px]" />
+            <span className="font-semibold">Logan</span>
+          </span>
+          <img src={chevronDown} alt="" aria-hidden="true" className="size-6" />
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function MetricCard({
+  border,
+  caption,
+  dots,
+  icon,
+  title,
+  value,
+}: {
+  border: string;
+  caption: string;
+  dots: string;
+  icon: string;
+  title: string;
+  value: string;
+}) {
+  return (
+    <article
+      className={`relative min-h-[160px] overflow-hidden rounded-[12px] border-2 bg-white p-6 shadow-[0_18px_50px_rgba(28,40,65,0.04)] ${border}`}
+    >
+      <div className="flex items-center gap-5">
+        <img src={icon} alt="" aria-hidden="true" className="size-13" />
+        <h2 className="text-xl font-black">{title}</h2>
+      </div>
+      <img
+        src={dots}
+        alt=""
+        aria-hidden="true"
+        className="absolute right-6 top-[58px] w-[44px] opacity-80"
+      />
+      <p className="mt-6 text-4xl font-black leading-none">{value}</p>
+      <p className="mt-3 text-base font-medium text-[#43516a]">{caption}</p>
+    </article>
+  );
+}
+
+function TaskBoard({
+  error,
+  isLoading,
+  onStatusChange,
+  pendingStatusTaskId,
+  statusUpdateErrors,
+  subjectNames,
+  tasks,
+}: {
+  error: Error | null;
+  isLoading: boolean;
+  onStatusChange: (id: number, status: TaskStatus) => Promise<void>;
+  pendingStatusTaskId: number | null;
+  statusUpdateErrors: Record<number, string>;
+  subjectNames: Map<number, string>;
+  subjects: Subject[];
+  tasks: Task[];
+}) {
+  return (
+    <section className="relative">
+      <img
+        src={dotsGreen}
+        alt=""
+        aria-hidden="true"
+        className="absolute left-[-110px] top-[140px] hidden w-[74px] opacity-65 xl:block"
+      />
+      <p className="text-sm font-black uppercase tracking-wide text-[#5d20d8]">Task board</p>
+      <h2 className="mt-3 text-2xl font-black">All tasks</h2>
+      <p className="mt-2 text-base text-[#43516a]">Live task rows from the Go backend.</p>
+
+      <div className="mt-6 overflow-hidden rounded-[12px] border border-[#d7dfea] bg-white shadow-[0_18px_50px_rgba(28,40,65,0.04)]">
+        <div className="relative grid grid-cols-[1fr_160px_170px_160px] gap-4 overflow-hidden px-7 py-4 text-sm font-black uppercase tracking-wide text-[#72809a]">
+          <img
+            src={tableHeaderBg}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover opacity-70"
+          />
+          <span className="relative z-10">Task</span>
+          <span className="relative z-10">Subject</span>
+          <span className="relative z-10">Deadline</span>
+          <span className="relative z-10">Status</span>
+        </div>
+
+        <div className="min-h-[290px] divide-y divide-[#edf1f6]">
+          {isLoading ? (
+            <p className="px-7 py-6 text-base text-[#43516a]">Loading tasks...</p>
+          ) : null}
+
+          {error ? (
+            <p className="m-6 rounded-[8px] border border-[#ffb3c4] bg-[#fff3f6] px-4 py-3 text-sm font-semibold text-[#c21646]">
+              Failed to load tasks: {error.message}
+            </p>
+          ) : null}
+
+          {!isLoading && !error && tasks.length === 0 ? <EmptyTasksState /> : null}
+
+          {!isLoading && !error
+            ? tasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  subjectName={subjectNames.get(task.subject_id) ?? `Subject ${task.subject_id}`}
+                  pending={pendingStatusTaskId === task.id}
+                  error={statusUpdateErrors[task.id]}
+                  onStatusChange={onStatusChange}
+                />
+              ))
+            : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function EmptyTasksState() {
+  return (
+    <div className="grid min-h-[288px] place-items-center px-6 py-10">
+      <div className="w-full max-w-[430px] text-center">
+        <div className="mx-auto grid max-w-[330px] grid-cols-[130px_1fr] items-center gap-6 text-left">
+          <img src={emptyInbox} alt="" className="w-[130px]" />
+          <div>
+            <h3 className="text-xl font-black">No tasks yet</h3>
+            <p className="mt-3 text-base leading-6 text-[#43516a]">
+              Create your first study task to get started.
+            </p>
+          </div>
+        </div>
+        <button className="relative mt-8 h-14 w-full max-w-[360px] overflow-hidden rounded-[8px] text-base font-black text-[#7c3df0]">
+          <img
+            src={dashedAddArea}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 size-full"
+          />
+          <span className="relative z-10 inline-flex items-center gap-3">
+            <span className="text-3xl leading-none">+</span>
+            Add your first task
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TaskRow({
+  error,
+  onStatusChange,
+  pending,
+  subjectName,
+  task,
+}: {
+  error?: string;
+  onStatusChange: (id: number, status: TaskStatus) => Promise<void>;
+  pending: boolean;
+  subjectName: string;
+  task: Task;
+}) {
+  const status = asTaskStatus(task.status);
+  const isOverdue = status !== "completed" && isOverdueDate(task.deadline);
+
+  return (
+    <article
+      className={`grid gap-4 px-7 py-4 text-base md:grid-cols-[1fr_160px_170px_160px] md:items-center ${
+        isOverdue ? "bg-[#fff6f8]" : "bg-white"
+      }`}
+    >
+      <div>
+        <h3 className="font-black">{task.name}</h3>
+        {error ? (
+          <p className="mt-2 rounded-[8px] border border-[#ffb3c4] bg-[#fff3f6] px-3 py-2 text-sm font-semibold text-[#c21646]">
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <p className="font-semibold text-[#43516a]">{subjectName}</p>
+      <div>
+        <p className={`font-semibold ${isOverdue ? "text-[#dd144d]" : "text-[#43516a]"}`}>
+          {formatOptionalDate(task.deadline, "No deadline")}
+        </p>
+        {isOverdue ? (
+          <span className="mt-1 inline-flex rounded-full bg-[#ffe4eb] px-2 py-0.5 text-xs font-black text-[#dd144d]">
+            Overdue
+          </span>
+        ) : null}
+      </div>
+      <select
+        aria-label={`Update status for ${task.name}`}
+        value={status}
+        disabled={pending}
+        onChange={(event) => onStatusChange(task.id, event.target.value as TaskStatus)}
+        className="h-10 rounded-[8px] border border-[#cfd7e4] bg-white px-3 text-sm font-black text-[#1a2740] outline-none focus:border-[#6f2bd9] focus:ring-4 focus:ring-[#efe7ff]"
+      >
+        {taskStatusOptions.map((option) => (
+          <option key={option} value={option}>
+            {statusLabels[option]}
+          </option>
+        ))}
+      </select>
+    </article>
+  );
+}
+
+function CreateTaskPanel({
+  errors,
+  form,
+  hasSubmitted,
+  isSubmitting,
+  onChange,
+  onSubmit,
+  onTouch,
+  selectedSubjectId,
+  subjects,
+  subjectsError,
+  subjectsLoading,
+  submitError,
+  touched,
+}: {
+  errors: TaskFormErrors;
+  form: TaskFormState;
+  hasSubmitted: boolean;
+  isSubmitting: boolean;
+  onChange: <Field extends keyof TaskFormState>(field: Field, value: TaskFormState[Field]) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onTouch: (field: keyof TaskFormState) => void;
+  selectedSubjectId: number;
+  subjects: Subject[];
+  subjectsError: Error | null;
+  subjectsLoading: boolean;
+  submitError: Error | null;
+  touched: TaskFormErrors;
+}) {
+  const showError = (field: keyof TaskFormState) =>
+    Boolean((hasSubmitted || touched[field]) && errors[field]);
+  const hasSubjects = subjects.length > 0;
+
+  return (
+    <form
+      noValidate
+      onSubmit={onSubmit}
+      className="relative overflow-hidden rounded-[12px] border border-[#d7dfea] bg-white p-6 shadow-[0_18px_50px_rgba(28,40,65,0.04)]"
+    >
+      <img
+        src={formStrip}
+        alt=""
+        aria-hidden="true"
+        className="absolute right-0 top-0 h-24 w-full object-cover opacity-25"
+      />
+      <img
+        src={dotsGreen}
+        alt=""
+        aria-hidden="true"
+        className="absolute bottom-20 right-[-90px] hidden w-[74px] opacity-65 xl:block"
+      />
+
+      <div className="relative z-10">
+        <p className="text-sm font-black uppercase tracking-wide text-[#5d20d8]">New task</p>
+        <h2 className="mt-3 text-2xl font-black">Add study task</h2>
+        <p className="mt-2 text-base leading-6 text-[#43516a]">
+          Keep task details structured for the API shape you will connect later.
+        </p>
+
+        <div className="mt-8 grid gap-5">
+          <TaskCreateField
+            icon={iconTaskName}
+            label="Task name"
+            error={showError("name") ? errors.name : undefined}
+          >
+            <input
+              aria-label="Task name"
+              value={form.name}
+              disabled={isSubmitting}
+              onBlur={() => onTouch("name")}
+              onChange={(event) => onChange("name", event.target.value)}
+              placeholder="e.g. Read chapter 4"
+              className={`${inputClassName} ${showError("name") ? "border-[#ff5b82] ring-4 ring-[#ffe7ee]" : ""}`}
+            />
+          </TaskCreateField>
+
+          <TaskCreateField
+            icon={iconSubject}
+            label="Subject"
+            error={showError("subject_id") ? errors.subject_id : undefined}
+          >
+            <select
+              aria-label="Subject"
+              value={selectedSubjectId || ""}
+              disabled={isSubmitting || subjectsLoading || !hasSubjects}
+              onBlur={() => onTouch("subject_id")}
+              onChange={(event) => onChange("subject_id", Number(event.target.value))}
+              className={`${inputClassName} ${showError("subject_id") ? "border-[#ff5b82] ring-4 ring-[#ffe7ee]" : ""}`}
+            >
+              {subjectsLoading ? <option value="">Loading subjects...</option> : null}
+              {!subjectsLoading && !hasSubjects ? (
+                <option value="">No subjects available</option>
+              ) : null}
+              {subjects.map((subject) => (
+                <option key={subject.id} value={subject.id}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
+          </TaskCreateField>
+
+          <TaskCreateField
+            icon={iconDeadline}
+            label="Deadline"
+            error={showError("deadline") ? errors.deadline : undefined}
+          >
+            <div className="relative">
+              <input
+                aria-label="Deadline"
+                type="date"
+                value={form.deadline}
+                disabled={isSubmitting}
+                onBlur={() => onTouch("deadline")}
+                onChange={(event) => onChange("deadline", event.target.value)}
+                className={`${inputClassName} pr-11 ${showError("deadline") ? "border-[#ff5b82] ring-4 ring-[#ffe7ee]" : ""}`}
+              />
+              <img
+                src={calendarInputIcon}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute right-3 top-1/2 size-5 -translate-y-1/2"
+              />
+            </div>
+          </TaskCreateField>
+
+          <TaskCreateField icon={iconStatus} label="Status">
+            <select
+              aria-label="Status"
+              value={form.status}
+              disabled={isSubmitting}
+              onBlur={() => onTouch("status")}
+              onChange={(event) => onChange("status", event.target.value as TaskStatus)}
+              className={inputClassName}
+            >
+              {taskStatusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {statusLabels[status]}
+                </option>
+              ))}
+            </select>
+          </TaskCreateField>
+        </div>
+
+        {subjectsError ? (
+          <p className="mt-4 rounded-[8px] border border-[#ffb3c4] bg-[#fff3f6] px-3 py-2 text-sm font-semibold text-[#c21646]">
+            Failed to load subjects: {subjectsError.message}
+          </p>
+        ) : null}
+
+        {submitError ? (
+          <p className="mt-4 rounded-[8px] border border-[#ffb3c4] bg-[#fff3f6] px-3 py-2 text-sm font-semibold text-[#c21646]">
+            Failed to create task: {submitError.message}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-7 flex h-12 w-full items-center justify-center gap-3 rounded-[8px] bg-[#6f2bd9] px-5 text-base font-black text-white shadow-[0_14px_30px_rgba(111,43,217,0.28)] transition hover:bg-[#5c20bd] disabled:cursor-not-allowed disabled:bg-[#b9a2e6]"
+        >
+          <img src={sparkleButton} alt="" aria-hidden="true" className="size-5" />
+          {isSubmitting ? "Creating task..." : "Create task"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function TaskCreateField({
+  children,
+  error,
+  icon,
+  label,
+}: {
+  children: ReactNode;
+  error?: string;
+  icon: string;
+  label: string;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-[56px_1fr] sm:items-end">
+      <img src={icon} alt="" aria-hidden="true" className="size-13 rounded-[8px]" />
+      <div>
+        <span className="mb-2 block text-sm font-black text-[#1a2740]">{label}</span>
+        {children}
+        {error ? <p className="mt-2 text-sm font-semibold text-[#c21646]">{error}</p> : null}
+      </div>
+    </div>
   );
 }
