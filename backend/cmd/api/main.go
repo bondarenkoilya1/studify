@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
-	"studify/database"
-	"studify/handlers"
+	"studify/internal/database"
+	"studify/internal/handlers"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"

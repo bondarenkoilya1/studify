@@ -1,5 +1,5 @@
 APP_NAME ?= studify
-MAIN ?= .
+MAIN ?= ./cmd/api
 
 .PHONY: run build test fmt fmt-check vet lint check clean deps
 

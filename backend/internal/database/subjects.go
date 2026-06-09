@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql"
-	"studify/models"
+	"studify/internal/models"
 )
 
 func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {

@@ -5,8 +5,8 @@ import (
 	"log"
 	"math"
 	"net/http"
-	"studify/database"
-	"studify/models"
+	"studify/internal/database"
+	"studify/internal/models"
 )
 
 type DashboardStatus struct {

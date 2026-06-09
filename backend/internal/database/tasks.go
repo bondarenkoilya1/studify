@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql"
-	"studify/models"
+	"studify/internal/models"
 )
 
 func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {

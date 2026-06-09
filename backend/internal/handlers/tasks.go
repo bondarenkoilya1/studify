@@ -8,8 +8,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"studify/database"
-	"studify/models"
+	"studify/internal/database"
+	"studify/internal/models"
 )
 
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {

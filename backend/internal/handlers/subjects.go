@@ -12,8 +12,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"studify/database"
-	"studify/models"
+	"studify/internal/database"
+	"studify/internal/models"
 
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"

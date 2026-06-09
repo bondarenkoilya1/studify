@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql"
-	"studify/models"
+	"studify/internal/models"
 )
 
 func scanTasks(db *sql.DB, query string) ([]models.Task, error) {

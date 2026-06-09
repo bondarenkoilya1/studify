@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
-	"studify/models"
+	"studify/internal/models"
 )
 
 // GetSubjectsCount returns the number of subjects.
