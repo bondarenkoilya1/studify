@@ -2,8 +2,13 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"studify/internal/models"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
+
+var ErrUserAlreadyExists = errors.New("user already exists")
 
 func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 	query := `
@@ -71,6 +76,10 @@ func InsertUser(db *sql.DB, username, password string) (*models.User, error) {
 	var user models.User
 	err := db.QueryRow(query, username, password).Scan(&user.ID, &user.Username, &user.Password)
 	if err != nil {
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
+			return nil, ErrUserAlreadyExists
+		}
+
 		return nil, err
 	}
 

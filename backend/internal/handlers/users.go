@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,6 +26,11 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	newUser, err := database.InsertUser(h.DB, request.Username, request.Password)
 	if err != nil {
+		if errors.Is(err, database.ErrUserAlreadyExists) {
+			http.Error(w, "Failed to register user. User with such name is already exists", http.StatusConflict)
+			return
+		}
+
 		http.Error(w, fmt.Sprintf("Failed to register user: %v", err), http.StatusInternalServerError)
 		return
 	}
