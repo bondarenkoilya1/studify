@@ -1,0 +1,12 @@
+@baseUrl = http://localhost:8080
+@userID = 1
+
+### Setup: create a user
+POST {{baseUrl}}/register/
+Content-Type: application/json
+Accept: application/json
+
+  {
+    "username": "maxonchik",
+    "password": "fuckyou"
+  }

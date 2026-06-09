@@ -28,9 +28,3 @@ type UpdateTaskRequest struct {
 	Deadline  *string `json:"deadline"`
 	Status    *string `json:"status"`
 }
-
-type User struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"-"`
-}

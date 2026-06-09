@@ -59,6 +59,8 @@ func main() {
 
 	r.Get("/dashboard", h.GetDashboardStatus)
 
+	r.Post("/register/", h.RegisterUser)
+
 	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
 	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))
 
