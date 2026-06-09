@@ -18,10 +18,6 @@ func main() {
 	}
 	defer db.Close()
 
-	if err = database.CreateTables(db); err != nil {
-		log.Fatal(err)
-	}
-
 	h := &handlers.Handler{DB: db}
 
 	r := chi.NewRouter()
