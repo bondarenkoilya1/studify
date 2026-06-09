@@ -4,6 +4,7 @@ import { HomePage } from "../pages/home/HomePage.tsx";
 import { SubjectsPage } from "../pages/subjects/SubjectsPage.tsx";
 import { TasksPage } from "../pages/tasks/TasksPage.tsx";
 import { SiteHeader } from "../widgets/site-header/SiteHeader.tsx";
+import { Register } from "../pages/register";
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/subjects" element={<SubjectsPage />} />
+        <Route path="/register" element={<Register />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
