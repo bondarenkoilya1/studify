@@ -129,3 +129,12 @@ func DeleteUser(db *sql.DB, id int64) error {
 
 	return nil
 }
+
+func DeleteUsers(db *sql.DB) error {
+	query := `
+		DELETE FROM users;
+	`
+
+	_, err := db.Exec(query)
+	return err
+}
