@@ -1,279 +1,76 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import {
-  createSubject,
-  getSubjects,
-  replaceSubject,
-} from "../../features/subjects/api/subjects-api.ts";
+import { type FormEvent } from "react";
 import { getTasks } from "../../features/tasks/api/tasks-api.ts";
 import {
   type CreateSubjectPayload,
   type Subject,
   type UpdateSubjectPayload,
 } from "../../entities/subject/types.ts";
+import {
+  type SubjectFormErrors,
+  useSubjectsPage,
+} from "../../features/subjects/model/useSubjectsPage.ts";
 import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
-import markerPurple from "../../assets/shared/02_marker_purple_heading.png";
-import dotsPurple from "../../assets/shared/07_dots_purple.png";
-import dotsBlue from "../../assets/shared/08_dots_blue.png";
-import dotsGreen from "../../assets/shared/09_dots_green.png";
-import iconSubjects from "../../assets/subjects/12_icon_subjects_purple.png";
-import iconTasks from "../../assets/subjects/13_icon_tasks_blue.png";
-import iconDeadline from "../../assets/subjects/14_icon_deadline_yellow.png";
-import iconLecturer from "../../assets/subjects/15_icon_lecturer_blue.png";
-import iconExam from "../../assets/subjects/16_icon_exam_green.png";
-import iconFlask from "../../assets/subjects/17_icon_subject_flask_purple.png";
-import iconSparkle from "../../assets/subjects/18_icon_create_sparkle_blue.png";
-import sidebarDashboard from "../../assets/subjects/21_subjects_sidebar_dashboard.png";
-import sidebarSubjects from "../../assets/subjects/22_sidebar_subjects_active.png";
-import sidebarTasks from "../../assets/subjects/23_subjects_sidebar_tasks.png";
-import sidebarCalendar from "../../assets/subjects/24_subjects_sidebar_calendar.png";
-import sidebarNotes from "../../assets/subjects/25_sidebar_notes.png";
-import sidebarProgress from "../../assets/subjects/26_sidebar_progress.png";
-import sidebarSettings from "../../assets/subjects/27_sidebar_settings.png";
-import heroSubjects from "../../assets/subjects/28_hero_subjects_notebook_plant.png";
-import subjectHeaderAccent from "../../assets/subjects/29_subject_card_header_purple_accent.png";
-import formStrip from "../../assets/subjects/30_form_soft_background_strip.png";
-import avatarLogan from "../../assets/shared/32_avatar_placeholder_logan.png";
-import tinyName from "../../assets/subjects/33_tiny_name_icon.png";
-import tinyLecturer from "../../assets/subjects/34_tiny_lecturer_icon.png";
-import tinyExam from "../../assets/subjects/35_tiny_exam_icon.png";
-import raysPurple from "../../assets/subjects/37_rays_purple.png";
-import chevronDown from "../../assets/subjects/40_chevron_down.png";
+import { MetricCard } from "../../shared/ui/MetricCard.tsx";
+import { Sidebar } from "../../shared/ui/navigation/Sidebar.tsx";
+import { subjectAssets, subjectSidebarItems } from "./subjects.assets.ts";
 
-type SubjectUpdateContext = {
-  previousSubjects?: Subject[];
-};
-
-type SubjectFormErrors = Partial<Record<keyof CreateSubjectPayload, string>>;
-
-const emptySubjectForm: CreateSubjectPayload = {
-  name: "",
-  lecturer: "",
-  exam_date: "",
-};
-
-const sidebarItems = [
-  { label: "Dashboard", icon: sidebarDashboard, to: "/dashboard" },
-  { label: "Subjects", icon: sidebarSubjects, to: "/subjects", active: true },
-  { label: "Tasks", icon: sidebarTasks, to: "/tasks" },
-  { label: "Calendar", icon: sidebarCalendar, to: "/tasks" },
-  { label: "Notes", icon: sidebarNotes, to: "/subjects" },
-  { label: "Progress", icon: sidebarProgress, to: "/dashboard" },
-  { label: "Settings", icon: sidebarSettings, to: "/dashboard" },
-];
+const {
+  avatarLogan,
+  chevronDown,
+  dotsBlue,
+  dotsGreen,
+  dotsPurple,
+  formStrip,
+  heroSubjects,
+  iconDeadline,
+  iconExam,
+  iconFlask,
+  iconLecturer,
+  iconSparkle,
+  iconSubjects,
+  iconTasks,
+  markerPurple,
+  raysPurple,
+  subjectHeaderAccent,
+  tinyExam,
+  tinyLecturer,
+  tinyName,
+} = subjectAssets;
 
 const inputClassName =
   "h-12 w-full rounded-[8px] border border-[#cfd7e4] bg-white px-4 text-base text-[#1a2740] shadow-[0_6px_18px_rgba(23,37,61,0.06)] outline-none transition placeholder:text-[#72809a] focus:border-[#6f2bd9] focus:ring-4 focus:ring-[#efe7ff] disabled:cursor-not-allowed disabled:bg-slate-100";
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Please try again.";
-}
-
-function validateSubjectForm(form: CreateSubjectPayload): SubjectFormErrors {
-  return form.name.trim() ? {} : { name: "Subject name is required" };
-}
 
 function formatCount(value: number | undefined) {
   return String(value ?? 0);
 }
 
 export function SubjectsPage() {
-  const queryClient = useQueryClient();
-  const subjectSuccessTimeouts = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  const [subjectDrafts, setSubjectDrafts] = useState<Record<number, UpdateSubjectPayload>>({});
-  const [subjectUpdateErrors, setSubjectUpdateErrors] = useState<Record<number, string>>({});
-  const [subjectUpdateSuccesses, setSubjectUpdateSuccesses] = useState<Record<number, string>>({});
-  const [pendingSubjectId, setPendingSubjectId] = useState<number | null>(null);
-  const [createForm, setCreateForm] = useState<CreateSubjectPayload>(emptySubjectForm);
-  const [createTouched, setCreateTouched] = useState<SubjectFormErrors>({});
-  const [hasSubmittedCreate, setHasSubmittedCreate] = useState(false);
-
-  const subjectsQuery = useQuery({
-    queryKey: ["subjects"],
-    queryFn: getSubjects,
-  });
-  const tasksQuery = useQuery({
-    queryKey: ["tasks"],
-    queryFn: getTasks,
-  });
-  const createSubjectMutation = useMutation({
-    mutationFn: createSubject,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["subjects"] }),
-  });
-  const updateSubjectMutation = useMutation({
-    mutationFn: ({ id, subject }: { id: number; subject: CreateSubjectPayload }) =>
-      replaceSubject(id, subject),
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ["subjects"] });
-
-      const previousSubjects = queryClient.getQueryData<Subject[]>(["subjects"]);
-      queryClient.setQueryData<Subject[]>(["subjects"], (currentSubjects) =>
-        currentSubjects?.map((subject) =>
-          subject.id === variables.id ? { ...subject, ...variables.subject } : subject,
-        ),
-      );
-
-      setSubjectUpdateErrors((current) => {
-        const next = { ...current };
-        delete next[variables.id];
-        return next;
-      });
-      clearSubjectSuccess(variables.id);
-
-      return { previousSubjects };
-    },
-    onError: (_error, variables, context: SubjectUpdateContext | undefined) => {
-      if (context?.previousSubjects) {
-        queryClient.setQueryData(["subjects"], context.previousSubjects);
-      }
-
-      setSubjectUpdateErrors((current) => ({
-        ...current,
-        [variables.id]: `Changes were not saved. ${getErrorMessage(_error)}`,
-      }));
-    },
-    onSuccess: (updatedSubject, variables) => {
-      queryClient.setQueryData<Subject[]>(["subjects"], (currentSubjects) =>
-        currentSubjects?.map((subject) => (subject.id === variables.id ? updatedSubject : subject)),
-      );
-
-      setSubjectDrafts((current) => {
-        const next = { ...current };
-        delete next[variables.id];
-        return next;
-      });
-      showSubjectSuccess(variables.id, "Changes saved.");
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["subjects"] });
-    },
-  });
-
-  const subjects = subjectsQuery.data ?? [];
-  const tasks = tasksQuery.data ?? [];
-  const openTasks = tasks.filter((task) => task.status !== "completed");
-  const nextDeadlineTask = tasks.find((task) => task.deadline);
-  const createErrors = validateSubjectForm(createForm);
-
-  useEffect(() => {
-    const timeouts = subjectSuccessTimeouts.current;
-
-    return () => {
-      Object.values(timeouts).forEach(clearTimeout);
-    };
-  }, []);
-
-  function clearSubjectSuccess(id: number) {
-    const timeout = subjectSuccessTimeouts.current[id];
-    if (timeout) {
-      clearTimeout(timeout);
-      delete subjectSuccessTimeouts.current[id];
-    }
-
-    setSubjectUpdateSuccesses((current) => {
-      const next = { ...current };
-      delete next[id];
-      return next;
-    });
-  }
-
-  function showSubjectSuccess(id: number, message: string) {
-    clearSubjectSuccess(id);
-    setSubjectUpdateSuccesses((current) => ({
-      ...current,
-      [id]: message,
-    }));
-    subjectSuccessTimeouts.current[id] = setTimeout(() => {
-      clearSubjectSuccess(id);
-    }, 1800);
-  }
-
-  function updateSubjectDraft(id: number, field: keyof UpdateSubjectPayload, value: string) {
-    setSubjectUpdateErrors((current) => {
-      const next = { ...current };
-      delete next[id];
-      return next;
-    });
-    clearSubjectSuccess(id);
-    setSubjectDrafts((current) => ({
-      ...current,
-      [id]: {
-        ...current[id],
-        [field]: value,
-      },
-    }));
-  }
-
-  async function handleCreateSubject(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setHasSubmittedCreate(true);
-
-    if (Object.keys(createErrors).length > 0) {
-      return;
-    }
-
-    await createSubjectMutation.mutateAsync({
-      name: createForm.name.trim(),
-      lecturer: createForm.lecturer.trim(),
-      exam_date: createForm.exam_date.trim(),
-    });
-    setCreateForm(emptySubjectForm);
-    setCreateTouched({});
-    setHasSubmittedCreate(false);
-  }
-
-  async function handleUpdateSubject(
-    event: FormEvent<HTMLFormElement>,
-    id: number,
-    currentSubject: CreateSubjectPayload,
-  ) {
-    event.preventDefault();
-
-    const draft = subjectDrafts[id];
-    if (!draft) {
-      return;
-    }
-
-    setPendingSubjectId(id);
-    setSubjectUpdateErrors((current) => {
-      const next = { ...current };
-      delete next[id];
-      return next;
-    });
-    clearSubjectSuccess(id);
-
-    const nextSubject: CreateSubjectPayload = {
-      ...currentSubject,
-      ...draft,
-    };
-    const changedFields = Object.entries(draft).filter(([field, value]) => {
-      return value !== currentSubject[field as keyof CreateSubjectPayload];
-    });
-
-    if (changedFields.length === 0) {
-      setSubjectDrafts((current) => {
-        const next = { ...current };
-        delete next[id];
-        return next;
-      });
-      setPendingSubjectId(null);
-      return;
-    }
-
-    try {
-      await updateSubjectMutation.mutateAsync({ id, subject: nextSubject });
-    } catch {
-      // Rollback and card-level messaging are handled by the mutation callbacks.
-    } finally {
-      setPendingSubjectId(null);
-    }
-  }
+  const {
+    createErrors,
+    createForm,
+    createSubjectMutation,
+    createTouched,
+    handleCreateSubject,
+    handleUpdateSubject,
+    hasSubmittedCreate,
+    nextDeadlineTask,
+    openTasks,
+    pendingSubjectId,
+    setCreateForm,
+    setCreateTouched,
+    subjectDrafts,
+    subjectUpdateErrors,
+    subjectUpdateSuccesses,
+    subjects,
+    subjectsQuery,
+    tasks,
+    updateSubjectDraft,
+  } = useSubjectsPage();
 
   return (
     <div className="min-h-screen bg-white text-[#08111f]">
       <div className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-[1584px] lg:grid-cols-[250px_1fr]">
-        <SubjectsSidebar />
+        <Sidebar items={subjectSidebarItems} avatar={avatarLogan} chevron={chevronDown} />
 
         <main className="relative mx-auto w-full max-w-[350px] overflow-hidden px-5 py-8 sm:max-w-none sm:px-8 lg:px-8 lg:py-12">
           <section className="relative grid gap-8 xl:grid-cols-[minmax(0,660px)_520px] xl:items-center xl:justify-between">
@@ -377,67 +174,6 @@ export function SubjectsPage() {
         </main>
       </div>
     </div>
-  );
-}
-
-function SubjectsSidebar() {
-  return (
-    <aside className="hidden min-h-[calc(100vh-92px)] border-r border-[#e1e6ef] bg-white px-5 py-8 lg:flex lg:flex-col">
-      <nav className="grid gap-5">
-        {sidebarItems.map((item) => (
-          <Link
-            key={item.label}
-            to={item.to}
-            className={`flex h-14 items-center gap-5 rounded-[8px] px-5 text-base font-semibold transition ${
-              item.active
-                ? "bg-[#f3edff] text-[#5d20d8]"
-                : "text-[#43516a] hover:bg-[#f6f8fc] hover:text-[#5d20d8]"
-            }`}
-          >
-            <img src={item.icon} alt="" aria-hidden="true" className="size-7 shrink-0" />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      <button
-        className="mt-auto flex h-14 w-full items-center justify-between rounded-[8px] border border-[#dce2eb] bg-white px-4 shadow-sm"
-        aria-label="Open profile menu"
-      >
-        <span className="flex items-center gap-3">
-          <img src={avatarLogan} alt="" className="size-8 rounded-[8px]" />
-          <span className="font-semibold">Logan</span>
-        </span>
-        <img src={chevronDown} alt="" aria-hidden="true" className="size-6" />
-      </button>
-    </aside>
-  );
-}
-
-function MetricCard({
-  border,
-  caption,
-  icon,
-  title,
-  value,
-}: {
-  border: string;
-  caption: string;
-  icon: string;
-  title: string;
-  value: string;
-}) {
-  return (
-    <article
-      className={`min-h-[148px] rounded-[12px] border-2 bg-white p-5 shadow-[0_18px_50px_rgba(28,40,65,0.04)] ${border}`}
-    >
-      <div className="flex items-center gap-4">
-        <img src={icon} alt="" aria-hidden="true" className="size-11" />
-        <h2 className="text-lg font-black">{title}</h2>
-      </div>
-      <p className="mt-5 text-4xl font-black leading-none">{value}</p>
-      <p className="mt-2 text-base font-medium text-[#43516a]">{caption}</p>
-    </article>
   );
 }
 

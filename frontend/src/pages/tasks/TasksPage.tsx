@@ -1,220 +1,85 @@
-import { type FormEvent, type ReactNode, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { getSubjects } from "../../features/subjects/api/subjects-api.ts";
-import { createTask, getTasks, updateTask } from "../../features/tasks/api/tasks-api.ts";
+import { type FormEvent, type ReactNode } from "react";
 import { type Subject } from "../../entities/subject/types.ts";
 import { type Task, type TaskStatus } from "../../entities/task/types.ts";
+import {
+  asTaskStatus,
+  taskStatusOptions,
+  type TaskFormErrors,
+  type TaskFormState,
+  useTasksPage,
+} from "../../features/tasks/model/useTasksPage.ts";
 import { formatOptionalDate, isOverdueDate } from "../../shared/lib/dateFormat.ts";
 import { statusLabels } from "../../shared/lib/taskStatus.ts";
-import markerPurple from "../../assets/shared/02_marker_purple_heading.png";
-import dotsPurple from "../../assets/shared/07_dots_purple.png";
-import dotsBlue from "../../assets/shared/08_dots_blue.png";
-import dotsGreen from "../../assets/shared/09_dots_green.png";
-import dotsYellow from "../../assets/shared/11_dots_yellow.png";
-import iconOpenTasks from "../../assets/tasks/12_icon_open_tasks_blue.png";
-import iconInProgress from "../../assets/tasks/13_icon_in_progress_yellow.png";
-import iconCompleted from "../../assets/tasks/14_icon_completed_green.png";
-import iconTaskName from "../../assets/tasks/15_icon_task_name_purple.png";
-import iconSubject from "../../assets/tasks/16_icon_subject_blue.png";
-import iconDeadline from "../../assets/tasks/17_icon_deadline_green.png";
-import iconStatus from "../../assets/tasks/18_icon_status_yellow.png";
-import sidebarDashboard from "../../assets/tasks/20_sidebar_dashboard.png";
-import sidebarSubjects from "../../assets/tasks/21_sidebar_subjects.png";
-import sidebarTasks from "../../assets/tasks/22_sidebar_tasks_active.png";
-import sidebarCalendar from "../../assets/tasks/23_sidebar_calendar.png";
-import sidebarNotes from "../../assets/tasks/24_sidebar_notes.png";
-import sidebarProgress from "../../assets/tasks/25_sidebar_progress.png";
-import sidebarSettings from "../../assets/tasks/26_sidebar_settings.png";
-import heroTasks from "../../assets/tasks/28_hero_tasks_clipboard_plant.png";
-import emptyInbox from "../../assets/tasks/29_empty_state_tasks_inbox.png";
-import tableHeaderBg from "../../assets/tasks/30_table_header_soft_bg.png";
-import formStrip from "../../assets/tasks/31_form_soft_background_strip.png";
-import sparkleButton from "../../assets/tasks/32_button_purple_sparkle.png";
-import dashedAddArea from "../../assets/tasks/33_dashed_add_task_area.png";
-import avatarLogan from "../../assets/tasks/34_avatar_placeholder_logan.png";
-import raysPurple from "../../assets/tasks/39_rays_purple.png";
-import chevronDown from "../../assets/tasks/42_chevron_down.png";
-import calendarInputIcon from "../../assets/tasks/43_calendar_input_icon.png";
+import { MetricCard } from "../../shared/ui/MetricCard.tsx";
+import { Sidebar } from "../../shared/ui/navigation/Sidebar.tsx";
+import { taskAssets, taskSidebarItems } from "./tasks.assets.ts";
 
-const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
-
-const sidebarItems = [
-  { label: "Dashboard", icon: sidebarDashboard, to: "/dashboard" },
-  { label: "Subjects", icon: sidebarSubjects, to: "/subjects" },
-  { label: "Tasks", icon: sidebarTasks, to: "/tasks", active: true },
-  { label: "Calendar", icon: sidebarCalendar, to: "/tasks" },
-  { label: "Notes", icon: sidebarNotes, to: "/subjects" },
-  { label: "Progress", icon: sidebarProgress, to: "/dashboard" },
-  { label: "Settings", icon: sidebarSettings, to: "/dashboard" },
-];
-
-type StatusUpdateContext = {
-  previousTasks?: Task[];
-};
-
-type TaskFormState = {
-  name: string;
-  subject_id: number;
-  deadline: string;
-  status: TaskStatus;
-};
-
-type TaskFormErrors = Partial<Record<keyof TaskFormState, string>>;
-
-const emptyTaskForm: TaskFormState = {
-  name: "",
-  subject_id: 0,
-  deadline: "",
-  status: "not_completed",
-};
+const {
+  avatarLogan,
+  calendarInputIcon,
+  chevronDown,
+  dashedAddArea,
+  dotsBlue,
+  dotsGreen,
+  dotsPurple,
+  dotsYellow,
+  emptyInbox,
+  formStrip,
+  heroTasks,
+  iconCompleted,
+  iconDeadline,
+  iconInProgress,
+  iconOpenTasks,
+  iconStatus,
+  iconSubject,
+  iconTaskName,
+  markerPurple,
+  raysPurple,
+  sparkleButton,
+  tableHeaderBg,
+} = taskAssets;
 
 const inputClassName =
   "h-12 w-full rounded-[8px] border border-[#cfd7e4] bg-white px-4 text-base text-[#1a2740] shadow-[0_6px_18px_rgba(23,37,61,0.06)] outline-none transition placeholder:text-[#72809a] focus:border-[#6f2bd9] focus:ring-4 focus:ring-[#efe7ff] disabled:cursor-not-allowed disabled:bg-slate-100";
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Please try again.";
-}
 
 function formatCount(value: number | undefined) {
   return String(value ?? 0);
 }
 
-function asTaskStatus(status: Task["status"]): TaskStatus {
-  return taskStatusOptions.includes(status as TaskStatus)
-    ? (status as TaskStatus)
-    : "not_completed";
-}
-
-function validateTaskForm(form: TaskFormState, hasSubjects: boolean): TaskFormErrors {
-  const errors: TaskFormErrors = {};
-  if (!form.name.trim()) {
-    errors.name = "Task name is required";
-  }
-  if (!hasSubjects || form.subject_id <= 0) {
-    errors.subject_id = "Create a subject before adding tasks.";
-  }
-  if (!form.deadline) {
-    errors.deadline = "Deadline is required";
-  }
-  return errors;
-}
-
 export function TasksPage() {
-  const queryClient = useQueryClient();
-  const [statusUpdateErrors, setStatusUpdateErrors] = useState<Record<number, string>>({});
-  const [pendingStatusTaskId, setPendingStatusTaskId] = useState<number | null>(null);
-  const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm);
-  const [touchedFields, setTouchedFields] = useState<TaskFormErrors>({});
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-
-  const subjectsQuery = useQuery({
-    queryKey: ["subjects"],
-    queryFn: getSubjects,
-  });
-  const tasksQuery = useQuery({
-    queryKey: ["tasks"],
-    queryFn: getTasks,
-  });
-  const createTaskMutation = useMutation({
-    mutationFn: createTask,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
-  });
-  const updateTaskMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: TaskStatus }) => updateTask(id, { status }),
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ["tasks"] });
-
-      const previousTasks = queryClient.getQueryData<Task[]>(["tasks"]);
-      queryClient.setQueryData<Task[]>(["tasks"], (currentTasks) =>
-        currentTasks?.map((task) =>
-          task.id === variables.id ? { ...task, status: variables.status } : task,
-        ),
-      );
-
-      setStatusUpdateErrors((current) => {
-        const next = { ...current };
-        delete next[variables.id];
-        return next;
-      });
-
-      return { previousTasks };
-    },
-    onError: (_error, variables, context: StatusUpdateContext | undefined) => {
-      if (context?.previousTasks) {
-        queryClient.setQueryData(["tasks"], context.previousTasks);
-      }
-
-      setStatusUpdateErrors((current) => ({
-        ...current,
-        [variables.id]: `Status was not saved. ${getErrorMessage(_error)}`,
-      }));
-    },
-    onSuccess: (updatedTask, variables) => {
-      queryClient.setQueryData<Task[]>(["tasks"], (currentTasks) =>
-        currentTasks?.map((task) => (task.id === variables.id ? updatedTask : task)),
-      );
-
-      setStatusUpdateErrors((current) => {
-        const next = { ...current };
-        delete next[variables.id];
-        return next;
-      });
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-    },
-  });
-
-  const subjects = subjectsQuery.data ?? [];
-  const tasks = tasksQuery.data ?? [];
-  const subjectNames = new Map(subjects.map((subject) => [subject.id, subject.name]));
-  const selectedSubjectId = taskForm.subject_id || subjects[0]?.id || 0;
-  const formWithSelectedSubject = { ...taskForm, subject_id: selectedSubjectId };
-  const formErrors = validateTaskForm(formWithSelectedSubject, subjects.length > 0);
-  const openTasks = tasks.filter((task) => task.status !== "completed");
-  const ongoingTasks = tasks.filter((task) => task.status === "ongoing");
-  const completedTasks = tasks.filter((task) => task.status === "completed");
-
-  async function handleCreateTask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setHasSubmitted(true);
-
-    if (Object.keys(formErrors).length > 0) {
-      return;
-    }
-
-    await createTaskMutation.mutateAsync({
-      name: taskForm.name.trim(),
-      subject_id: selectedSubjectId,
-      deadline: taskForm.deadline,
-      status: taskForm.status,
-    });
-
-    setTaskForm({
-      ...emptyTaskForm,
-      subject_id: selectedSubjectId,
-    });
-    setTouchedFields({});
-    setHasSubmitted(false);
-  }
-
-  async function handleStatusChange(id: number, status: TaskStatus) {
-    setPendingStatusTaskId(id);
-
-    try {
-      await updateTaskMutation.mutateAsync({ id, status });
-    } catch {
-      // Rollback and row-level messaging are handled by the mutation callbacks.
-    } finally {
-      setPendingStatusTaskId(null);
-    }
-  }
+  const page = useTasksPage();
+  const {
+    completedTasks,
+    createTaskMutation,
+    formErrors,
+    handleCreateTask,
+    handleStatusChange,
+    hasSubmitted,
+    ongoingTasks,
+    openTasks,
+    pendingStatusTaskId,
+    selectedSubjectId,
+    setTaskForm,
+    setTouchedFields,
+    statusUpdateErrors,
+    subjectNames,
+    subjects,
+    subjectsQuery,
+    taskForm,
+    tasks,
+    tasksQuery,
+    touchedFields,
+  } = page;
 
   return (
     <div className="min-h-screen bg-white text-[#08111f]">
       <div className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-[1584px] lg:grid-cols-[250px_1fr]">
-        <TasksSidebar />
+        <Sidebar
+          items={taskSidebarItems}
+          avatar={avatarLogan}
+          chevron={chevronDown}
+          footerMessage="Stay consistent, see progress."
+        />
 
         <main className="relative mx-auto w-full max-w-[350px] overflow-hidden px-5 py-8 sm:max-w-none sm:px-8 lg:px-8 lg:py-12">
           <section className="relative grid gap-8 xl:grid-cols-[minmax(0,660px)_560px] xl:items-center xl:justify-between">
@@ -262,6 +127,11 @@ export function TasksPage() {
               icon={iconOpenTasks}
               dots={dotsBlue}
               border="border-[#8bb6ff]"
+              className="min-h-[160px] p-6"
+              iconClassName="size-13"
+              titleClassName="text-xl font-black"
+              valueClassName="mt-6 text-4xl font-black leading-none"
+              captionClassName="mt-3 text-base font-medium text-[#43516a]"
             />
             <MetricCard
               title="In progress"
@@ -270,6 +140,11 @@ export function TasksPage() {
               icon={iconInProgress}
               dots={dotsYellow}
               border="border-[#f4bd46]"
+              className="min-h-[160px] p-6"
+              iconClassName="size-13"
+              titleClassName="text-xl font-black"
+              valueClassName="mt-6 text-4xl font-black leading-none"
+              captionClassName="mt-3 text-base font-medium text-[#43516a]"
             />
             <MetricCard
               title="Completed"
@@ -278,6 +153,11 @@ export function TasksPage() {
               icon={iconCompleted}
               dots={dotsGreen}
               border="border-[#79c98d]"
+              className="min-h-[160px] p-6"
+              iconClassName="size-13"
+              titleClassName="text-xl font-black"
+              valueClassName="mt-6 text-4xl font-black leading-none"
+              captionClassName="mt-3 text-base font-medium text-[#43516a]"
             />
           </section>
 
@@ -314,86 +194,6 @@ export function TasksPage() {
         </main>
       </div>
     </div>
-  );
-}
-
-function TasksSidebar() {
-  return (
-    <aside className="hidden min-h-[calc(100vh-92px)] border-r border-[#e1e6ef] bg-white px-5 py-8 lg:flex lg:flex-col">
-      <nav className="grid gap-5">
-        {sidebarItems.map((item) => (
-          <Link
-            key={item.label}
-            to={item.to}
-            className={`flex h-14 items-center gap-5 rounded-[8px] px-5 text-base font-semibold transition ${
-              item.active
-                ? "bg-[#f3edff] text-[#5d20d8]"
-                : "text-[#43516a] hover:bg-[#f6f8fc] hover:text-[#5d20d8]"
-            }`}
-          >
-            <img src={item.icon} alt="" aria-hidden="true" className="size-7 shrink-0" />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      <div className="mt-auto">
-        <div className="rounded-[8px] bg-[#f5f1ff] px-6 py-8 text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-[8px] text-[#6f2bd9]">
-            <span className="text-5xl leading-none">✧</span>
-          </div>
-          <p className="text-base font-bold leading-snug text-[#5d20d8]">
-            Stay consistent, see progress.
-          </p>
-        </div>
-
-        <button
-          className="mt-8 flex h-14 w-full items-center justify-between rounded-[8px] border border-[#dce2eb] bg-white px-4 shadow-sm"
-          aria-label="Open profile menu"
-        >
-          <span className="flex items-center gap-3">
-            <img src={avatarLogan} alt="" className="size-8 rounded-[8px]" />
-            <span className="font-semibold">Logan</span>
-          </span>
-          <img src={chevronDown} alt="" aria-hidden="true" className="size-6" />
-        </button>
-      </div>
-    </aside>
-  );
-}
-
-function MetricCard({
-  border,
-  caption,
-  dots,
-  icon,
-  title,
-  value,
-}: {
-  border: string;
-  caption: string;
-  dots: string;
-  icon: string;
-  title: string;
-  value: string;
-}) {
-  return (
-    <article
-      className={`relative min-h-[160px] overflow-hidden rounded-[12px] border-2 bg-white p-6 shadow-[0_18px_50px_rgba(28,40,65,0.04)] ${border}`}
-    >
-      <div className="flex items-center gap-5">
-        <img src={icon} alt="" aria-hidden="true" className="size-13" />
-        <h2 className="text-xl font-black">{title}</h2>
-      </div>
-      <img
-        src={dots}
-        alt=""
-        aria-hidden="true"
-        className="absolute right-6 top-[58px] w-[44px] opacity-80"
-      />
-      <p className="mt-6 text-4xl font-black leading-none">{value}</p>
-      <p className="mt-3 text-base font-medium text-[#43516a]">{caption}</p>
-    </article>
   );
 }
 

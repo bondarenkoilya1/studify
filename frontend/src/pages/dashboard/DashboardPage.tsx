@@ -1,63 +1,42 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { getDashboardStatus } from "../../features/dashboard/api/dashboard-api.ts";
-import markerPurple from "../../assets/dashboard/02_dashboard_marker_purple_heading.png";
-import markerGreen from "../../assets/dashboard/03_dashboard_marker_green_heading.png";
-import dotsPurple from "../../assets/dashboard/07_dashboard_dots_purple.png";
-import dotsBlue from "../../assets/dashboard/08_dashboard_dots_blue.png";
-import dotsGreen from "../../assets/dashboard/09_dashboard_dots_green.png";
-import dotsRed from "../../assets/dashboard/10_dashboard_dots_red.png";
-import iconSubjects from "../../assets/dashboard/13_icon_subjects_purple.png";
-import iconTasks from "../../assets/dashboard/14_icon_tasks_blue.png";
-import iconCalendar from "../../assets/dashboard/15_icon_calendar_red.png";
-import iconProgress from "../../assets/dashboard/16_icon_progress_green.png";
-import iconOverdue from "../../assets/dashboard/17_icon_overdue_red.png";
-import iconSuccess from "../../assets/dashboard/18_icon_success_green.png";
-import sidebarDashboard from "../../assets/dashboard/21_sidebar_dashboard.png";
-import sidebarSubjects from "../../assets/dashboard/22_sidebar_subjects.png";
-import sidebarTasks from "../../assets/dashboard/23_sidebar_tasks.png";
-import sidebarCalendar from "../../assets/dashboard/24_sidebar_calendar.png";
-import sidebarProgress from "../../assets/dashboard/25_dashboard_sidebar_progress.png";
-import sidebarSettings from "../../assets/dashboard/26_dashboard_sidebar_settings.png";
-import deadlineEmpty from "../../assets/dashboard/27_empty_state_calendar_deadline.png";
-import successEmpty from "../../assets/dashboard/28_empty_state_success_check.png";
-import greenBlob from "../../assets/dashboard/29_accent_blob_green.png";
-import pinkBlob from "../../assets/dashboard/30_accent_blob_pink.png";
-import avatarLogan from "../../assets/shared/32_avatar_placeholder_logan.png";
-import dotYellow from "../../assets/dashboard/33_status_dot_yellow.png";
-import dotBlue from "../../assets/dashboard/34_status_dot_blue.png";
-import chevronDown from "../../assets/dashboard/38_chevron_down.png";
-import raysPurple from "../../assets/dashboard/39_dashboard_rays_purple.png";
-import raysRed from "../../assets/dashboard/40_rays_red.png";
+import {
+  formatPercent,
+  useDashboardPage,
+} from "../../features/dashboard/model/useDashboardPage.ts";
+import { Sidebar } from "../../shared/ui/navigation/Sidebar.tsx";
+import { dashboardAssets, dashboardSidebarItems } from "./dashboard.assets.ts";
 
-const sidebarItems = [
-  { label: "Dashboard", icon: sidebarDashboard, to: "/dashboard", active: true },
-  { label: "Subjects", icon: sidebarSubjects, to: "/subjects" },
-  { label: "Tasks", icon: sidebarTasks, to: "/tasks" },
-  { label: "Calendar", icon: sidebarCalendar, to: "/tasks" },
-  { label: "Notes", icon: iconTasks, to: "/subjects" },
-  { label: "Progress", icon: sidebarProgress, to: "/dashboard" },
-  { label: "Settings", icon: sidebarSettings, to: "/dashboard" },
-];
-
-function formatPercent(value: number) {
-  return `${value.toFixed(value % 1 === 0 ? 0 : 2)}%`;
-}
+const {
+  avatarLogan,
+  chevronDown,
+  deadlineEmpty,
+  dotBlue,
+  dotYellow,
+  dotsBlue,
+  dotsGreen,
+  dotsPurple,
+  dotsRed,
+  greenBlob,
+  iconCalendar,
+  iconOverdue,
+  iconProgress,
+  iconSubjects,
+  iconSuccess,
+  iconTasks,
+  markerGreen,
+  markerPurple,
+  pinkBlob,
+  raysPurple,
+  raysRed,
+  successEmpty,
+} = dashboardAssets;
 
 function formatCount(value: number | undefined) {
   return String(value ?? 0);
 }
 
 export function DashboardPage() {
-  const dashboardQuery = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: getDashboardStatus,
-  });
-
-  const dashboard = dashboardQuery.data;
-  const completionPercent = dashboard?.completion_percent ?? 0;
-  const overdueCount = dashboard?.overdue_tasks.length ?? 0;
-  const nearestTask = dashboard?.nearest_deadline_task;
+  const { completionPercent, dashboard, dashboardQuery, nearestTask, overdueCount } =
+    useDashboardPage();
 
   const stats = [
     {
@@ -106,7 +85,13 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-white text-[#08111f]">
       <div className="mx-auto grid min-h-[calc(100vh-92px)] w-full max-w-[1584px] lg:grid-cols-[250px_1fr]">
-        <DashboardSidebar />
+        <Sidebar
+          items={dashboardSidebarItems}
+          avatar={avatarLogan}
+          chevron={chevronDown}
+          footerMessage="Focus on what matters."
+          itemTextClassName="text-[#152139]"
+        />
 
         <main className="relative overflow-hidden px-5 py-8 sm:px-8 lg:px-8 lg:py-12">
           <img
@@ -192,49 +177,6 @@ export function DashboardPage() {
         </main>
       </div>
     </div>
-  );
-}
-
-function DashboardSidebar() {
-  return (
-    <aside className="hidden min-h-[calc(100vh-92px)] border-r border-[#e1e6ef] bg-white px-5 py-8 lg:flex lg:flex-col">
-      <nav className="grid gap-5">
-        {sidebarItems.map((item) => (
-          <Link
-            key={item.label}
-            to={item.to}
-            className={`flex h-14 items-center gap-5 rounded-[8px] px-5 text-base font-semibold transition ${
-              item.active
-                ? "bg-[#f3edff] text-[#5d20d8]"
-                : "text-[#152139] hover:bg-[#f6f8fc] hover:text-[#5d20d8]"
-            }`}
-          >
-            <img src={item.icon} alt="" aria-hidden="true" className="size-7 shrink-0" />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-
-      <div className="mt-auto">
-        <div className="rounded-[8px] bg-[#f5f1ff] px-6 py-8 text-center">
-          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-[8px] text-[#6f2bd9]">
-            <span className="text-5xl leading-none">✧</span>
-          </div>
-          <p className="text-base font-bold leading-snug text-[#5d20d8]">Focus on what matters.</p>
-        </div>
-
-        <button
-          className="mt-8 flex h-14 w-full items-center justify-between rounded-[8px] border border-[#dce2eb] bg-white px-4 shadow-sm"
-          aria-label="Open profile menu"
-        >
-          <span className="flex items-center gap-3">
-            <img src={avatarLogan} alt="" className="size-8 rounded-[8px]" />
-            <span className="font-semibold">Logan</span>
-          </span>
-          <img src={chevronDown} alt="" aria-hidden="true" className="size-6" />
-        </button>
-      </div>
-    </aside>
   );
 }
 
