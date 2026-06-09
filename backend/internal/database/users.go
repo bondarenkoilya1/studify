@@ -76,3 +76,33 @@ func InsertUser(db *sql.DB, username, password string) (*models.User, error) {
 
 	return &user, nil
 }
+
+func UpdateUser(db *sql.DB, id int64, username, password string) (*models.User, error) {
+	query := `
+		UPDATE users
+		SET
+			username = $1,
+			password = $2
+		WHERE id = $3;
+	`
+
+	result, err := db.Exec(query, username, password, id)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		return nil, sql.ErrNoRows
+	}
+
+	return &models.User{
+		ID:       id,
+		Username: username,
+		Password: password,
+	}, nil
+}
