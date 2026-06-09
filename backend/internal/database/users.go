@@ -106,3 +106,26 @@ func UpdateUser(db *sql.DB, id int64, username, password string) (*models.User, 
 		Password: password,
 	}, nil
 }
+
+func DeleteUser(db *sql.DB, id int64) error {
+	query := `
+		DELETE FROM users
+		WHERE id = $1;
+	`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
