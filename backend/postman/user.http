@@ -6,7 +6,11 @@ POST {{baseUrl}}/register/
 Content-Type: application/json
 Accept: application/json
 
-  {
-    "username": "maxonchik_o",
-    "password": "fuckyou"
-  }
+{
+    "username": "maxonchik_ok4",
+    "password": "mafak"
+}
+
+
+### Deletes all users
+DELETE {{baseUrl}}/register/
