@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"studify/internal/database"
 	"studify/internal/models"
 
@@ -54,11 +53,6 @@ func (h *Handler) GetSubjects(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
 	var newSubjects []models.Subject
 
 	err := json.NewDecoder(r.Body).Decode(&newSubjects)
@@ -94,11 +88,6 @@ func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
 	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -135,11 +124,6 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
 	var req *models.UpdateSubjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)

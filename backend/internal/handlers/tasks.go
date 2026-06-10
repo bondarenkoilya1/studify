@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"studify/internal/database"
 	"studify/internal/models"
 )
@@ -46,11 +45,6 @@ func (h *Handler) GetTasks(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
 	var newTasks []models.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&newTasks); err != nil {
@@ -83,11 +77,6 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
 	id, err := GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -119,11 +108,6 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
-	if !strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-		http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
-		return
-	}
-
 	var req *models.UpdateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
