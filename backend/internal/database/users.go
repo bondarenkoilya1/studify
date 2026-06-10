@@ -10,17 +10,17 @@ import (
 
 var ErrUserAlreadyExists = errors.New("user already exists")
 
-func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
+func GetUserByUsername(db *sql.DB, username string) (*models.User, error) {
 	query := `
 		SELECT
 			id,
 			username,
 			password
 		FROM users
-		WHERE id = $1;
+		WHERE username = $1;
 	`
 
-	row := db.QueryRow(query, id)
+	row := db.QueryRow(query, username)
 	user := &models.User{}
 
 	err := row.Scan(&user.ID, &user.Username, &user.Password)
