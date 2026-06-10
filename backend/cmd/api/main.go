@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"studify/internal/database"
 	"studify/internal/handlers"
+	"studify/internal/middlewares"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -35,31 +36,31 @@ func main() {
 
 	r.Route("/subjects", func(r chi.Router) {
 		r.Get("/", h.GetSubjects)
-		r.Post("/", h.AddSubjects)
+		r.With(middlewares.RequireJSON).Post("/", h.AddSubjects)
 		r.Delete("/", h.DeleteSubjects)
 
 		r.Get("/{id}", h.GetSubject)
 		r.Delete("/{id}", h.DeleteSubject)
-		r.Put("/{id}", h.ReplaceSubject)
-		r.Patch("/{id}", h.UpdateSubject)
+		r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceSubject)
+		r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateSubject)
 
 		r.Post("/avatar/", h.UploadLecturerAvatar)
 	})
 
 	r.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.GetTasks)
-		r.Post("/", h.AddTasks)
+		r.With(middlewares.RequireJSON).Post("/", h.AddTasks)
 		r.Delete("/", h.DeleteTasks)
 
 		r.Get("/{id}", h.GetTask)
 		r.Delete("/{id}", h.DeleteTask)
-		r.Put("/{id}", h.ReplaceTask)
-		r.Patch("/{id}", h.UpdateTask)
+		r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceTask)
+		r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateTask)
 	})
 
 	r.Get("/dashboard", h.GetDashboardStatus)
 
-	r.Post("/register/", h.RegisterUser)
+	r.With(middlewares.RequireJSON).Post("/register/", h.RegisterUser)
 
 	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
 	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))
