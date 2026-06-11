@@ -35,8 +35,7 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 	query := `
 		SELECT
 			id,
-			username,
-			password
+			username
 		FROM users;
 	`
 
@@ -51,7 +50,7 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 	for rows.Next() {
 		var user models.User
 
-		err = rows.Scan(&user.ID, &user.Username, &user.Password)
+		err = rows.Scan(&user.ID, &user.Username)
 		if err != nil {
 			return nil, err
 		}
@@ -70,11 +69,11 @@ func InsertUser(db *sql.DB, username, password string) (*models.User, error) {
 	query := `
 		INSERT INTO users (username, password)
 		VALUES ($1, $2)
-		RETURNING id, username, password
+		RETURNING id, username
 	`
 
 	var user models.User
-	err := db.QueryRow(query, username, password).Scan(&user.ID, &user.Username, &user.Password)
+	err := db.QueryRow(query, username, password).Scan(&user.ID, &user.Username)
 	if err != nil {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
 			return nil, ErrUserAlreadyExists
@@ -86,43 +85,36 @@ func InsertUser(db *sql.DB, username, password string) (*models.User, error) {
 	return &user, nil
 }
 
-func UpdateUser(db *sql.DB, id int64, username, password string) (*models.User, error) {
+func UpdateUser(db *sql.DB, currentUsername, username, password string) (*models.User, error) {
 	query := `
 		UPDATE users
 		SET
 			username = $1,
 			password = $2
-		WHERE id = $3;
+		WHERE username = $3
+		RETURNING id, username;
 	`
 
-	result, err := db.Exec(query, username, password, id)
+	var user models.User
+	err := db.QueryRow(query, username, password, currentUsername).Scan(&user.ID, &user.Username)
 	if err != nil {
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
+			return nil, ErrUserAlreadyExists
+		}
+
 		return nil, err
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	if rowsAffected == 0 {
-		return nil, sql.ErrNoRows
-	}
-
-	return &models.User{
-		ID:       id,
-		Username: username,
-		Password: password,
-	}, nil
+	return &user, nil
 }
 
-func DeleteUser(db *sql.DB, id int64) error {
+func DeleteUser(db *sql.DB, username string) error {
 	query := `
 		DELETE FROM users
-		WHERE id = $1;
+		WHERE username = $1;
 	`
 
-	result, err := db.Exec(query, id)
+	result, err := db.Exec(query, username)
 	if err != nil {
 		return err
 	}

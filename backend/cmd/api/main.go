@@ -60,6 +60,14 @@ func main() {
 
 	r.Get("/dashboard", h.GetDashboardStatus)
 
+	r.Route("/users", func(r chi.Router) {
+		r.Get("/", h.GetUsers)
+		r.Delete("/", h.DeleteUsers)
+
+		r.Delete("/{username}", h.DeleteUser)
+		r.With(middlewares.RequireJSON).Put("/{username}", h.ReplaceUser)
+	})
+
 	r.With(middlewares.RequireJSON).Post("/register/", h.RegisterUser)
 	r.With(middlewares.RequireJSON).Post("/login/", h.LoginUser)
 
