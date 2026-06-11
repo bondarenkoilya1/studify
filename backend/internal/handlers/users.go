@@ -12,14 +12,13 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthAction string
+type authAction string
 
 const (
-	authActionRegister AuthAction = "register"
-	authActionLogin    AuthAction = "login"
+	authActionRegister authAction = "register"
+	authActionLogin    authAction = "login"
 )
 
-// check on empty password
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	body := models.UserRequest{}
 
@@ -42,7 +41,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	newUser, err := database.InsertUser(h.DB, body.Username, passwordHash)
 	if err != nil {
 		if errors.Is(err, database.ErrUserAlreadyExists) {
-			http.Error(w, "failed to register user. User with such name is already exists", http.StatusConflict)
+			http.Error(w, "user with such username already exists", http.StatusConflict)
 			return
 		}
 
@@ -50,6 +49,8 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(newUser); err != nil {
 		log.Printf("failed to encode user to JSON: %v", err)
 	}
@@ -83,14 +84,13 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func validateBody(body models.UserRequest, action AuthAction) error {
-	if len(body.Username) == 0 {
+func validateBody(body models.UserRequest, action authAction) error {
+	if body.Username == "" {
 		return errors.New("username is empty")
 	}
 
-	if len(body.Password) == 0 {
+	if body.Password == "" {
 		return errors.New("password is empty")
-
 	}
 
 	if len(body.Password) > 72 && action == authActionRegister {
