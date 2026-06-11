@@ -61,6 +61,7 @@ func main() {
 	r.Get("/dashboard", h.GetDashboardStatus)
 
 	r.With(middlewares.RequireJSON).Post("/register/", h.RegisterUser)
+	r.With(middlewares.RequireJSON).Post("/login/", h.LoginUser)
 
 	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
 	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))

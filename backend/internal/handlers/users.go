@@ -12,30 +12,37 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type AuthAction string
+
+const (
+	authActionRegister AuthAction = "register"
+	authActionLogin    AuthAction = "login"
+)
+
 // check on empty password
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	request := models.UserRequest{}
+	body := models.UserRequest{}
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to read data: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	if len(request.Password) > 72 {
-		http.Error(w, "password is too long", http.StatusBadRequest)
+	if err := validateBody(body, authActionRegister); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	passwordHash, err := HashPassword(request.Password)
+	passwordHash, err := HashPassword(body.Password)
 	if err != nil {
 		http.Error(w, "failed to hash password", http.StatusInternalServerError)
 		return
 	}
 
-	newUser, err := database.InsertUser(h.DB, request.Username, passwordHash)
+	newUser, err := database.InsertUser(h.DB, body.Username, passwordHash)
 	if err != nil {
 		if errors.Is(err, database.ErrUserAlreadyExists) {
-			http.Error(w, "Failed to register user. User with such name is already exists", http.StatusConflict)
+			http.Error(w, "failed to register user. User with such name is already exists", http.StatusConflict)
 			return
 		}
 
@@ -44,36 +51,51 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = json.NewEncoder(w).Encode(newUser); err != nil {
-		log.Printf("Failed to encode user to JSON: %v", err)
+		log.Printf("failed to encode user to JSON: %v", err)
 	}
 }
 
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
-	request := models.UserRequest{}
+	body := models.UserRequest{}
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read data: %v", err), http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	if len(request.Password) > 72 {
-		http.Error(w, "password is too long", http.StatusBadRequest)
+	if err := validateBody(body, authActionLogin); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	passwordHash, err := HashPassword(request.Password)
+	user, err := database.GetUserByUsername(h.DB, body.Username)
 	if err != nil {
-		http.Error(w, "failed to hash password", http.StatusInternalServerError)
+		http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
+	if err != nil {
+		http.Error(w, "invalid username or password", http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
-func HashPassword(password string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("failed to hash password: %w", err)
+func validateBody(body models.UserRequest, action AuthAction) error {
+	if len(body.Username) == 0 {
+		return errors.New("username is empty")
 	}
 
-	return string(hash), nil
+	if len(body.Password) == 0 {
+		return errors.New("password is empty")
+
+	}
+
+	if len(body.Password) > 72 && action == authActionRegister {
+		return errors.New("password is too long")
+	}
+
+	return nil
 }

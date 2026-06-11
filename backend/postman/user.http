@@ -11,6 +11,16 @@ Accept: application/json
     "password": "mafak"
 }
 
+### Login user
+POST {{baseUrl}}/login/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "maxonchik_ok4",
+  "password": "mafak"
+}
 
 ### Deletes all users
 DELETE {{baseUrl}}/register/
+
