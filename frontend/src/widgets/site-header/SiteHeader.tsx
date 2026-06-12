@@ -35,11 +35,11 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-4 sm:flex">
-          <Link to="/dashboard" className="hidden text-base font-bold text-black sm:inline-flex">
-            Log in
+          <Link to="/register" className="hidden text-base font-bold text-black sm:inline-flex">
+            Register
           </Link>
           <Link
-            to="/dashboard"
+            to="/register"
             className="inline-flex h-12 items-center justify-center rounded-[8px] bg-[#6f2bd9] px-5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(111,43,217,0.2)] transition hover:bg-[#5c20bd] sm:px-7"
           >
             Get Started
