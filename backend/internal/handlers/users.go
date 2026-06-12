@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"studify/internal/database"
 	"studify/internal/models"
+	"studify/internal/utils"
 
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -34,7 +35,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash, err := HashPassword(body.Password)
+	passwordHash, err := utils.HashPassword(body.Password)
 	if err != nil {
 		http.Error(w, "failed to hash password", http.StatusInternalServerError)
 		return
@@ -89,7 +90,7 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash, err := HashPassword(body.Password)
+	passwordHash, err := utils.HashPassword(body.Password)
 	if err != nil {
 		http.Error(w, "failed to hash password", http.StatusInternalServerError)
 		return
@@ -167,7 +168,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		passwordHash, err := HashPassword(*req.Password)
+		passwordHash, err := utils.HashPassword(*req.Password)
 		if err != nil {
 			http.Error(w, "failed to hash password", http.StatusInternalServerError)
 			return
@@ -252,5 +253,8 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gen jwt
+
 	w.WriteHeader(http.StatusOK)
+
 }
