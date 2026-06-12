@@ -10,6 +10,7 @@ Accept: application/json
   {
     "name": "Mathematics",
     "lecturer": "Dr. Elena Petrova",
+    "lecturer_avatar_url": "",
     "exam_date": "2026-06-24"
   },
   {
@@ -78,16 +79,14 @@ Accept: application/json
 }
 
 ### Delete one subject
-# Delete related tasks first if this subject is referenced by tasks.
 DELETE {{baseUrl}}/subjects/{{subjectId}}
 Accept: application/json
 
 ### Delete all subjects
-# Delete all tasks first because tasks reference subjects.
 DELETE {{baseUrl}}/subjects/
 Accept: application/json
 
-### Send a file (image)
+### Upload lecturer avatar
 POST {{baseUrl}}/subjects/avatar/
 Content-Type: image/png
 

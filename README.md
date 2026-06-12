@@ -30,134 +30,62 @@ manage the tasks connected to them, and keep the main study metrics visible.
 
 **Backend**
 
-- Go
-- Chi router
-- SQLite through `modernc.org/sqlite`
-- REST-style JSON API
+![Go](https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white) ![Chi](https://img.shields.io/badge/Chi-Router-111827?style=for-the-badge) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgx-4169E1?style=for-the-badge&logo=postgresql&logoColor=white) ![REST API](https://img.shields.io/badge/API-REST_JSON-16A34A?style=for-the-badge)
 
 **Frontend**
 
-- React 19
-- TypeScript
-- Vite
-- Bun
-- Tailwind CSS
-- TanStack React Query
-- React Router
-- Oxc tooling: `oxlint` and `oxfmt`
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=111827) ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=for-the-badge&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white) ![Bun](https://img.shields.io/badge/Bun-runtime-000000?style=for-the-badge&logo=bun&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white) ![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-FF4154?style=for-the-badge&logo=reactquery&logoColor=white) ![React Router](https://img.shields.io/badge/React_Router-7-CA4245?style=for-the-badge&logo=reactrouter&logoColor=white) ![Oxc](https://img.shields.io/badge/Oxc-lint_%26_format-7C3AED?style=for-the-badge)
 
 ## Project Structure
 
 ```text
 .
 ├── backend/
-│   ├── database/      # SQLite connection and query functions
-│   ├── handlers/      # HTTP handlers for subjects, tasks, and dashboard stats
-│   ├── models/        # API/data models
-│   └── main.go        # Router and server entrypoint
+│   ├── cmd/api/            # Router and server entrypoint
+│   ├── internal/database/  # PostgreSQL connection and query functions
+│   ├── internal/handlers/  # HTTP handlers
+│   ├── internal/models/    # API/data models
+│   ├── internal/middlewares/
+│   ├── migrations/         # SQL schema migrations
+│   └── postman/            # REST client examples
 ├── frontend/
 │   ├── src/app/       # App routes and providers
 │   ├── src/entities/  # Shared TypeScript entity types
 │   ├── src/features/  # Feature APIs and UI forms
-│   ├── src/pages/     # Home, tasks, and subjects pages
+│   ├── src/pages/     # Home, dashboard, tasks, subjects, and register pages
 │   ├── src/shared/    # API client, config, helpers, UI
 │   └── src/widgets/   # App layout
+├── docker-compose.yaml
+├── API.md
+├── SETUP.md
 └── preview.png
 ```
 
 ## API Overview
 
-The backend runs on port `8080` by default.
+The backend exposes REST-style JSON routes for dashboard metrics, subjects,
+tasks, users, and login/register. The full route reference lives in
+[API.md](./API.md).
 
-### Dashboard
-
-```http
-GET /dashboard
-```
-
-Dashboard JSON shape:
-
-```json
-{
-  "total_subjects": 3,
-  "total_tasks": 8,
-  "total_completed_tasks": 2,
-  "total_ongoing_tasks": 4,
-  "total_not_completed_tasks": 2,
-  "completion_percent": 25,
-  "nearest_deadline_task": {
-    "id": 5,
-    "name": "Prepare lab report",
-    "deadline": "2026-06-01",
-    "status": "ongoing",
-    "subject_id": 1
-  },
-  "overdue_tasks": []
-}
-```
-
-If there is no upcoming unfinished task, `nearest_deadline_task` is `null`.
-
-### Subjects
+Representative routes:
 
 ```http
-GET    /subjects/
-POST   /subjects/
-DELETE /subjects/
-GET    /subjects/{id}
-PUT    /subjects/{id}
-PATCH  /subjects/{id}
-DELETE /subjects/{id}
+GET   /dashboard
+GET   /subjects/
+POST  /subjects/
+PATCH /subjects/{id}
+GET   /tasks/
+POST  /tasks/
+PATCH /tasks/{id}
+POST  /register/
+POST  /login/
+PATCH /users/{username}
 ```
 
-Subject JSON shape:
+Example task payload:
 
 ```json
 {
-  "id": 1,
-  "name": "Databases",
-  "lecturer": "Dr. Smith",
-  "exam_date": "2026-06-10"
-}
-```
-
-`POST /subjects/` currently expects an array:
-
-```json
-[
-  {
-    "name": "Databases",
-    "lecturer": "Dr. Smith",
-    "exam_date": "2026-06-10"
-  }
-]
-```
-
-`PATCH /subjects/{id}` accepts a partial subject object. Send only the fields
-that should change:
-
-```json
-{
-  "lecturer": "Prof. Elena Petrova"
-}
-```
-
-### Tasks
-
-```http
-GET    /tasks/
-POST   /tasks/
-DELETE /tasks/
-GET    /tasks/{id}
-PUT    /tasks/{id}
-DELETE /tasks/{id}
-```
-
-Task JSON shape:
-
-```json
-{
-  "id": 1,
   "name": "Read chapter 4",
   "deadline": "2026-05-30",
   "status": "ongoing",
@@ -165,76 +93,16 @@ Task JSON shape:
 }
 ```
 
-`POST /tasks/` currently expects an array:
+Example partial update:
 
 ```json
-[
-  {
-    "name": "Read chapter 4",
-    "deadline": "2026-05-30",
-    "status": "ongoing",
-    "subject_id": 1
-  }
-]
+{
+  "status": "completed"
+}
 ```
 
-Supported frontend status values are:
+Runnable request examples are in `backend/postman/`.
 
-- `not_completed`
-- `ongoing`
-- `completed`
+## Setup
 
-## Local Setup
-
-### Requirements
-
-- Go
-- Bun
-
-### 1. Start the Backend
-
-```bash
-cd backend
-go run .
-```
-
-The API will be available at:
-
-```text
-http://localhost:8080
-```
-
-SQLite data is stored at `backend/data/studify.db`. The backend creates the
-required tables on startup.
-
-### 2. Configure the Frontend
-
-Create `frontend/.env` from the example:
-
-```bash
-cd frontend
-cp .env.example .env
-```
-
-Set the backend URL:
-
-```env
-VITE_API_BASE_URL=http://localhost:8080
-```
-
-The frontend calls the backend directly. The Go backend is configured to allow
-local Vite origins such as `http://localhost:5173`.
-
-### 3. Start the Frontend
-
-```bash
-cd frontend
-bun install
-bun run dev
-```
-
-Vite will print the local URL, usually:
-
-```text
-http://localhost:5173
-```
+Install, database, and local run instructions live in [SETUP.md](./SETUP.md).

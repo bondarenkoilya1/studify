@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
+	"studify/internal/models"
 
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -54,4 +56,20 @@ func HashPassword(password string) (string, error) {
 	}
 
 	return string(hash), nil
+}
+
+func ValidateCredentials(body models.UserRequest, action AuthAction) error {
+	if body.Username == "" {
+		return errors.New("username is empty")
+	}
+
+	if body.Password == "" {
+		return errors.New("password is empty")
+	}
+
+	if len(body.Password) > 72 && action == authActionRegister {
+		return errors.New("password is too long")
+	}
+
+	return nil
 }

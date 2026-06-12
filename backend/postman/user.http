@@ -1,5 +1,8 @@
 @baseUrl = http://localhost:8080
-@userID = 1
+@username = maxonchik_ok4
+@updatedUsername = maxonchik_ok5
+@password = mafak
+@updatedPassword = better_password_123
 
 ### Setup: create a user
 POST {{baseUrl}}/register/
@@ -7,8 +10,8 @@ Content-Type: application/json
 Accept: application/json
 
 {
-    "username": "maxonchik_ok4",
-    "password": "mafak"
+  "username": "{{username}}",
+  "password": "{{password}}"
 }
 
 ### Login user
@@ -17,10 +20,57 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "maxonchik_ok4",
-  "password": "mafak"
+  "username": "{{username}}",
+  "password": "{{password}}"
 }
 
-### Deletes all users
-DELETE {{baseUrl}}/register/
+### Get all users
+GET {{baseUrl}}/users/
+Accept: application/json
 
+### Replace user
+PUT {{baseUrl}}/users/{{username}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{updatedUsername}}",
+  "password": "{{updatedPassword}}"
+}
+
+### Update user partially
+PATCH {{baseUrl}}/users/{{updatedUsername}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "password": "{{password}}"
+}
+
+### Login updated user
+POST {{baseUrl}}/login/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{updatedUsername}}",
+  "password": "{{password}}"
+}
+
+### Delete one user
+DELETE {{baseUrl}}/users/{{updatedUsername}}
+Accept: application/json
+
+### Register: invalid body example
+POST {{baseUrl}}/register/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "",
+  "password": ""
+}
+
+### Delete all users
+DELETE {{baseUrl}}/users/
+Accept: application/json

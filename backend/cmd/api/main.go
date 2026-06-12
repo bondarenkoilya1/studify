@@ -66,6 +66,7 @@ func main() {
 
 		r.Delete("/{username}", h.DeleteUser)
 		r.With(middlewares.RequireJSON).Put("/{username}", h.ReplaceUser)
+		r.With(middlewares.RequireJSON).Patch("/{username}", h.UpdateUser)
 	})
 
 	r.With(middlewares.RequireJSON).Post("/register/", h.RegisterUser)
@@ -79,7 +80,7 @@ func main() {
 
 /* Later:
 - Validate data
-- Use JOIN methods for connectins tasks with it's subject
+- Use JOIN methods for connecting tasks with their subjects
 - Allow to upload avatar for the lecturer
 - Allow to set description for the task
 - Allow to set the file with the task

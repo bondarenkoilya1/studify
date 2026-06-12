@@ -91,7 +91,6 @@ Accept: application/json
 }
 
 ### Update one task
-# Requires a PATCH route wired to handlers.UpdateTask.
 PATCH {{baseUrl}}/tasks/{{taskId}}
 Content-Type: application/json
 Accept: application/json
