@@ -32,3 +32,38 @@ func GenerateAccessToken(user models.User) (string, error) {
 
 	return ss, nil
 }
+
+func ValidateAccessToken(tokenString string) (int64, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return 0, fmt.Errorf("jwt secret is empty")
+	}
+
+	claims := &jwt.RegisteredClaims{}
+
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(secret), nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("parse access token: %w", err)
+	}
+
+	if !token.Valid {
+		return 0, fmt.Errorf("invalid access token")
+	}
+
+	if claims.Subject == "" {
+		return 0, fmt.Errorf("access token subject is empty")
+	}
+
+	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid access token subject: %w", err)
+	}
+
+	return userID, nil
+}
