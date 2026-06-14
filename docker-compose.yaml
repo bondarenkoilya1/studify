@@ -23,6 +23,8 @@ services:
     container_name: studify-backend
     working_dir: /app
     command: air
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgres://studify:studify@postgres:5432/studify?sslmode=disable
     ports:

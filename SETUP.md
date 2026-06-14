@@ -23,8 +23,9 @@ Frontend: http://localhost:5173
 Postgres: localhost:4444
 ```
 
-The backend reads `DATABASE_URL`. Docker Compose sets it to the internal
-PostgreSQL service URL.
+The backend reads `DATABASE_URL` and `JWT_SECRET`. Docker Compose sets
+`DATABASE_URL` to the internal PostgreSQL service URL and reads `JWT_SECRET`
+from `backend/.env`.
 
 Run the SQL files in `backend/migrations` against the database before using a
 fresh database.
@@ -41,6 +42,7 @@ Start PostgreSQL and set the backend database URL:
 
 ```bash
 export DATABASE_URL="postgres://studify:studify@localhost:5432/studify?sslmode=disable"
+export JWT_SECRET="replace-with-a-long-random-local-secret"
 ```
 
 Run migrations from `backend/migrations`, then start the API:

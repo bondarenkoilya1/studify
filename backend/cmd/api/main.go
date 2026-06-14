@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"studify/internal/database"
 	"studify/internal/handlers"
 	"studify/internal/middlewares"
@@ -13,6 +14,10 @@ import (
 )
 
 func main() {
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Fatal("JWT_SECRET is required")
+	}
+
 	db, err := database.OpenDB()
 	if err != nil {
 		log.Fatal(err)
