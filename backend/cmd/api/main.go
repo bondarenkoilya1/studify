@@ -30,47 +30,53 @@ func main() {
 		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
-	r.Route("/subjects", func(r chi.Router) {
-		r.Get("/", h.GetSubjects)
-		r.With(middlewares.RequireJSON).Post("/", h.AddSubjects)
-		r.Delete("/", h.DeleteSubjects)
+	r.Route("/", func(r chi.Router) {
+		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
+		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
 
-		r.Get("/{id}", h.GetSubject)
-		r.Delete("/{id}", h.DeleteSubject)
-		r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceSubject)
-		r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateSubject)
+		r.Group(func(r chi.Router) {
+			r.Use(middlewares.ValidateAuth)
 
-		r.Post("/avatar/", h.UploadLecturerAvatar)
+			r.Route("/subjects", func(r chi.Router) {
+				r.Get("/", h.GetSubjects)
+				r.With(middlewares.RequireJSON).Post("/", h.AddSubjects)
+				r.Delete("/", h.DeleteSubjects)
+
+				r.Get("/{id}", h.GetSubject)
+				r.Delete("/{id}", h.DeleteSubject)
+				r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceSubject)
+				r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateSubject)
+
+				r.Post("/avatar/", h.UploadLecturerAvatar)
+			})
+
+			r.Route("/tasks", func(r chi.Router) {
+				r.Get("/", h.GetTasks)
+				r.With(middlewares.RequireJSON).Post("/", h.AddTasks)
+				r.Delete("/", h.DeleteTasks)
+
+				r.Get("/{id}", h.GetTask)
+				r.Delete("/{id}", h.DeleteTask)
+				r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceTask)
+				r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateTask)
+			})
+
+			r.Get("/dashboard", h.GetDashboardStatus)
+
+			r.Route("/users", func(r chi.Router) {
+				r.Get("/", h.GetUsers)
+				r.Delete("/", h.DeleteUsers)
+
+				r.Delete("/{username}", h.DeleteUser)
+				r.With(middlewares.RequireJSON).Put("/{username}", h.ReplaceUser)
+				r.With(middlewares.RequireJSON).Patch("/{username}", h.UpdateUser)
+			})
+		})
 	})
-
-	r.Route("/tasks", func(r chi.Router) {
-		r.Get("/", h.GetTasks)
-		r.With(middlewares.RequireJSON).Post("/", h.AddTasks)
-		r.Delete("/", h.DeleteTasks)
-
-		r.Get("/{id}", h.GetTask)
-		r.Delete("/{id}", h.DeleteTask)
-		r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceTask)
-		r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateTask)
-	})
-
-	r.Get("/dashboard", h.GetDashboardStatus)
-
-	r.Route("/users", func(r chi.Router) {
-		r.Get("/", h.GetUsers)
-		r.Delete("/", h.DeleteUsers)
-
-		r.Delete("/{username}", h.DeleteUser)
-		r.With(middlewares.RequireJSON).Put("/{username}", h.ReplaceUser)
-		r.With(middlewares.RequireJSON).Patch("/{username}", h.UpdateUser)
-	})
-
-	r.With(middlewares.RequireJSON).Post("/register/", h.RegisterUser)
-	r.With(middlewares.RequireJSON).Post("/login/", h.LoginUser)
 
 	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
 	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))

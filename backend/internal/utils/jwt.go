@@ -34,7 +34,7 @@ func GenerateAccessToken(user models.SafeUser) (string, error) {
 	return ss, nil
 }
 
-func ValidateAccessToken(tokenString string) (int64, error) {
+func ParseAccessToken(tokenString string) (int64, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		return 0, fmt.Errorf("jwt secret is empty")
@@ -90,5 +90,9 @@ func SetAccessTokenCookies(user models.SafeUser, w http.ResponseWriter) error {
 	http.SetCookie(w, &cookie)
 
 	return nil
+}
 
+func GetUserIDFromContext(r *http.Request) (int64, bool) {
+	userID, ok := r.Context().Value("userID").(int64)
+	return userID, ok
 }

@@ -2,6 +2,7 @@ import { API_BASE_URL } from "../config/env.ts";
 
 export async function request<TResponse>(path: string, init?: RequestInit): Promise<TResponse> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...init?.headers,
@@ -18,5 +19,10 @@ export async function request<TResponse>(path: string, init?: RequestInit): Prom
     return undefined as TResponse;
   }
 
-  return response.json() as Promise<TResponse>;
+  const text = await response.text();
+  if (!text) {
+    return undefined as TResponse;
+  }
+
+  return JSON.parse(text) as TResponse;
 }

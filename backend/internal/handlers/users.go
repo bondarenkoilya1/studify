@@ -45,6 +45,16 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	safeUser := models.SafeUser{
+		ID:       newUser.ID,
+		Username: newUser.Username,
+	}
+
+	if err = utils.SetAccessTokenCookies(safeUser, w); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(newUser); err != nil {
@@ -105,11 +115,6 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(user); err != nil {
-		log.Printf("user was changed. Failed to return as JSON because of encoding error: %v", err)
-	}
-
 	safeUser := models.SafeUser{
 		ID:       user.ID,
 		Username: user.Username,
@@ -120,7 +125,11 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	if err = json.NewEncoder(w).Encode(user); err != nil {
+		log.Printf("user was changed. Failed to return as JSON because of encoding error: %v", err)
+	}
 }
 
 func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
