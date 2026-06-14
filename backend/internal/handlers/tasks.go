@@ -9,10 +9,11 @@ import (
 	"net/http"
 	"studify/internal/database"
 	"studify/internal/models"
+	"studify/internal/utils"
 )
 
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -77,7 +78,7 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -119,7 +120,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -170,7 +171,7 @@ func (h *Handler) DeleteTasks(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

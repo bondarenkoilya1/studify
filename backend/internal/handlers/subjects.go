@@ -13,13 +13,14 @@ import (
 	"os"
 	"studify/internal/database"
 	"studify/internal/models"
+	"studify/internal/utils"
 
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"
 )
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -88,7 +89,7 @@ func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -135,7 +136,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -181,7 +182,7 @@ func (h *Handler) DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
-	id, err := GetID(r)
+	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -234,7 +235,7 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dir := "./data/lecturer-avatars/"
-	if err = EnsureDir(dir); err != nil {
+	if err = utils.EnsureDir(dir); err != nil {
 		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
 		return
 	}

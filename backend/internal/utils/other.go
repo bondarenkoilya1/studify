@@ -1,4 +1,4 @@
-package handlers
+package utils
 
 import (
 	"errors"
@@ -48,7 +48,7 @@ func EnsureDir(path string) error {
 	return nil
 }
 
-func ValidateCredentials(body models.UserRequest, action AuthAction) error {
+func ValidateCredentials(body models.UserRequest, action models.AuthAction) error {
 	if body.Username == "" {
 		return errors.New("username is empty")
 	}
@@ -57,7 +57,7 @@ func ValidateCredentials(body models.UserRequest, action AuthAction) error {
 		return errors.New("password is empty")
 	}
 
-	if len(body.Password) > 72 && action == authActionRegister {
+	if len(body.Password) > 72 && action == models.AuthActionRegister {
 		return errors.New("password is too long")
 	}
 

@@ -15,13 +15,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthAction string
-
-const (
-	authActionRegister AuthAction = "register"
-	authActionLogin    AuthAction = "login"
-)
-
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	body := models.UserRequest{}
 
@@ -30,7 +23,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ValidateCredentials(body, authActionRegister); err != nil {
+	if err := utils.ValidateCredentials(body, models.AuthActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -85,7 +78,7 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ValidateCredentials(body, authActionRegister); err != nil {
+	if err := utils.ValidateCredentials(body, models.AuthActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -236,7 +229,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ValidateCredentials(body, authActionLogin); err != nil {
+	if err := utils.ValidateCredentials(body, models.AuthActionLogin); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
