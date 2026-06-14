@@ -13,14 +13,19 @@ type UserRequest struct {
 	Password string `json:"password"`
 }
 
+type UpdateUserRequest struct {
+	Username *string `json:"username"`
+	Password *string `json:"password"`
+}
+
+type SafeUser struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+}
+
 type AuthAction string
 
 const (
 	AuthActionRegister AuthAction = "register"
 	AuthActionLogin    AuthAction = "login"
 )
-
-type UpdateUserRequest struct {
-	Username *string `json:"username"`
-	Password *string `json:"password"`
-}

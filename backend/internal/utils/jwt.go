@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"studify/internal/models"
@@ -10,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateAccessToken(user models.User) (string, error) {
+func GenerateAccessToken(user models.SafeUser) (string, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		return "", fmt.Errorf("JWT_SECRET is empty")
@@ -66,4 +67,28 @@ func ValidateAccessToken(tokenString string) (int64, error) {
 	}
 
 	return userID, nil
+}
+
+func SetAccessTokenCookies(user models.SafeUser, w http.ResponseWriter) error {
+	accessToken, err := GenerateAccessToken(user)
+	if err != nil {
+		return fmt.Errorf("generate access token: %w", err)
+	}
+
+	accessTokenTTL := time.Hour * 24
+
+	cookie := http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // todo! use production .env,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(accessTokenTTL),
+		MaxAge:   int(accessTokenTTL.Seconds())}
+
+	http.SetCookie(w, &cookie)
+
+	return nil
+
 }

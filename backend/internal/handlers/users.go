@@ -109,6 +109,18 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 	if err = json.NewEncoder(w).Encode(user); err != nil {
 		log.Printf("user was changed. Failed to return as JSON because of encoding error: %v", err)
 	}
+
+	safeUser := models.SafeUser{
+		ID:       user.ID,
+		Username: user.Username,
+	}
+
+	if err = utils.SetAccessTokenCookies(safeUser, w); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -246,8 +258,15 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// gen jwt
+	safeUser := models.SafeUser{
+		ID:       user.ID,
+		Username: user.Username,
+	}
+
+	if err = utils.SetAccessTokenCookies(safeUser, w); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
-
 }
