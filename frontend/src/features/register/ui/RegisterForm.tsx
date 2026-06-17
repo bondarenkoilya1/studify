@@ -92,8 +92,8 @@ export function RegisterForm({
       </form>
       <p className="mt-4 rounded-[8px] border border-[#d9d2df] bg-white px-4 py-4 text-center text-sm font-semibold text-[#4b5566]">
         Already studying here?{" "}
-        <Link to="/dashboard" className="font-bold text-[#6f2bd9] hover:underline">
-          Open dashboard
+        <Link to="/login" className="font-bold text-[#6f2bd9] hover:underline">
+          Sign in
         </Link>
       </p>
     </div>

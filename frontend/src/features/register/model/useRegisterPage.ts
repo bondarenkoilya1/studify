@@ -1,12 +1,16 @@
 import { type ChangeEvent, type FormEvent, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { type User } from "../../../entities/user/types.ts";
+import { useAuth } from "../../auth/model/auth-context.tsx";
 import { getErrorMessage } from "../../../shared/lib/errors.ts";
 import { registerUser } from "../api/register-api.ts";
 
 const maxBcryptPasswordLength = 72;
 
 export function useRegisterPage() {
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -65,9 +69,11 @@ export function useRegisterPage() {
       });
 
       setCreatedUser(user);
+      setUser({ username: user.username });
       setUsername("");
       setPassword("");
       setConfirmPassword("");
+      navigate("/dashboard");
     } catch (requestError) {
       setError(getErrorMessage(requestError).trim() || "Failed to register user.");
     }

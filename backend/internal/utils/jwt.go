@@ -22,7 +22,7 @@ func GenerateAccessToken(user models.SafeUser) (string, error) {
 	claims := jwt.RegisteredClaims{
 		Subject:   strconv.FormatInt(user.ID, 10),
 		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -75,7 +75,7 @@ func SetAccessTokenCookies(user models.SafeUser, w http.ResponseWriter) error {
 		return fmt.Errorf("generate access token: %w", err)
 	}
 
-	accessTokenTTL := time.Hour * 24
+	accessTokenTTL := 15 * time.Minute
 
 	cookie := http.Cookie{
 		Name:     "access_token",
