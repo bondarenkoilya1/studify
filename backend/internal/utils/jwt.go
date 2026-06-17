@@ -17,12 +17,18 @@ func GenerateAccessToken(user models.SafeUser) (string, error) {
 		return "", fmt.Errorf("JWT_SECRET is empty")
 	}
 
+	issuer := os.Getenv("ISSUER")
+	if issuer == "" {
+		return "", fmt.Errorf("ISSUER is empty")
+	}
+
 	now := time.Now()
 
 	claims := jwt.RegisteredClaims{
 		Subject:   strconv.FormatInt(user.ID, 10),
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)),
+		Issuer:    issuer,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -40,6 +46,11 @@ func ParseAccessToken(tokenString string) (int64, error) {
 		return 0, fmt.Errorf("jwt secret is empty")
 	}
 
+	issuer := os.Getenv("ISSUER")
+	if issuer == "" {
+		return 0, fmt.Errorf("issuer is empty")
+	}
+
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -48,7 +59,7 @@ func ParseAccessToken(tokenString string) (int64, error) {
 		}
 
 		return []byte(secret), nil
-	})
+	}, jwt.WithIssuer(issuer))
 	if err != nil {
 		return 0, fmt.Errorf("parse access token: %w", err)
 	}
