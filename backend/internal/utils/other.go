@@ -1,12 +1,10 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
-	"studify/internal/models"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -43,22 +41,6 @@ func EnsureDir(path string) error {
 
 	if err = os.Remove(name); err != nil {
 		return fmt.Errorf("remove check file %q: %w", name, err)
-	}
-
-	return nil
-}
-
-func ValidateCredentials(body models.UserRequest, action models.AuthAction) error {
-	if body.Username == "" {
-		return errors.New("username is empty")
-	}
-
-	if body.Password == "" {
-		return errors.New("password is empty")
-	}
-
-	if len(body.Password) > 72 && action == models.AuthActionRegister {
-		return errors.New("password is too long")
 	}
 
 	return nil
