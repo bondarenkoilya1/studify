@@ -80,6 +80,8 @@ func main() {
 				r.With(middlewares.RequireJSON).Put("/{username}", h.ReplaceUser)
 				r.With(middlewares.RequireJSON).Patch("/{username}", h.UpdateUser)
 			})
+
+			r.Post("/logout", h.LogoutUser)
 		})
 	})
 

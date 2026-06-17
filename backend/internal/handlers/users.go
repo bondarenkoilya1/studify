@@ -279,3 +279,18 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
+	cookie := http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // todo! use production .env,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	}
+
+	http.SetCookie(w, &cookie)
+	w.WriteHeader(http.StatusNoContent)
+}
