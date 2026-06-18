@@ -38,7 +38,7 @@ func (s *AuthService) GenerateAccessToken(userID int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, err := token.SignedString([]byte(s.accessSecret))
 	if err != nil {
-		return "", fmt.Errorf("failed to generate signed string: %v", err)
+		return "", fmt.Errorf("failed to generate signed string: %w", err)
 	}
 
 	return ss, nil
@@ -59,11 +59,11 @@ func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
 	}
 
 	if !token.Valid {
-		return 0, fmt.Errorf("invalid access token")
+		return 0, ErrInvalidAccessToken
 	}
 
 	if claims.Subject == "" {
-		return 0, fmt.Errorf("access token subject is empty")
+		return 0, ErrEmptyTokenSubject
 	}
 
 	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
@@ -107,7 +107,7 @@ func (s *AuthService) GenerateRefreshToken(userID int64) (string, error) {
 
 	tokenID, err := generateTokenID()
 	if err != nil {
-		return "", fmt.Errorf("failed to generate token id: %v", err)
+		return "", fmt.Errorf("failed to generate token id: %w", err)
 	}
 
 	claims := jwt.RegisteredClaims{
@@ -121,7 +121,7 @@ func (s *AuthService) GenerateRefreshToken(userID int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, err := token.SignedString([]byte(s.refreshSecret))
 	if err != nil {
-		return "", fmt.Errorf("failed to generate signed string: %v", err)
+		return "", fmt.Errorf("failed to generate signed string: %w", err)
 	}
 
 	return ss, nil

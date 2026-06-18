@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,7 +29,8 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	passwordHash, err := utils.HashPassword(body.Password)
 	if err != nil {
-		http.Error(w, "failed to hash password", http.StatusInternalServerError)
+		log.Printf("failed to hash password: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -41,12 +41,14 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, fmt.Sprintf("Failed to register user: %v", err), http.StatusInternalServerError)
+		log.Printf("failed to register user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = h.Auth.SetAccessTokenCookies(newUser.ID, w); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Printf("failed to set access token cookie: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -60,7 +62,8 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetUsers(w http.ResponseWriter, _ *http.Request) {
 	users, err := database.GetUsers(h.DB)
 	if err != nil {
-		http.Error(w, "Failed to get users", http.StatusInternalServerError)
+		log.Printf("failed to get users: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -90,13 +93,14 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 
 	passwordHash, err := utils.HashPassword(body.Password)
 	if err != nil {
-		http.Error(w, "failed to hash password", http.StatusInternalServerError)
+		log.Printf("failed to hash password: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	user, err := database.UpdateUser(h.DB, currentUsername, body.Username, passwordHash)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, database.ErrUserNotFound) {
 			http.Error(w, fmt.Sprintf("No such user with username: %s", currentUsername), http.StatusNotFound)
 			return
 		}
@@ -106,12 +110,14 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, "Failed to replace user", http.StatusInternalServerError)
+		log.Printf("failed to replace user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = h.Auth.SetAccessTokenCookies(user.ID, w); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Printf("failed to set access token cookie: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -142,12 +148,13 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	currentUser, err := database.GetUserByUsername(h.DB, currentUsername)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, database.ErrUserNotFound) {
 			http.Error(w, fmt.Sprintf("No such user with username: %s", currentUsername), http.StatusNotFound)
 			return
 		}
 
-		http.Error(w, "Failed to get user", http.StatusInternalServerError)
+		log.Printf("failed to get user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -174,7 +181,8 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 		passwordHash, err := utils.HashPassword(*req.Password)
 		if err != nil {
-			http.Error(w, "failed to hash password", http.StatusInternalServerError)
+			log.Printf("failed to hash password: %v", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
@@ -183,7 +191,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := database.UpdateUser(h.DB, currentUsername, username, password)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, database.ErrUserNotFound) {
 			http.Error(w, fmt.Sprintf("No such user with username: %s", currentUsername), http.StatusNotFound)
 			return
 		}
@@ -193,7 +201,8 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		log.Printf("failed to update user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -205,7 +214,8 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) DeleteUsers(w http.ResponseWriter, _ *http.Request) {
 	if err := database.DeleteUsers(h.DB); err != nil {
-		http.Error(w, "Failed to delete users", http.StatusInternalServerError)
+		log.Printf("failed to delete users: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -220,12 +230,13 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := database.DeleteUser(h.DB, username); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, database.ErrUserNotFound) {
 			http.Error(w, fmt.Sprintf("No such user with username: %s", username), http.StatusNotFound)
 			return
 		}
 
-		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+		log.Printf("failed to delete user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -247,6 +258,12 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := database.GetUserByUsername(h.DB, body.Username)
 	if err != nil {
+		if !errors.Is(err, database.ErrUserNotFound) {
+			log.Printf("failed to get user for login: %v", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
 		http.Error(w, "invalid username or password", http.StatusUnauthorized)
 		return
 	}
@@ -258,7 +275,8 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = h.Auth.SetAccessTokenCookies(user.ID, w); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Printf("failed to set access token cookie: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

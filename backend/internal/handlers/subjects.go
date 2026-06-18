@@ -28,7 +28,13 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 
 	subject, err := database.GetSubjectByID(h.DB, id)
 	if err != nil {
-		http.Error(w, "Subject was not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Subject was not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to get subject: %v", err)
+		http.Error(w, "Failed to get subject", http.StatusInternalServerError)
 		return
 	}
 
@@ -42,6 +48,7 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetSubjects(w http.ResponseWriter, _ *http.Request) {
 	subjects, err := database.GetSubjects(h.DB)
 	if err != nil {
+		log.Printf("failed to get subjects: %v", err)
 		http.Error(w, "Failed to get subjects", http.StatusInternalServerError)
 		return
 	}
@@ -73,6 +80,7 @@ func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
 		// here, operate with s.LecturerAvatarURL
 		subject, err := database.InsertSubject(h.DB, s.Name, s.Lecturer, s.LecturerAvatarURL, s.ExamDate)
 		if err != nil {
+			log.Printf("failed to insert subject: %v", err)
 			http.Error(w, "Failed to insert subjects", http.StatusInternalServerError)
 			return
 		}
@@ -144,7 +152,13 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 
 	subject, err := database.GetSubjectByID(h.DB, id)
 	if err != nil {
-		http.Error(w, "Subject not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Subject not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to get subject: %v", err)
+		http.Error(w, "Failed to get subject", http.StatusInternalServerError)
 		return
 	}
 
@@ -161,6 +175,12 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = database.UpdateSubject(h.DB, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Subject not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to update subject: %v", err)
 		http.Error(w, "Failed to update subject", http.StatusInternalServerError)
 		return
 	}
@@ -175,6 +195,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 	err := database.DeleteSubjects(h.DB)
 	if err != nil {
+		log.Printf("failed to delete subjects: %v", err)
 		http.Error(w, "Failed to delete subjects", http.StatusInternalServerError)
 		return
 	}
@@ -189,7 +210,13 @@ func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = database.DeleteSubject(h.DB, id); err != nil {
-		http.Error(w, "No such element with this ID", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "No such element with this ID", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to delete subject: %v", err)
+		http.Error(w, "Failed to delete subject", http.StatusInternalServerError)
 		return
 	}
 
@@ -211,6 +238,7 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			http.Error(w, "Avatar is too large", http.StatusRequestEntityTooLarge)
+			return
 		}
 
 		http.Error(w, "Invalid image", http.StatusBadRequest)

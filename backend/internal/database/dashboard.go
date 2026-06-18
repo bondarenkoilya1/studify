@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"studify/internal/models"
 )
 
@@ -17,7 +18,7 @@ func GetSubjectsCount(db *sql.DB) (int64, error) {
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get subjects count: %w", err)
 	}
 
 	return count, nil
@@ -34,7 +35,7 @@ func GetTasksCount(db *sql.DB) (int64, error) {
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get tasks count: %w", err)
 	}
 
 	return count, nil
@@ -52,7 +53,7 @@ func GetCompletedTasksCount(db *sql.DB) (int64, error) {
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get completed tasks count: %w", err)
 	}
 
 	return count, nil
@@ -70,7 +71,7 @@ func GetOngoingTasksCount(db *sql.DB) (int64, error) {
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get ongoing tasks count: %w", err)
 	}
 
 	return count, nil
@@ -88,7 +89,7 @@ func GetNotCompletedTasksCount(db *sql.DB) (int64, error) {
 	var count int64
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get not completed tasks count: %w", err)
 	}
 
 	return count, nil
@@ -114,7 +115,7 @@ func GetOverdueTasks(db *sql.DB) ([]models.Task, error) {
 
 	tasks, err := scanTasks(db, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get overdue tasks: %w", err)
 	}
 
 	return tasks, nil
@@ -147,7 +148,7 @@ func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
 			return nil, nil
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to get nearest deadline task: %w", err)
 	}
 
 	return &task, nil

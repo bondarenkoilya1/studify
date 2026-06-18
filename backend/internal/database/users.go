@@ -3,12 +3,11 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"studify/internal/models"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
-
-var ErrUserAlreadyExists = errors.New("user already exists")
 
 func GetUserByUsername(db *sql.DB, username string) (*models.User, error) {
 	query := `
@@ -25,7 +24,11 @@ func GetUserByUsername(db *sql.DB, username string) (*models.User, error) {
 
 	err := row.Scan(&user.ID, &user.Username, &user.Password)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, fmt.Errorf("failed to get user by username: %w", err)
 	}
 
 	return user, nil
@@ -41,7 +44,7 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 
 	rows, err := db.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
 	defer rows.Close()
 
@@ -52,14 +55,14 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 
 		err = rows.Scan(&user.ID, &user.Username)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 
 		users = append(users, user)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read users rows: %w", err)
 	}
 
 	return users, nil
@@ -75,11 +78,12 @@ func InsertUser(db *sql.DB, username, password string) (*models.User, error) {
 	var user models.User
 	err := db.QueryRow(query, username, password).Scan(&user.ID, &user.Username)
 	if err != nil {
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return nil, ErrUserAlreadyExists
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to insert user: %w", err)
 	}
 
 	return &user, nil
@@ -98,11 +102,16 @@ func UpdateUser(db *sql.DB, currentUsername, username, password string) (*models
 	var user models.User
 	err := db.QueryRow(query, username, password, currentUsername).Scan(&user.ID, &user.Username)
 	if err != nil {
-		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return nil, ErrUserAlreadyExists
 		}
 
-		return nil, err
+		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
 	return &user, nil
@@ -116,16 +125,16 @@ func DeleteUser(db *sql.DB, username string) error {
 
 	result, err := db.Exec(query, username)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get deleted users count: %w", err)
 	}
 
 	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		return ErrUserNotFound
 	}
 
 	return nil
@@ -137,5 +146,9 @@ func DeleteUsers(db *sql.DB) error {
 	`
 
 	_, err := db.Exec(query)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to delete users: %w", err)
+	}
+
+	return nil
 }

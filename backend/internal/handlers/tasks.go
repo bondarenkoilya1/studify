@@ -21,7 +21,13 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	task, err := database.GetTaskByID(h.DB, id)
 	if err != nil {
-		http.Error(w, "Task was not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Task was not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to get task: %v", err)
+		http.Error(w, "Failed to get task", http.StatusInternalServerError)
 		return
 	}
 
@@ -35,6 +41,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetTasks(w http.ResponseWriter, _ *http.Request) {
 	tasks, err := database.GetTasks(h.DB)
 	if err != nil {
+		log.Printf("failed to get tasks: %v", err)
 		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
 		return
 	}
@@ -62,6 +69,7 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 	for _, t := range newTasks {
 		task, err := database.InsertTask(h.DB, t.Name, t.Deadline, t.Status, t.SubjectID)
 		if err != nil {
+			log.Printf("failed to insert task: %v", err)
 			http.Error(w, "Failed to insert tasks", http.StatusInternalServerError)
 			return
 		}
@@ -128,7 +136,13 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	task, err := database.GetTaskByID(h.DB, id)
 	if err != nil {
-		http.Error(w, "Task not found", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Task not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to get task: %v", err)
+		http.Error(w, "Failed to get task", http.StatusInternalServerError)
 		return
 	}
 
@@ -150,6 +164,12 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	updatedTask, err := database.UpdateTask(h.DB, id, task.Name, task.Deadline, task.Status, task.SubjectID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Task not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to update task: %v", err)
 		http.Error(w, "Failed to update task", http.StatusInternalServerError)
 		return
 	}
@@ -164,6 +184,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteTasks(w http.ResponseWriter, _ *http.Request) {
 	err := database.DeleteTasks(h.DB)
 	if err != nil {
+		log.Printf("failed to delete tasks: %v", err)
 		http.Error(w, "Failed to delete tasks", http.StatusInternalServerError)
 		return
 	}

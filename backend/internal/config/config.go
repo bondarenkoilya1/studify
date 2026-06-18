@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"os"
 )
 
@@ -23,19 +23,19 @@ func Load() (*Config, error) {
 	}
 
 	if cfg.JWTAccessSecret == "" {
-		return nil, fmt.Errorf("JWT_ACCESS_SECRET is empty")
+		return nil, errors.New("JWT_ACCESS_SECRET is empty")
 	}
 
 	if cfg.JWTRefreshSecret == "" {
-		return nil, fmt.Errorf("JWT_REFRESH_SECRET is empty")
+		return nil, errors.New("JWT_REFRESH_SECRET is empty")
 	}
 
 	if cfg.Issuer == "" {
-		return nil, fmt.Errorf("ISSUER is empty")
+		return nil, errors.New("ISSUER is empty")
 	}
 
 	if cfg.DatabaseURL == "" {
-		return nil, fmt.Errorf("DATABASE_URL is empty")
+		return nil, errors.New("DATABASE_URL is empty")
 	}
 
 	if cfg.ServerAddr == "" {
