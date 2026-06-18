@@ -3,10 +3,11 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
+	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/handlers"
 	"studify/internal/middlewares"
+	"studify/internal/utils"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,17 +15,19 @@ import (
 )
 
 func main() {
-	if os.Getenv("JWT_ACCESS_SECRET") == "" {
-		log.Fatal("JWT_ACCESS_SECRET is required")
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	db, err := database.OpenDB()
+	db, err := database.OpenDB(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	h := &handlers.Handler{DB: db}
+	auth := utils.NewAuthService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer)
+	h := &handlers.Handler{DB: db, Auth: auth}
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -44,7 +47,7 @@ func main() {
 		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
 
 		r.Group(func(r chi.Router) {
-			r.Use(middlewares.ValidateAuth)
+			r.Use(middlewares.ValidateAuth(auth))
 
 			r.Route("/subjects", func(r chi.Router) {
 				r.Get("/", h.GetSubjects)
@@ -88,7 +91,7 @@ func main() {
 	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
 	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))
 
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(cfg.ServerAddr, r))
 }
 
 /* Later:

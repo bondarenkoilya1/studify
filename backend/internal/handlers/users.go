@@ -45,7 +45,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = utils.SetAccessTokenCookies(newUser.ID, w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(newUser.ID, w); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -110,7 +110,7 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = utils.SetAccessTokenCookies(user.ID, w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(user.ID, w); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -257,7 +257,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = utils.SetAccessTokenCookies(user.ID, w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(user.ID, w); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

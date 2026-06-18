@@ -5,35 +5,38 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GenerateAccessToken(userID int64) (string, error) {
-	secret := os.Getenv("JWT_ACCESS_SECRET")
-	if secret == "" {
-		return "", fmt.Errorf("JWT_ACCESS_SECRET is empty")
-	}
+type AuthService struct {
+	accessSecret  string
+	refreshSecret string
+	issuer        string
+}
 
-	issuer := os.Getenv("ISSUER")
-	if issuer == "" {
-		return "", fmt.Errorf("ISSUER is empty")
+func NewAuthService(accessSecret, refreshSecret, issuer string) *AuthService {
+	return &AuthService{
+		accessSecret:  accessSecret,
+		refreshSecret: refreshSecret,
+		issuer:        issuer,
 	}
+}
 
+func (s *AuthService) GenerateAccessToken(userID int64) (string, error) {
 	now := time.Now()
 
 	claims := jwt.RegisteredClaims{
 		Subject:   strconv.FormatInt(userID, 10),
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)),
-		Issuer:    issuer,
+		Issuer:    s.issuer,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(secret))
+	ss, err := token.SignedString([]byte(s.accessSecret))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate signed string: %v", err)
 	}
@@ -41,17 +44,7 @@ func GenerateAccessToken(userID int64) (string, error) {
 	return ss, nil
 }
 
-func ParseAccessToken(tokenString string) (int64, error) {
-	secret := os.Getenv("JWT_ACCESS_SECRET")
-	if secret == "" {
-		return 0, fmt.Errorf("jwt secret is empty")
-	}
-
-	issuer := os.Getenv("ISSUER")
-	if issuer == "" {
-		return 0, fmt.Errorf("issuer is empty")
-	}
-
+func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -59,8 +52,8 @@ func ParseAccessToken(tokenString string) (int64, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(secret), nil
-	}, jwt.WithIssuer(issuer))
+		return []byte(s.accessSecret), nil
+	}, jwt.WithIssuer(s.issuer))
 	if err != nil {
 		return 0, fmt.Errorf("parse access token: %w", err)
 	}
@@ -81,8 +74,8 @@ func ParseAccessToken(tokenString string) (int64, error) {
 	return userID, nil
 }
 
-func SetAccessTokenCookies(userID int64, w http.ResponseWriter) error {
-	accessToken, err := GenerateAccessToken(userID)
+func (s *AuthService) SetAccessTokenCookies(userID int64, w http.ResponseWriter) error {
+	accessToken, err := s.GenerateAccessToken(userID)
 	if err != nil {
 		return fmt.Errorf("generate access token: %w", err)
 	}
@@ -109,17 +102,7 @@ func GetUserIDFromContext(r *http.Request) (int64, bool) {
 	return userID, ok
 }
 
-func GenerateRefreshToken(userID int64) (string, error) {
-	secret := os.Getenv("JWT_REFRESH_SECRET")
-	if secret == "" {
-		return "", fmt.Errorf("JWT_REFRESH_SECRET is empty")
-	}
-
-	issuer := os.Getenv("ISSUER")
-	if issuer == "" {
-		return "", fmt.Errorf("ISSUER is empty")
-	}
-
+func (s *AuthService) GenerateRefreshToken(userID int64) (string, error) {
 	now := time.Now()
 
 	tokenID, err := generateTokenID()
@@ -132,11 +115,11 @@ func GenerateRefreshToken(userID int64) (string, error) {
 		Subject:   strconv.FormatInt(userID, 10),
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(7 * 24 * time.Hour)),
-		Issuer:    issuer,
+		Issuer:    s.issuer,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString([]byte(secret))
+	ss, err := token.SignedString([]byte(s.refreshSecret))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate signed string: %v", err)
 	}

@@ -3,18 +3,12 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func OpenDB() (*sql.DB, error) {
-	databaseURL := os.Getenv("DATABASE_URL")
-	if databaseURL == "" {
-		databaseURL = "postgres://studify:studify@localhost:5432/studify?sslmode=disable"
-	}
-
+func OpenDB(databaseURL string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		return nil, err
