@@ -14,8 +14,8 @@ import (
 )
 
 func main() {
-	if os.Getenv("JWT_SECRET") == "" {
-		log.Fatal("JWT_SECRET is required")
+	if os.Getenv("JWT_ACCESS_SECRET") == "" {
+		log.Fatal("JWT_ACCESS_SECRET is required")
 	}
 
 	db, err := database.OpenDB()
@@ -92,7 +92,6 @@ func main() {
 }
 
 /* Later:
-- Validate data
 - Use JOIN methods for connecting tasks with their subjects
 - Allow to upload avatar for the lecturer
 - Allow to set description for the task

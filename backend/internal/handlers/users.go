@@ -45,12 +45,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	safeUser := models.SafeUser{
-		ID:       newUser.ID,
-		Username: newUser.Username,
-	}
-
-	if err = utils.SetAccessTokenCookies(safeUser, w); err != nil {
+	if err = utils.SetAccessTokenCookies(newUser.ID, w); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -115,12 +110,7 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	safeUser := models.SafeUser{
-		ID:       user.ID,
-		Username: user.Username,
-	}
-
-	if err = utils.SetAccessTokenCookies(safeUser, w); err != nil {
+	if err = utils.SetAccessTokenCookies(user.ID, w); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -267,12 +257,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	safeUser := models.SafeUser{
-		ID:       user.ID,
-		Username: user.Username,
-	}
-
-	if err = utils.SetAccessTokenCookies(safeUser, w); err != nil {
+	if err = utils.SetAccessTokenCookies(user.ID, w); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
