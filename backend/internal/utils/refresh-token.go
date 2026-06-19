@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func (s *AuthService) GenerateRefreshToken(userID UserID) (RefreshToken, TokenID, error) {
+func (s *AuthService) generateRefreshToken(userID UserID) (RefreshToken, TokenID, error) {
 	now := time.Now()
 
 	tokenID, err := GenerateTokenID()

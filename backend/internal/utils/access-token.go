@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func (s *AuthService) GenerateAccessToken(userID UserID) (string, error) {
+func (s *AuthService) generateAccessToken(userID UserID) (string, error) {
 	now := time.Now()
 
 	claims := jwt.RegisteredClaims{
@@ -59,7 +59,7 @@ func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
 }
 
 func (s *AuthService) SetAccessTokenCookies(userID int64, w http.ResponseWriter) error {
-	accessToken, err := s.GenerateAccessToken(UserID(userID))
+	accessToken, err := s.generateAccessToken(UserID(userID))
 	if err != nil {
 		return fmt.Errorf("generate access token: %w", err)
 	}
