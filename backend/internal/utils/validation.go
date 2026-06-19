@@ -8,11 +8,7 @@ import (
 )
 
 var (
-	usernameRegexp          = regexp.MustCompile(`^[A-Za-z0-9._]+$`)
-	passwordLowercaseRegexp = regexp.MustCompile(`[a-z]`)
-	passwordUppercaseRegexp = regexp.MustCompile(`[A-Z]`)
-	passwordDigitRegexp     = regexp.MustCompile(`[0-9]`)
-	passwordWhitespaceRegex = regexp.MustCompile(`\s`)
+	usernameRegexp = regexp.MustCompile(`^[A-Za-z0-9._]+$`)
 )
 
 func ValidateCredentials(body models.UserRequest, action models.AuthAction) error {
@@ -55,6 +51,13 @@ func IsValidUsername(username string) error {
 	return nil
 }
 
+/*
+	Personal
+
+Password validation intentionally avoids composition rules such as requiring
+uppercase letters, digits, symbols, or banning spaces. Those rules often lead
+to predictable passwords.
+*/
 func IsValidPassword(password string, action models.AuthAction) error {
 	if password == "" {
 		return fmt.Errorf("password is empty")
@@ -70,22 +73,6 @@ func IsValidPassword(password string, action models.AuthAction) error {
 
 	if len(password) < 8 {
 		return fmt.Errorf("password must be at least 8 characters")
-	}
-
-	if passwordWhitespaceRegex.MatchString(password) {
-		return fmt.Errorf("password cannot contain whitespace")
-	}
-
-	if !passwordLowercaseRegexp.MatchString(password) {
-		return fmt.Errorf("password must contain a lowercase letter")
-	}
-
-	if !passwordUppercaseRegexp.MatchString(password) {
-		return fmt.Errorf("password must contain an uppercase letter")
-	}
-
-	if !passwordDigitRegexp.MatchString(password) {
-		return fmt.Errorf("password must contain a number")
 	}
 
 	return nil
