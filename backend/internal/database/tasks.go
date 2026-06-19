@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"studify/internal/models"
+	"studify/internal/utils"
 )
 
 func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
@@ -40,7 +41,7 @@ func GetTasks(db *sql.DB) ([]models.Task, error) {
 	FROM tasks;
 `
 
-	tasks, err := scanTasks(db, query)
+	tasks, err := utils.ScanTasks(db, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks: %w", err)
 	}
