@@ -64,7 +64,7 @@ func (s *AuthService) SetAccessTokenCookies(userID int64, w http.ResponseWriter)
 		return fmt.Errorf("generate access token: %w", err)
 	}
 
-	accessTokenTTL := (15 * time.Minute).Seconds()
+	accessTokenTTL := (15 * time.Minute).Seconds() // 15 minutes
 
 	cookie := http.Cookie{
 		Name:     "access_token",
@@ -79,4 +79,16 @@ func (s *AuthService) SetAccessTokenCookies(userID int64, w http.ResponseWriter)
 	http.SetCookie(w, &cookie)
 
 	return nil
+}
+
+func (s *AuthService) ClearAccessToken(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   s.secureCookies,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
 }

@@ -76,7 +76,7 @@ func (s *AuthService) SetRefreshTokenCookies(userID UserID, w http.ResponseWrite
 		return fmt.Errorf("generate refresh token: %w", err)
 	}
 
-	refreshTokenTTL := (30 * 24 * time.Hour).Seconds()
+	refreshTokenTTL := (30 * 24 * time.Hour).Seconds() // 30 days
 
 	cookie := http.Cookie{
 		Name:     "refresh_token",
@@ -91,4 +91,16 @@ func (s *AuthService) SetRefreshTokenCookies(userID UserID, w http.ResponseWrite
 	http.SetCookie(w, &cookie)
 
 	return nil
+}
+
+func (s *AuthService) ClearRefreshToken(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/refresh",
+		HttpOnly: true,
+		Secure:   s.secureCookies,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1,
+	})
 }

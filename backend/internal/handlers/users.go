@@ -284,16 +284,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
-	cookie := http.Cookie{
-		Name:     "access_token",
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false, // todo! use production .env,
-		SameSite: http.SameSiteLaxMode,
-		MaxAge:   -1,
-	}
-
-	http.SetCookie(w, &cookie)
+	h.Auth.ClearAccessToken(w)
+	h.Auth.ClearRefreshToken(w)
 	w.WriteHeader(http.StatusNoContent)
 }
