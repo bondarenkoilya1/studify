@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -67,4 +68,27 @@ func (s *AuthService) ParseRefreshToken(tokenString string) (UserID, TokenID, er
 	}
 
 	return UserID(userID), TokenID(claims.ID), nil
+}
+
+func (s *AuthService) SetRefreshTokenCookies(userID UserID, w http.ResponseWriter) error {
+	token, _, err := s.generateRefreshToken(userID)
+	if err != nil {
+		return fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	refreshTokenTTL := (30 * 24 * time.Hour).Seconds()
+
+	cookie := http.Cookie{
+		Name:     "refresh_token",
+		Value:    string(token),
+		Path:     "/refresh",
+		HttpOnly: true,
+		Secure:   s.secureCookies,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(refreshTokenTTL),
+	}
+
+	http.SetCookie(w, &cookie)
+
+	return nil
 }

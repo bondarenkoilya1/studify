@@ -64,17 +64,16 @@ func (s *AuthService) SetAccessTokenCookies(userID int64, w http.ResponseWriter)
 		return fmt.Errorf("generate access token: %w", err)
 	}
 
-	accessTokenTTL := 15 * time.Minute
+	accessTokenTTL := (15 * time.Minute).Seconds()
 
 	cookie := http.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   false, // todo! use production .env,
+		Secure:   s.secureCookies,
 		SameSite: http.SameSiteLaxMode,
-		Expires:  time.Now().Add(accessTokenTTL),
-		MaxAge:   int(accessTokenTTL.Seconds()),
+		MaxAge:   int(accessTokenTTL),
 	}
 
 	http.SetCookie(w, &cookie)

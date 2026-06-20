@@ -26,7 +26,7 @@ func newApplication() (*application, error) {
 		return nil, err
 	}
 
-	auth := utils.NewAuthService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer)
+	auth := utils.NewAuthService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction())
 	h := &handlers.Handler{DB: db, Auth: auth}
 
 	return &application{

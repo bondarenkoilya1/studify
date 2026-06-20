@@ -9,17 +9,19 @@ type AuthService struct {
 	accessSecret  string
 	refreshSecret string
 	issuer        string
+	secureCookies bool
 }
 
 type RefreshToken string
 type UserID int64
 type TokenID string
 
-func NewAuthService(accessSecret, refreshSecret, issuer string) *AuthService {
+func NewAuthService(accessSecret, refreshSecret, issuer string, secureCookies bool) *AuthService {
 	return &AuthService{
 		accessSecret:  accessSecret,
 		refreshSecret: refreshSecret,
 		issuer:        issuer,
+		secureCookies: secureCookies,
 	}
 }
 
