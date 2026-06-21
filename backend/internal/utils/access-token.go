@@ -28,7 +28,7 @@ func (s *AuthService) generateAccessToken(userID UserID) (string, error) {
 	return ss, nil
 }
 
-func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
+func (s *AuthService) ParseAccessToken(tokenString string) (UserID, error) {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -55,11 +55,11 @@ func (s *AuthService) ParseAccessToken(tokenString string) (int64, error) {
 		return 0, fmt.Errorf("invalid access token subject: %w", err)
 	}
 
-	return userID, nil
+	return UserID(userID), nil
 }
 
-func (s *AuthService) SetAccessTokenCookies(userID int64, w http.ResponseWriter) error {
-	accessToken, err := s.generateAccessToken(UserID(userID))
+func (s *AuthService) SetAccessTokenCookies(userID UserID, w http.ResponseWriter) error {
+	accessToken, err := s.generateAccessToken(userID)
 	if err != nil {
 		return fmt.Errorf("generate access token: %w", err)
 	}
