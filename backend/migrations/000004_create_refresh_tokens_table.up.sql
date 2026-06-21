@@ -4,7 +4,7 @@ CREATE TABLE refresh_tokens (
     token_id TEXT NOT NULL UNIQUE,
     token_hash TEXT NOT NULL UNIQUE ,
     expires_at TIMESTAMPTZ NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    revoked_at TIMESTAMPTZ,
-    replaced_by_token_id TEXT
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    revoked_at TIMESTAMPTZ NULL,
+    replaced_by_token_id TEXT NULL
 );
