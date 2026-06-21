@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func GetRefreshTokenByID(db *sql.DB, id int64) (*models.RefreshToken, error) {
+func GetRefreshTokenByID(db *sql.DB, id int64) (*models.RefreshTokenRecord, error) {
 	query := `
 	SELECT
 		id,
@@ -16,14 +16,14 @@ func GetRefreshTokenByID(db *sql.DB, id int64) (*models.RefreshToken, error) {
 		token_hash,
 		expires_at,
 		created_at,
-		COALESCE(revoked_at, '0001-01-01 00:00:00+00'::timestamptz),
-		COALESCE(replaced_by_token_id, '')
+		revoked_at,
+		replaced_by_token_id
 	FROM refresh_tokens
 	WHERE id = $1;
 `
 
 	row := db.QueryRow(query, id)
-	refreshToken := &models.RefreshToken{}
+	refreshToken := &models.RefreshTokenRecord{}
 
 	err := row.Scan(
 		&refreshToken.ID,
@@ -42,7 +42,7 @@ func GetRefreshTokenByID(db *sql.DB, id int64) (*models.RefreshToken, error) {
 	return refreshToken, nil
 }
 
-func GetRefreshTokenByTokenID(db *sql.DB, tokenID string) (*models.RefreshToken, error) {
+func GetRefreshTokenByTokenID(db *sql.DB, tokenID string) (*models.RefreshTokenRecord, error) {
 	query := `
 	SELECT
 		id,
@@ -51,14 +51,14 @@ func GetRefreshTokenByTokenID(db *sql.DB, tokenID string) (*models.RefreshToken,
 		token_hash,
 		expires_at,
 		created_at,
-		COALESCE(revoked_at, '0001-01-01 00:00:00+00'::timestamptz),
-		COALESCE(replaced_by_token_id, '')
+		revoked_at,
+		replaced_by_token_id
 	FROM refresh_tokens
 	WHERE token_id = $1;
 `
 
 	row := db.QueryRow(query, tokenID)
-	refreshToken := &models.RefreshToken{}
+	refreshToken := &models.RefreshTokenRecord{}
 
 	err := row.Scan(
 		&refreshToken.ID,
@@ -77,7 +77,7 @@ func GetRefreshTokenByTokenID(db *sql.DB, tokenID string) (*models.RefreshToken,
 	return refreshToken, nil
 }
 
-func GetRefreshTokenByTokenHash(db *sql.DB, tokenHash string) (*models.RefreshToken, error) {
+func GetRefreshTokenByTokenHash(db *sql.DB, tokenHash string) (*models.RefreshTokenRecord, error) {
 	query := `
 	SELECT
 		id,
@@ -86,14 +86,14 @@ func GetRefreshTokenByTokenHash(db *sql.DB, tokenHash string) (*models.RefreshTo
 		token_hash,
 		expires_at,
 		created_at,
-		COALESCE(revoked_at, '0001-01-01 00:00:00+00'::timestamptz),
-		COALESCE(replaced_by_token_id, '')
+		revoked_at,
+		replaced_by_token_id
 	FROM refresh_tokens
 	WHERE token_hash = $1;
 `
 
 	row := db.QueryRow(query, tokenHash)
-	refreshToken := &models.RefreshToken{}
+	refreshToken := &models.RefreshTokenRecord{}
 
 	err := row.Scan(
 		&refreshToken.ID,
@@ -112,7 +112,7 @@ func GetRefreshTokenByTokenHash(db *sql.DB, tokenHash string) (*models.RefreshTo
 	return refreshToken, nil
 }
 
-func GetRefreshTokens(db *sql.DB) ([]models.RefreshToken, error) {
+func GetRefreshTokens(db *sql.DB) ([]models.RefreshTokenRecord, error) {
 	query := `
 	SELECT
 		id,
@@ -121,8 +121,8 @@ func GetRefreshTokens(db *sql.DB) ([]models.RefreshToken, error) {
 		token_hash,
 		expires_at,
 		created_at,
-		COALESCE(revoked_at, '0001-01-01 00:00:00+00'::timestamptz),
-		COALESCE(replaced_by_token_id, '')
+		revoked_at,
+		replaced_by_token_id
 	FROM refresh_tokens;
 `
 
@@ -132,10 +132,10 @@ func GetRefreshTokens(db *sql.DB) ([]models.RefreshToken, error) {
 	}
 	defer rows.Close()
 
-	refreshTokens := []models.RefreshToken{}
+	refreshTokens := []models.RefreshTokenRecord{}
 
 	for rows.Next() {
-		var refreshToken models.RefreshToken
+		var refreshToken models.RefreshTokenRecord
 
 		err = rows.Scan(
 			&refreshToken.ID,
@@ -161,7 +161,7 @@ func GetRefreshTokens(db *sql.DB) ([]models.RefreshToken, error) {
 	return refreshTokens, nil
 }
 
-func GetRefreshTokensByUserID(db *sql.DB, userID int64) ([]models.RefreshToken, error) {
+func GetRefreshTokensByUserID(db *sql.DB, userID int64) ([]models.RefreshTokenRecord, error) {
 	query := `
 	SELECT
 		id,
@@ -170,8 +170,8 @@ func GetRefreshTokensByUserID(db *sql.DB, userID int64) ([]models.RefreshToken, 
 		token_hash,
 		expires_at,
 		created_at,
-		COALESCE(revoked_at, '0001-01-01 00:00:00+00'::timestamptz),
-		COALESCE(replaced_by_token_id, '')
+		revoked_at,
+		replaced_by_token_id
 	FROM refresh_tokens
 	WHERE user_id = $1;
 `
@@ -182,10 +182,10 @@ func GetRefreshTokensByUserID(db *sql.DB, userID int64) ([]models.RefreshToken, 
 	}
 	defer rows.Close()
 
-	refreshTokens := []models.RefreshToken{}
+	refreshTokens := []models.RefreshTokenRecord{}
 
 	for rows.Next() {
-		var refreshToken models.RefreshToken
+		var refreshToken models.RefreshTokenRecord
 
 		err = rows.Scan(
 			&refreshToken.ID,
@@ -211,39 +211,34 @@ func GetRefreshTokensByUserID(db *sql.DB, userID int64) ([]models.RefreshToken, 
 	return refreshTokens, nil
 }
 
-func InsertRefreshToken(db *sql.DB, userID int64, tokenID, tokenHash string, expiresAt, createdAt, revokedAt time.Time, replacedByTokenID string) (*models.RefreshToken, error) {
+func InsertRefreshToken(db *sql.DB, userID int64, tokenID, tokenHash string, expiresAt time.Time) (*models.RefreshTokenRecord, error) {
 	query := `
 	INSERT INTO refresh_tokens (
 		user_id,
 		token_id,
 		token_hash,
-		expires_at,
-		created_at,
-		revoked_at,
-		replaced_by_token_id
+		expires_at
 	)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)
-	RETURNING id;
+	VALUES ($1, $2, $3, $4)
+	RETURNING id, created_at;
 `
 
-	var id int64
-	if err := db.QueryRow(query, userID, tokenID, tokenHash, expiresAt, createdAt, revokedAt, replacedByTokenID).Scan(&id); err != nil {
+	var token models.RefreshTokenRecord
+	if err := db.QueryRow(query, userID, tokenID, tokenHash, expiresAt).Scan(&token.ID, &token.CreatedAt); err != nil {
 		return nil, fmt.Errorf("failed to insert refresh token: %w", err)
 	}
 
-	return &models.RefreshToken{
-		ID:                id,
-		UserID:            userID,
-		TokenID:           tokenID,
-		TokenHash:         tokenHash,
-		ExpiresAt:         expiresAt,
-		CreatedAt:         createdAt,
-		RevokedAt:         revokedAt,
-		ReplacedByTokenID: replacedByTokenID,
-	}, nil
+	token.UserID = models.UserID(userID)
+	token.TokenID = models.TokenID(tokenID)
+	token.TokenHash = models.TokenHash(tokenHash)
+	token.ExpiresAt = expiresAt
+	token.RevokedAt = nil
+	token.ReplacedByTokenID = nil
+
+	return &token, nil
 }
 
-func UpdateRefreshToken(db *sql.DB, id, userID int64, tokenID, tokenHash string, expiresAt, createdAt, revokedAt time.Time, replacedByTokenID string) (*models.RefreshToken, error) {
+func UpdateRefreshToken(db *sql.DB, id, userID int64, tokenID, tokenHash string, expiresAt, createdAt time.Time, revokedAt *time.Time, replacedByTokenID *string) (*models.RefreshTokenRecord, error) {
 	query := `
 	UPDATE refresh_tokens
 	SET
@@ -271,15 +266,21 @@ func UpdateRefreshToken(db *sql.DB, id, userID int64, tokenID, tokenHash string,
 		return nil, sql.ErrNoRows
 	}
 
-	return &models.RefreshToken{
+	var replacedByToken *models.TokenID
+	if replacedByTokenID != nil {
+		tokenID := models.TokenID(*replacedByTokenID)
+		replacedByToken = &tokenID
+	}
+
+	return &models.RefreshTokenRecord{
 		ID:                id,
-		UserID:            userID,
-		TokenID:           tokenID,
-		TokenHash:         tokenHash,
+		UserID:            models.UserID(userID),
+		TokenID:           models.TokenID(tokenID),
+		TokenHash:         models.TokenHash(tokenHash),
 		ExpiresAt:         expiresAt,
 		CreatedAt:         createdAt,
 		RevokedAt:         revokedAt,
-		ReplacedByTokenID: replacedByTokenID,
+		ReplacedByTokenID: replacedByToken,
 	}, nil
 }
 

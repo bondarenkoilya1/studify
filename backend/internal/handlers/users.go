@@ -69,7 +69,7 @@ func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Auth.SetAccessTokenCookies(utils.UserID(user.ID), w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(models.UserID(user.ID), w); err != nil {
 		log.Printf("failed to set access token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

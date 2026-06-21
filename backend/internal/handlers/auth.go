@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/models"
 	"studify/internal/utils"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -45,17 +47,35 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Auth.SetAccessTokenCookies(utils.UserID(newUser.ID), w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(models.UserID(newUser.ID), w); err != nil {
 		log.Printf("failed to set access token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err = h.Auth.SetRefreshTokenCookies(utils.UserID(newUser.ID), w); err != nil {
+	// Refresh Token Service
+	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(models.UserID(newUser.ID))
+	if err != nil {
+		log.Printf("failed to generate refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	refreshTokenHash := utils.HashRefreshToken(refreshToken)
+
+	_, err = database.InsertRefreshToken(h.DB, newUser.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
+	if err != nil {
+		log.Printf("failed to set insert refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.Auth.SetRefreshTokenCookies(refreshToken, w); err != nil {
 		log.Printf("failed to set refresh token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+	//
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -95,8 +115,32 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Auth.SetAccessTokenCookies(utils.UserID(user.ID), w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(models.UserID(user.ID), w); err != nil {
 		log.Printf("failed to set access token cookie: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Refresh Token Service
+	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(models.UserID(user.ID))
+	if err != nil {
+		log.Printf("failed to generate refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	refreshTokenHash := utils.HashRefreshToken(refreshToken)
+
+	_, err = database.InsertRefreshToken(h.DB, user.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
+	if err != nil {
+		log.Printf("failed to set insert refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	//
+
+	if err = h.Auth.SetRefreshTokenCookies(refreshToken, w); err != nil {
+		log.Printf("failed to set refresh token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

@@ -12,10 +12,6 @@ type AuthService struct {
 	secureCookies bool
 }
 
-type RefreshToken string
-type UserID int64
-type TokenID string
-
 func NewAuthService(accessSecret, refreshSecret, issuer string, secureCookies bool) *AuthService {
 	return &AuthService{
 		accessSecret:  accessSecret,

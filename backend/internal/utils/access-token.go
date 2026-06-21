@@ -4,18 +4,20 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"studify/internal/config"
+	"studify/internal/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func (s *AuthService) generateAccessToken(userID UserID) (string, error) {
+func (s *AuthService) generateAccessToken(userID models.UserID) (string, error) {
 	now := time.Now()
 
 	claims := jwt.RegisteredClaims{
 		Subject:   strconv.FormatInt(int64(userID), 10),
 		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Minute)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(config.AccessTokenTTL)),
 		Issuer:    s.issuer,
 	}
 
@@ -28,7 +30,7 @@ func (s *AuthService) generateAccessToken(userID UserID) (string, error) {
 	return ss, nil
 }
 
-func (s *AuthService) ParseAccessToken(tokenString string) (UserID, error) {
+func (s *AuthService) ParseAccessToken(tokenString string) (models.UserID, error) {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -55,16 +57,14 @@ func (s *AuthService) ParseAccessToken(tokenString string) (UserID, error) {
 		return 0, fmt.Errorf("invalid access token subject: %w", err)
 	}
 
-	return UserID(userID), nil
+	return models.UserID(userID), nil
 }
 
-func (s *AuthService) SetAccessTokenCookies(userID UserID, w http.ResponseWriter) error {
+func (s *AuthService) SetAccessTokenCookies(userID models.UserID, w http.ResponseWriter) error {
 	accessToken, err := s.generateAccessToken(userID)
 	if err != nil {
 		return fmt.Errorf("generate access token: %w", err)
 	}
-
-	accessTokenTTL := (15 * time.Minute).Seconds() // 15 minutes
 
 	cookie := http.Cookie{
 		Name:     "access_token",
@@ -73,7 +73,7 @@ func (s *AuthService) SetAccessTokenCookies(userID UserID, w http.ResponseWriter
 		HttpOnly: true,
 		Secure:   s.secureCookies,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int(accessTokenTTL),
+		MaxAge:   int(config.AccessTokenTTL.Seconds()),
 	}
 
 	http.SetCookie(w, &cookie)

@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"studify/internal/config"
+	"studify/internal/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func (s *AuthService) generateRefreshToken(userID UserID) (RefreshToken, TokenID, error) {
+func (s *AuthService) GenerateRefreshToken(userID models.UserID) (models.RefreshToken, models.TokenID, error) {
 	now := time.Now()
 
 	tokenID, err := GenerateTokenID()
@@ -21,7 +23,7 @@ func (s *AuthService) generateRefreshToken(userID UserID) (RefreshToken, TokenID
 		ID:        tokenID,
 		Subject:   strconv.FormatInt(int64(userID), 10),
 		IssuedAt:  jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(7 * 24 * time.Hour)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(config.RefreshTokenTTL)),
 		Issuer:    s.issuer,
 	}
 
@@ -31,12 +33,12 @@ func (s *AuthService) generateRefreshToken(userID UserID) (RefreshToken, TokenID
 		return "", "", fmt.Errorf("failed to generate signed string: %w", err)
 	}
 
-	return RefreshToken(ss), TokenID(tokenID), nil
+	return models.RefreshToken(ss), models.TokenID(tokenID), nil
 }
 
 // ParseRefreshToken reads data from the tokenString and make basic validation.
 // It returns userID, tokenID and error
-func (s *AuthService) ParseRefreshToken(tokenString string) (UserID, TokenID, error) {
+func (s *AuthService) ParseRefreshToken(tokenString string) (models.UserID, models.TokenID, error) {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -67,17 +69,10 @@ func (s *AuthService) ParseRefreshToken(tokenString string) (UserID, TokenID, er
 		return 0, "", fmt.Errorf("invalid refresh token subject: %w", err)
 	}
 
-	return UserID(userID), TokenID(claims.ID), nil
+	return models.UserID(userID), models.TokenID(claims.ID), nil
 }
 
-func (s *AuthService) SetRefreshTokenCookies(userID UserID, w http.ResponseWriter) error {
-	token, _, err := s.generateRefreshToken(userID)
-	if err != nil {
-		return fmt.Errorf("generate refresh token: %w", err)
-	}
-
-	refreshTokenTTL := (30 * 24 * time.Hour).Seconds() // 30 days
-
+func (s *AuthService) SetRefreshTokenCookies(token models.RefreshToken, w http.ResponseWriter) error {
 	cookie := http.Cookie{
 		Name:     "refresh_token",
 		Value:    string(token),
@@ -85,7 +80,7 @@ func (s *AuthService) SetRefreshTokenCookies(userID UserID, w http.ResponseWrite
 		HttpOnly: true,
 		Secure:   s.secureCookies,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   int(refreshTokenTTL),
+		MaxAge:   int(config.RefreshTokenTTL.Seconds()),
 	}
 
 	http.SetCookie(w, &cookie)
