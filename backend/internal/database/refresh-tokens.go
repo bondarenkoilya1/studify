@@ -284,6 +284,30 @@ func UpdateRefreshToken(db *sql.DB, id, userID int64, tokenID, tokenHash string,
 	}, nil
 }
 
+func RevokeRefreshToken(db *sql.DB, tokenID string) error {
+	query := `
+	UPDATE refresh_tokens
+	SET revoked_at = NOW()
+	WHERE token_id = $1;
+`
+
+	result, err := db.Exec(query, tokenID)
+	if err != nil {
+		return fmt.Errorf("failed to revoke refresh token: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get revoked refresh tokens count: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
 func DeleteRefreshToken(db *sql.DB, id int64) error {
 	query := `
 	DELETE FROM refresh_tokens
