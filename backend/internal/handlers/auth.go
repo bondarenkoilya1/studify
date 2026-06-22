@@ -137,18 +137,50 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-	//
 
 	if err = h.Auth.SetRefreshTokenCookies(refreshToken, w); err != nil {
 		log.Printf("failed to set refresh token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+	//
 
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
+	refreshTokenCookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			h.Auth.ClearAccessToken(w)
+			h.Auth.ClearRefreshToken(w)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		log.Printf("failed to get refresh token cookie: %v", err)
+		h.Auth.ClearAccessToken(w)
+		h.Auth.ClearRefreshToken(w)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	_, refreshTokenID, err := h.Auth.ParseRefreshToken(refreshTokenCookie.Value)
+	if err != nil {
+		log.Printf("failed to parse refresh token: %v", err)
+
+		h.Auth.ClearAccessToken(w)
+		h.Auth.ClearRefreshToken(w)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if err = database.RevokeRefreshToken(h.DB, string(refreshTokenID)); err != nil {
+		log.Printf("failed to revoke refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	h.Auth.ClearAccessToken(w)
 	h.Auth.ClearRefreshToken(w)
 	w.WriteHeader(http.StatusNoContent)
