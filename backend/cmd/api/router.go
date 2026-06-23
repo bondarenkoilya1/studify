@@ -25,10 +25,8 @@ func newRouter(h *handlers.Handler) http.Handler {
 		MaxAge:           300,
 	}))
 
-	r.Route("/", func(r chi.Router) {
-		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
-		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
-		r.Post("/refresh", h.RefreshTokens)
+	r.Route("/api", func(r chi.Router) {
+		registerAuthRoutes(r, h)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.ValidateAuth(h.Auth))
@@ -45,6 +43,14 @@ func newRouter(h *handlers.Handler) http.Handler {
 	registerStaticRoutes(r)
 
 	return r
+}
+
+func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
+	r.Route("/auth", func(r chi.Router) {
+		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
+		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
+		r.Post("/refresh", h.RefreshTokens)
+	})
 }
 
 func registerSubjectRoutes(r chi.Router, h *handlers.Handler) {
