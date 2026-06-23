@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -176,6 +177,13 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = database.RevokeRefreshToken(h.DB, string(refreshTokenID)); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			h.Auth.ClearAccessToken(w)
+			h.Auth.ClearRefreshToken(w)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		log.Printf("failed to revoke refresh token: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -183,5 +191,138 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 
 	h.Auth.ClearAccessToken(w)
 	h.Auth.ClearRefreshToken(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
+	refreshTokenCookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		if errors.Is(err, http.ErrNoCookie) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		log.Printf("failed to get refresh token cookie: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	userID, refreshTokenID, err := h.Auth.ParseRefreshToken(refreshTokenCookie.Value)
+	if err != nil {
+		log.Printf("failed to parse refresh token: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	refreshToken, err := database.GetRefreshTokenByTokenID(h.DB, string(refreshTokenID))
+	if err != nil {
+		log.Printf("failed to get refresh token by token ID: %v", err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	isValid := utils.CompareTokenHash(models.RefreshToken(refreshTokenCookie.Value), refreshToken.TokenHash)
+	if !isValid {
+		log.Printf("refresh token hash mismatch for token ID %q", refreshTokenID)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if refreshToken.UserID != userID {
+		log.Printf(
+			"refresh token user ID mismatch: db user ID %d, jwt user ID %d",
+			refreshToken.UserID,
+			userID,
+		)
+
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if refreshToken.TokenID != refreshTokenID {
+		log.Printf(
+			"refresh token ID mismatch: db token ID %q, jwt token ID %q",
+			refreshToken.TokenID,
+			refreshTokenID,
+		)
+
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if refreshToken.RevokedAt != nil {
+		log.Printf("refresh token is revoked: token ID %q", refreshTokenID)
+
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if !refreshToken.ExpiresAt.After(time.Now()) {
+		log.Printf("refresh token is expired: token ID %q", refreshTokenID)
+
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	newRefreshToken, newRefreshTokenID, err := h.Auth.GenerateRefreshToken(userID)
+	if err != nil {
+		log.Printf("failed to generate refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	newRefreshTokenHash := utils.HashRefreshToken(newRefreshToken)
+
+	tx, err := h.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Printf("failed to begin refresh token transaction: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	_, err = database.InsertRefreshTokenTx(
+		tx,
+		int64(userID),
+		string(newRefreshTokenID),
+		string(newRefreshTokenHash),
+		time.Now().Add(config.RefreshTokenTTL),
+	)
+	if err != nil {
+		log.Printf("failed to insert refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = database.RevokeRefreshTokenTx(tx, string(refreshTokenID)); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("refresh token was already revoked: token ID %q", refreshTokenID)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		log.Printf("failed to revoke refresh token: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = tx.Commit(); err != nil {
+		log.Printf("failed to commit refresh token transaction: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.Auth.SetAccessTokenCookies(userID, w); err != nil {
+		log.Printf("failed to set access token cookie: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.Auth.SetRefreshTokenCookies(newRefreshToken, w); err != nil {
+		log.Printf("failed to set refresh token cookie: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }

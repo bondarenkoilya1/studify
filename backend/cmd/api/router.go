@@ -28,6 +28,7 @@ func newRouter(h *handlers.Handler) http.Handler {
 	r.Route("/", func(r chi.Router) {
 		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
 		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
+		r.Post("/refresh", h.RefreshTokens)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.ValidateAuth(h.Auth))

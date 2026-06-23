@@ -7,6 +7,11 @@ import (
 	"time"
 )
 
+type refreshTokenExecutor interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 func GetRefreshTokenByID(db *sql.DB, id int64) (*models.RefreshTokenRecord, error) {
 	query := `
 	SELECT
@@ -212,6 +217,14 @@ func GetRefreshTokensByUserID(db *sql.DB, userID int64) ([]models.RefreshTokenRe
 }
 
 func InsertRefreshToken(db *sql.DB, userID int64, tokenID, tokenHash string, expiresAt time.Time) (*models.RefreshTokenRecord, error) {
+	return insertRefreshToken(db, userID, tokenID, tokenHash, expiresAt)
+}
+
+func InsertRefreshTokenTx(tx *sql.Tx, userID int64, tokenID, tokenHash string, expiresAt time.Time) (*models.RefreshTokenRecord, error) {
+	return insertRefreshToken(tx, userID, tokenID, tokenHash, expiresAt)
+}
+
+func insertRefreshToken(exec refreshTokenExecutor, userID int64, tokenID, tokenHash string, expiresAt time.Time) (*models.RefreshTokenRecord, error) {
 	query := `
 	INSERT INTO refresh_tokens (
 		user_id,
@@ -224,7 +237,7 @@ func InsertRefreshToken(db *sql.DB, userID int64, tokenID, tokenHash string, exp
 `
 
 	var token models.RefreshTokenRecord
-	if err := db.QueryRow(query, userID, tokenID, tokenHash, expiresAt).Scan(&token.ID, &token.CreatedAt); err != nil {
+	if err := exec.QueryRow(query, userID, tokenID, tokenHash, expiresAt).Scan(&token.ID, &token.CreatedAt); err != nil {
 		return nil, fmt.Errorf("failed to insert refresh token: %w", err)
 	}
 
@@ -285,13 +298,21 @@ func UpdateRefreshToken(db *sql.DB, id, userID int64, tokenID, tokenHash string,
 }
 
 func RevokeRefreshToken(db *sql.DB, tokenID string) error {
+	return revokeRefreshToken(db, tokenID)
+}
+
+func RevokeRefreshTokenTx(tx *sql.Tx, tokenID string) error {
+	return revokeRefreshToken(tx, tokenID)
+}
+
+func revokeRefreshToken(exec refreshTokenExecutor, tokenID string) error {
 	query := `
 	UPDATE refresh_tokens
 	SET revoked_at = NOW()
-	WHERE token_id = $1;
+	WHERE token_id = $1 AND revoked_at IS NULL;
 `
 
-	result, err := db.Exec(query, tokenID)
+	result, err := exec.Exec(query, tokenID)
 	if err != nil {
 		return fmt.Errorf("failed to revoke refresh token: %w", err)
 	}
