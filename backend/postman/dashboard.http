@@ -2,5 +2,5 @@
 
 ### Get dashboard status
 # Run subjects.http setup and tasks.http setup first to see non-empty totals.
-GET {{baseUrl}}/dashboard
+GET {{baseUrl}}/api/dashboard
 Accept: application/json

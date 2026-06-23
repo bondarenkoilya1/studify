@@ -2,10 +2,9 @@
 @username = maxonchik_ok4
 @updatedUsername = maxonchik_ok5
 @password = mafak
-@updatedPassword = better_password_123
 
-### Setup: create a user
-POST {{baseUrl}}/register
+### Register user
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 Accept: application/json
 
@@ -15,7 +14,7 @@ Accept: application/json
 }
 
 ### Login user
-POST {{baseUrl}}/login
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 Accept: application/json
 
@@ -24,31 +23,16 @@ Accept: application/json
   "password": "{{password}}"
 }
 
-### Get all users
-GET {{baseUrl}}/users/
+### Refresh tokens
+POST {{baseUrl}}/api/auth/refresh
 Accept: application/json
 
-### Replace user
-PUT {{baseUrl}}/users/{{username}}
-Content-Type: application/json
+### Logout user
+POST {{baseUrl}}/api/logout
 Accept: application/json
-
-{
-  "username": "{{updatedUsername}}",
-  "password": "{{updatedPassword}}"
-}
-
-### Update user partially
-PATCH {{baseUrl}}/users/{{updatedUsername}}
-Content-Type: application/json
-Accept: application/json
-
-{
-  "password": "{{password}}"
-}
 
 ### Login updated user
-POST {{baseUrl}}/login
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 Accept: application/json
 
@@ -57,12 +41,8 @@ Accept: application/json
   "password": "{{password}}"
 }
 
-### Delete one user
-DELETE {{baseUrl}}/users/{{updatedUsername}}
-Accept: application/json
-
 ### Register: invalid body example
-POST {{baseUrl}}/register
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 Accept: application/json
 
@@ -70,7 +50,3 @@ Accept: application/json
   "username": "",
   "password": ""
 }
-
-### Delete all users
-DELETE {{baseUrl}}/users/
-Accept: application/json

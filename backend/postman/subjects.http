@@ -1,8 +1,16 @@
 @baseUrl = http://localhost:8080
 @subjectId = 1
 
+### Get all subjects
+GET {{baseUrl}}/api/subjects/
+Accept: application/json
+
+### Get one subject
+GET {{baseUrl}}/api/subjects/{{subjectId}}
+Accept: application/json
+
 ### Setup: create 8 subjects
-POST {{baseUrl}}/subjects/
+POST {{baseUrl}}/api/subjects/
 Content-Type: application/json
 Accept: application/json
 
@@ -50,16 +58,8 @@ Accept: application/json
   }
 ]
 
-### Get all subjects
-GET {{baseUrl}}/subjects/
-Accept: application/json
-
-### Get one subject
-GET {{baseUrl}}/subjects/{{subjectId}}
-Accept: application/json
-
 ### Replace one subject
-PUT {{baseUrl}}/subjects/{{subjectId}}
+PUT {{baseUrl}}/api/subjects/{{subjectId}}
 Content-Type: application/json
 Accept: application/json
 
@@ -70,7 +70,7 @@ Accept: application/json
 }
 
 ### Update one subject
-PATCH {{baseUrl}}/subjects/{{subjectId}}
+PATCH {{baseUrl}}/api/subjects/{{subjectId}}
 Content-Type: application/json
 Accept: application/json
 
@@ -79,15 +79,15 @@ Accept: application/json
 }
 
 ### Delete one subject
-DELETE {{baseUrl}}/subjects/{{subjectId}}
+DELETE {{baseUrl}}/api/subjects/{{subjectId}}
 Accept: application/json
 
 ### Delete all subjects
-DELETE {{baseUrl}}/subjects/
+DELETE {{baseUrl}}/api/subjects/
 Accept: application/json
 
 ### Upload lecturer avatar
-POST {{baseUrl}}/subjects/avatar/
+POST {{baseUrl}}/api/subjects/avatar/
 Content-Type: image/png
 
 < ../avatar.png

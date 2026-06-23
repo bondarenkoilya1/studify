@@ -1,9 +1,17 @@
 @baseUrl = http://localhost:8080
 @taskId = 1
 
+### Get all tasks
+GET {{baseUrl}}/api/tasks/
+Accept: application/json
+
+### Get one task
+GET {{baseUrl}}/api/tasks/{{taskId}}
+Accept: application/json
+
 ### Setup: create 10 tasks
 # Run subjects.http setup first so subject_id values exist.
-POST {{baseUrl}}/tasks/
+POST {{baseUrl}}/api/tasks/
 Content-Type: application/json
 Accept: application/json
 
@@ -70,16 +78,8 @@ Accept: application/json
   }
 ]
 
-### Get all tasks
-GET {{baseUrl}}/tasks/
-Accept: application/json
-
-### Get one task
-GET {{baseUrl}}/tasks/{{taskId}}
-Accept: application/json
-
 ### Replace one task
-PUT {{baseUrl}}/tasks/{{taskId}}
+PUT {{baseUrl}}/api/tasks/{{taskId}}
 Content-Type: application/json
 Accept: application/json
 
@@ -91,7 +91,7 @@ Accept: application/json
 }
 
 ### Update one task
-PATCH {{baseUrl}}/tasks/{{taskId}}
+PATCH {{baseUrl}}/api/tasks/{{taskId}}
 Content-Type: application/json
 Accept: application/json
 
@@ -100,9 +100,9 @@ Accept: application/json
 }
 
 ### Delete one task
-DELETE {{baseUrl}}/tasks/{{taskId}}
+DELETE {{baseUrl}}/api/tasks/{{taskId}}
 Accept: application/json
 
 ### Delete all tasks
-DELETE {{baseUrl}}/tasks/
+DELETE {{baseUrl}}/api/tasks/
 Accept: application/json

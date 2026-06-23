@@ -1,0 +1,36 @@
+@baseUrl = http://localhost:8080
+@username = maxonchik_ok4
+@updatedUsername = maxonchik_ok5
+@password = mafak
+@updatedPassword = better_password_123
+
+### Get all users
+GET {{baseUrl}}/api/users/
+Accept: application/json
+
+### Replace user
+PUT {{baseUrl}}/api/users/{{username}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "username": "{{updatedUsername}}",
+  "password": "{{updatedPassword}}"
+}
+
+### Update user partially
+PATCH {{baseUrl}}/api/users/{{updatedUsername}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "password": "{{password}}"
+}
+
+### Delete one user
+DELETE {{baseUrl}}/api/users/{{updatedUsername}}
+Accept: application/json
+
+### Delete all users
+DELETE {{baseUrl}}/api/users/
+Accept: application/json
