@@ -8,23 +8,24 @@ import (
 	"time"
 )
 
-func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
+func GetSubjectByID(db *sql.DB, id, userID int64) (*models.Subject, error) {
 	query := `
 	SELECT
 			id,
+			user_id,
 			name,
-			COALESCE(lecturer, ''),
+			lecturer,
 			exam_date,
 			COALESCE(lecturer_avatar_url, '')
 		FROM subjects
-	WHERE id = $1;
+	WHERE id = $1 AND user_id = $2;
 `
 
-	row := db.QueryRow(query, id)
+	row := db.QueryRow(query, id, userID)
 	s := &models.Subject{}
 	var examDate sql.NullTime
 
-	err := row.Scan(&s.ID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
+	err := row.Scan(&s.ID, &s.UserID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
@@ -33,18 +34,20 @@ func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
 	return s, nil
 }
 
-func GetSubjects(db *sql.DB) ([]models.Subject, error) {
+func GetSubjectsByUserID(db *sql.DB, userID int64) ([]models.Subject, error) {
 	query := `
 	SELECT
 			id,
+			user_id,
 			name,
-			COALESCE(lecturer, ''),
+			lecturer,
 			exam_date,
 			COALESCE(lecturer_avatar_url, '')
-		FROM subjects;
+		FROM subjects
+	WHERE user_id = $1;
 `
 
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subjects: %w", err)
 	}
@@ -56,7 +59,7 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 		var s models.Subject
 		var examDate sql.NullTime
 
-		err = rows.Scan(&s.ID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
+		err = rows.Scan(&s.ID, &s.UserID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan subject: %w", err)
 		}
@@ -72,20 +75,22 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 	return subjects, nil
 }
 
-func InsertSubject(db *sql.DB, name, lecturer, lecturerAvatarURL string, examDate *time.Time) (*models.Subject, error) {
+func InsertSubject(db *sql.DB, userID int64, name, lecturer, lecturerAvatarURL string, examDate *time.Time) (*models.Subject, error) {
 	query := `
-	INSERT INTO subjects (name, lecturer, lecturer_avatar_url, exam_date)
-	VALUES ($1, $2, $3, $4)
-	RETURNING id;
+	INSERT INTO subjects (user_id, name, lecturer, lecturer_avatar_url, exam_date) 
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id
+;
 `
 
 	var id int64
-	if err := db.QueryRow(query, name, lecturer, lecturerAvatarURL, examDate).Scan(&id); err != nil {
+	if err := db.QueryRow(query, userID, name, lecturer, lecturerAvatarURL, examDate).Scan(&id); err != nil {
 		return nil, fmt.Errorf("failed to insert subject: %w", err)
 	}
 
 	return &models.Subject{
 		ID:                id,
+		UserID:            userID,
 		Name:              name,
 		Lecturer:          lecturer,
 		LecturerAvatarURL: lecturerAvatarURL,
@@ -93,17 +98,17 @@ func InsertSubject(db *sql.DB, name, lecturer, lecturerAvatarURL string, examDat
 	}, nil
 }
 
-func UpdateSubject(db *sql.DB, id int64, name, lecturer string, examDate *time.Time) error {
+func UpdateSubject(db *sql.DB, userID, id int64, name, lecturer string, examDate *time.Time) error {
 	query := `
 	UPDATE subjects
 	SET
 		name = $1,
 		lecturer = $2,
 		exam_date = $3
-	WHERE id = $4;
+	WHERE id = $4 AND user_id = $5;
 `
 
-	result, err := db.Exec(query, name, lecturer, examDate, id)
+	result, err := db.Exec(query, name, lecturer, examDate, id, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update subject: %w", err)
 	}
@@ -120,45 +125,20 @@ func UpdateSubject(db *sql.DB, id int64, name, lecturer string, examDate *time.T
 	return nil
 }
 
-func DeleteSubjects(db *sql.DB) error {
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin delete subjects transaction: %w", err)
-	}
-	defer tx.Rollback()
+func DeleteSubjectsByUserID(db *sql.DB, userID int64) error {
+	query := `DELETE FROM subjects WHERE user_id = $1;`
 
-	if _, err = tx.Exec(`DELETE FROM tasks;`); err != nil {
-		return fmt.Errorf("failed to delete subject tasks: %w", err)
-	}
-
-	if _, err = tx.Exec(`DELETE FROM subjects;`); err != nil {
-		return fmt.Errorf("failed to delete subjects: %w", err)
-	}
-
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit delete subjects transaction: %w", err)
+	if _, err := db.Exec(query, userID); err != nil {
+		return fmt.Errorf("failed to delete subjects by user id: %w", err)
 	}
 
 	return nil
 }
 
-func DeleteSubject(db *sql.DB, id int64) error {
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin delete subject transaction: %w", err)
-	}
-	defer tx.Rollback()
+func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
+	query := `DELETE FROM subjects WHERE id = $1 AND user_id = $2;`
 
-	if _, err = tx.Exec(`DELETE FROM tasks WHERE subject_id = $1;`, id); err != nil {
-		return fmt.Errorf("failed to delete subject tasks: %w", err)
-	}
-
-	query := `
-	DELETE FROM subjects
-	WHERE id = $1;
-`
-
-	result, err := tx.Exec(query, id)
+	result, err := db.Exec(query, id, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete subject: %w", err)
 	}
@@ -170,10 +150,6 @@ func DeleteSubject(db *sql.DB, id int64) error {
 
 	if rowsAffected == 0 {
 		return sql.ErrNoRows
-	}
-
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit delete subject transaction: %w", err)
 	}
 
 	return nil

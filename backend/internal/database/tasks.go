@@ -8,20 +8,21 @@ import (
 	"time"
 )
 
-func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
+func GetTaskByID(db *sql.DB, id, userID int64) (*models.Task, error) {
 	query := `
 		SELECT
-			id,
-			name,
-			description,
-			deadline,
-			status,
-			subject_id
-	FROM tasks
-	WHERE id = $1;
+			t.id,
+			t.name,
+			t.description,
+			t.deadline,
+			t.status,
+			t.subject_id
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
+	WHERE t.id = $1 AND s.user_id = $2;
 `
 
-	row := db.QueryRow(query, id)
+	row := db.QueryRow(query, id, userID)
 	t := &models.Task{}
 	var deadline sql.NullTime
 
@@ -34,19 +35,21 @@ func GetTaskByID(db *sql.DB, id int64) (*models.Task, error) {
 	return t, nil
 }
 
-func GetTasks(db *sql.DB) ([]models.Task, error) {
+func GetTasksByUserID(db *sql.DB, userID int64) ([]models.Task, error) {
 	query := `
 		SELECT
-			id,
-			name,
-			description,
-			deadline,
-			status,
-			subject_id
-	FROM tasks;
+			t.id,
+			t.name,
+			t.description,
+			t.deadline,
+			t.status,
+			t.subject_id
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
+	WHERE s.user_id = $1;
 `
 
-	tasks, err := utils.ScanTasks(db, query)
+	tasks, err := utils.ScanTasks(db, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks: %w", err)
 	}
@@ -54,7 +57,7 @@ func GetTasks(db *sql.DB) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func InsertTask(db *sql.DB, name, description string, deadline *time.Time, status string, subjectID int64) (*models.Task, error) {
+func InsertTask(db *sql.DB, userID int64, name, description string, deadline *time.Time, status string, subjectID int64) (*models.Task, error) {
 	query := `
 	INSERT INTO tasks (
 		name,
@@ -63,12 +66,17 @@ func InsertTask(db *sql.DB, name, description string, deadline *time.Time, statu
 		status,
 		subject_id
 	)
-	VALUES ($1, $2, $3, $4, $5)
+	SELECT $1, $2, $3, $4, $5
+	WHERE EXISTS (
+		SELECT 1
+		FROM subjects
+		WHERE id = $5 AND user_id = $6
+	)
 	RETURNING id;
 `
 
 	var id int64
-	if err := db.QueryRow(query, name, description, deadline, status, subjectID).Scan(&id); err != nil {
+	if err := db.QueryRow(query, name, description, deadline, status, subjectID, userID).Scan(&id); err != nil {
 		return nil, fmt.Errorf("failed to insert task: %w", err)
 	}
 
@@ -82,19 +90,25 @@ func InsertTask(db *sql.DB, name, description string, deadline *time.Time, statu
 	}, nil
 }
 
-func UpdateTask(db *sql.DB, id int64, name, description string, deadline *time.Time, status string, subjectID int64) (*models.Task, error) {
+func UpdateTask(db *sql.DB, userID, id int64, name, description string, deadline *time.Time, status string, subjectID int64) (*models.Task, error) {
 	query := `
-	UPDATE tasks
+	UPDATE tasks t
 	SET
 		name = $1,
 		description = $2,
 		deadline = $3,
 		status = $4,
 		subject_id = $5
-	WHERE id = $6;
+	FROM subjects current_subject, subjects new_subject
+	WHERE
+		t.id = $6
+		AND t.subject_id = current_subject.id
+		AND current_subject.user_id = $7
+		AND new_subject.id = $5
+		AND new_subject.user_id = $7;
 `
 
-	result, err := db.Exec(query, name, description, deadline, status, subjectID, id)
+	result, err := db.Exec(query, name, description, deadline, status, subjectID, id, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
@@ -118,12 +132,14 @@ func UpdateTask(db *sql.DB, id int64, name, description string, deadline *time.T
 	}, nil
 }
 
-func DeleteTasks(db *sql.DB) error {
+func DeleteTasksByUserID(db *sql.DB, userID int64) error {
 	query := `
-	DELETE FROM tasks;
+	DELETE FROM tasks t
+	USING subjects s
+	WHERE t.subject_id = s.id AND s.user_id = $1;
 `
 
-	_, err := db.Exec(query)
+	_, err := db.Exec(query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete tasks: %w", err)
 	}
@@ -131,13 +147,14 @@ func DeleteTasks(db *sql.DB) error {
 	return nil
 }
 
-func DeleteTask(db *sql.DB, id int64) error {
+func DeleteTaskByID(db *sql.DB, userID, id int64) error {
 	query := `
-	DELETE FROM tasks
-	WHERE id = $1;
+	DELETE FROM tasks t
+	USING subjects s
+	WHERE t.id = $1 AND t.subject_id = s.id AND s.user_id = $2;
 `
 
-	result, err := db.Exec(query, id)
+	result, err := db.Exec(query, id, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete task: %w", err)
 	}

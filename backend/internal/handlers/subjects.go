@@ -20,13 +20,19 @@ import (
 )
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	subject, err := database.GetSubjectByID(h.DB, id)
+	subject, err := database.GetSubjectByID(h.DB, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject was not found", http.StatusNotFound)
@@ -45,8 +51,14 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) GetSubjects(w http.ResponseWriter, _ *http.Request) {
-	subjects, err := database.GetSubjects(h.DB)
+func (h *Handler) GetSubjects(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	subjects, err := database.GetSubjectsByUserID(h.DB, userID)
 	if err != nil {
 		log.Printf("failed to get subjects: %v", err)
 		http.Error(w, "Failed to get subjects", http.StatusInternalServerError)
@@ -61,9 +73,15 @@ func (h *Handler) GetSubjects(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var newSubjects []models.Subject
 
-	err := json.NewDecoder(r.Body).Decode(&newSubjects)
+	err = json.NewDecoder(r.Body).Decode(&newSubjects)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -77,8 +95,7 @@ func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
 	createdSubjects := make([]models.Subject, 0, len(newSubjects))
 
 	for _, s := range newSubjects {
-		// here, operate with s.LecturerAvatarURL
-		subject, err := database.InsertSubject(h.DB, s.Name, s.Lecturer, s.LecturerAvatarURL, s.ExamDate)
+		subject, err := database.InsertSubject(h.DB, userID, s.Name, s.Lecturer, s.LecturerAvatarURL, s.ExamDate)
 		if err != nil {
 			log.Printf("failed to insert subject: %v", err)
 			http.Error(w, "Failed to insert subjects", http.StatusInternalServerError)
@@ -97,6 +114,12 @@ func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -114,7 +137,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.UpdateSubject(h.DB, id, newSubject.Name, newSubject.Lecturer, newSubject.ExamDate); err != nil {
+	if err = database.UpdateSubject(h.DB, userID, id, newSubject.Name, newSubject.Lecturer, newSubject.ExamDate); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 			return
@@ -125,6 +148,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newSubject.ID = id
+	newSubject.UserID = userID
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(newSubject); err != nil {
 		log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
@@ -133,6 +157,12 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req *models.UpdateSubjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -150,7 +180,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subject, err := database.GetSubjectByID(h.DB, id)
+	subject, err := database.GetSubjectByID(h.DB, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject not found", http.StatusNotFound)
@@ -174,7 +204,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.ExamDate = req.ExamDate
 	}
 
-	if err = database.UpdateSubject(h.DB, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {
+	if err = database.UpdateSubject(h.DB, userID, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject not found", http.StatusNotFound)
 			return
@@ -192,8 +222,14 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
-	err := database.DeleteSubjects(h.DB)
+func (h *Handler) DeleteSubjects(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	err = database.DeleteSubjectsByUserID(h.DB, userID)
 	if err != nil {
 		log.Printf("failed to delete subjects: %v", err)
 		http.Error(w, "Failed to delete subjects", http.StatusInternalServerError)
@@ -203,13 +239,19 @@ func (h *Handler) DeleteSubjects(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	id, err := utils.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err = database.DeleteSubject(h.DB, id); err != nil {
+	if err = database.DeleteSubjectByID(h.DB, userID, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "No such element with this ID", http.StatusNotFound)
 			return

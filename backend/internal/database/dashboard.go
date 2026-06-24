@@ -10,14 +10,15 @@ import (
 
 // GetSubjectsCount returns the number of subjects.
 // If there is no tasks, it returns 0, nil
-func GetSubjectsCount(db *sql.DB) (int64, error) {
+func GetSubjectsCount(db *sql.DB, userID int64) (int64, error) {
 	query := `
 	SELECT COUNT(*)
-	FROM subjects;
+	FROM subjects
+	WHERE user_id = $1;
 `
 
 	var count int64
-	err := db.QueryRow(query).Scan(&count)
+	err := db.QueryRow(query, userID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get subjects count: %w", err)
 	}
@@ -27,14 +28,16 @@ func GetSubjectsCount(db *sql.DB) (int64, error) {
 
 // GetTasksCount returns the number of tasks.
 // If there is no tasks, it returns 0, nil
-func GetTasksCount(db *sql.DB) (int64, error) {
+func GetTasksCount(db *sql.DB, userID int64) (int64, error) {
 	query := `
 	SELECT COUNT(*)
-	FROM tasks;
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
+	WHERE s.user_id = $1;
 `
 
 	var count int64
-	err := db.QueryRow(query).Scan(&count)
+	err := db.QueryRow(query, userID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get tasks count: %w", err)
 	}
@@ -44,15 +47,16 @@ func GetTasksCount(db *sql.DB) (int64, error) {
 
 // GetCompletedTasksCount returns the number of completed tasks.
 // If there is no completed tasks, it returns 0, nil
-func GetCompletedTasksCount(db *sql.DB) (int64, error) {
+func GetCompletedTasksCount(db *sql.DB, userID int64) (int64, error) {
 	query := `
 	SELECT COUNT(*)
-	FROM tasks
-	WHERE status = 'completed';
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
+	WHERE t.status = 'completed' AND s.user_id = $1;
 `
 
 	var count int64
-	err := db.QueryRow(query).Scan(&count)
+	err := db.QueryRow(query, userID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get completed tasks count: %w", err)
 	}
@@ -62,15 +66,16 @@ func GetCompletedTasksCount(db *sql.DB) (int64, error) {
 
 // GetOngoingTasksCount returns the number of ongoing tasks.
 // If there is no ongoing tasks, it returns 0, nil
-func GetOngoingTasksCount(db *sql.DB) (int64, error) {
+func GetOngoingTasksCount(db *sql.DB, userID int64) (int64, error) {
 	query := `
 	SELECT COUNT(*)
-	FROM tasks
-	WHERE status = 'ongoing';
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
+	WHERE t.status = 'ongoing' AND s.user_id = $1;
 `
 
 	var count int64
-	err := db.QueryRow(query).Scan(&count)
+	err := db.QueryRow(query, userID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get ongoing tasks count: %w", err)
 	}
@@ -80,15 +85,16 @@ func GetOngoingTasksCount(db *sql.DB) (int64, error) {
 
 // GetNotCompletedTasksCount returns the number of not completed tasks.
 // If there are no not completed tasks, it returns 0, nil.
-func GetNotCompletedTasksCount(db *sql.DB) (int64, error) {
+func GetNotCompletedTasksCount(db *sql.DB, userID int64) (int64, error) {
 	query := `
 	SELECT COUNT(*)
-	FROM tasks
-	WHERE status = 'not_completed';
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
+	WHERE t.status = 'not_completed' AND s.user_id = $1;
 `
 
 	var count int64
-	err := db.QueryRow(query).Scan(&count)
+	err := db.QueryRow(query, userID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get not completed tasks count: %w", err)
 	}
@@ -98,24 +104,26 @@ func GetNotCompletedTasksCount(db *sql.DB) (int64, error) {
 
 // GetOverdueTasks returns overdue tasks.
 // If there is no task, it returns an empty slice and nil
-func GetOverdueTasks(db *sql.DB) ([]models.Task, error) {
+func GetOverdueTasks(db *sql.DB, userID int64) ([]models.Task, error) {
 	query := `
 		SELECT
-			id,
-			name,
-			description,
-			deadline,
-			status,
-			subject_id
-	FROM tasks
+			t.id,
+			t.name,
+			t.description,
+			t.deadline,
+			t.status,
+			t.subject_id
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
 	WHERE
-		status <> 'completed'
-		AND deadline IS NOT NULL
-		AND deadline < CURRENT_TIMESTAMP
-	ORDER BY deadline DESC;
+		t.status <> 'completed'
+		AND t.deadline IS NOT NULL
+		AND t.deadline < CURRENT_TIMESTAMP
+		AND s.user_id = $1
+	ORDER BY t.deadline DESC;
 `
 
-	tasks, err := utils.ScanTasks(db, query)
+	tasks, err := utils.ScanTasks(db, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get overdue tasks: %w", err)
 	}
@@ -125,28 +133,30 @@ func GetOverdueTasks(db *sql.DB) ([]models.Task, error) {
 
 // GetNearestDeadlineTask returns closest unfinished task.
 // If there is no task, it returns nil, nil
-func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
+func GetNearestDeadlineTask(db *sql.DB, userID int64) (*models.Task, error) {
 	query := `
 		SELECT
-			id,
-			name,
-			description,
-			deadline,
-			status,
-			subject_id
-	FROM tasks
+			t.id,
+			t.name,
+			t.description,
+			t.deadline,
+			t.status,
+			t.subject_id
+	FROM tasks t
+	JOIN subjects s ON s.id = t.subject_id
 	WHERE
-		status <> 'completed'
-		AND deadline IS NOT NULL
-		AND deadline >= CURRENT_TIMESTAMP
-	ORDER BY deadline
+		t.status <> 'completed'
+		AND t.deadline IS NOT NULL
+		AND t.deadline >= CURRENT_TIMESTAMP
+		AND s.user_id = $1
+	ORDER BY t.deadline
 	LIMIT 1;
 `
 
 	var task models.Task
 	var deadline sql.NullTime
 
-	err := db.QueryRow(query).Scan(&task.ID, &task.Name, &task.Description, &deadline, &task.Status, &task.SubjectID)
+	err := db.QueryRow(query, userID).Scan(&task.ID, &task.Name, &task.Description, &deadline, &task.Status, &task.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

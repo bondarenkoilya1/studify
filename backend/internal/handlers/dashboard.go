@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"studify/internal/database"
 	"studify/internal/models"
+	"studify/internal/utils"
 )
 
 type DashboardStatus struct {
@@ -21,52 +22,57 @@ type DashboardStatus struct {
 }
 
 func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	totalSubjects, err := database.GetSubjectsCount(h.DB)
+	totalSubjects, err := database.GetSubjectsCount(h.DB, userID)
 	if err != nil {
 		http.Error(w, "Failed to get subjects count", http.StatusInternalServerError)
 		return
 	}
 
-	totalTasks, err := database.GetTasksCount(h.DB)
+	totalTasks, err := database.GetTasksCount(h.DB, userID)
 	if err != nil {
 		http.Error(w, "Failed to get tasks count", http.StatusInternalServerError)
 		return
 	}
 
-	totalCompletedTasks, err := database.GetCompletedTasksCount(h.DB)
+	totalCompletedTasks, err := database.GetCompletedTasksCount(h.DB, userID)
 	if err != nil {
 		http.Error(w, "Failed to get completed tasks count", http.StatusInternalServerError)
 		return
 	}
 
-	totalOngoingTasks, err := database.GetOngoingTasksCount(h.DB)
+	totalOngoingTasks, err := database.GetOngoingTasksCount(h.DB, userID)
 	if err != nil {
 		http.Error(w, "Failed to get completed tasks count", http.StatusInternalServerError)
 		return
 	}
 
-	totalNotCompletedTasks, err := database.GetNotCompletedTasksCount(h.DB)
+	totalNotCompletedTasks, err := database.GetNotCompletedTasksCount(h.DB, userID)
 	if err != nil {
 		http.Error(w, "Failed to get not completed tasks count", http.StatusInternalServerError)
 		return
 	}
 
 	var completionPercent float64
-	if totalCompletedTasks == 0 {
+	if totalTasks == 0 {
 		completionPercent = 0
 	} else {
 		completionPercent = float64(totalCompletedTasks) * 100 / float64(totalTasks)
 		completionPercent = math.Round(completionPercent*100) / 100
 	}
 
-	nearestDeadlineTask, err := database.GetNearestDeadlineTask(h.DB)
+	nearestDeadlineTask, err := database.GetNearestDeadlineTask(h.DB, userID)
 	if err != nil {
 		http.Error(w, "Failed to get nearest deadline task", http.StatusInternalServerError)
 		return
 	}
 
-	overdueTasks, err := database.GetOverdueTasks(h.DB)
+	overdueTasks, err := database.GetOverdueTasks(h.DB, userID)
 	if err != nil {
 		http.Error(w, "Failed to get overdue tasks", http.StatusInternalServerError)
 		return

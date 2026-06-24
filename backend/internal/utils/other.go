@@ -26,6 +26,18 @@ func GetID(r *http.Request) (int64, error) {
 	return id, nil
 }
 
+func GetUserID(r *http.Request) (int64, error) {
+	userID := r.Context().Value("userID")
+	switch id := userID.(type) {
+	case models.UserID:
+		return int64(id), nil
+	case int64:
+		return id, nil
+	default:
+		return 0, fmt.Errorf("missing user ID")
+	}
+}
+
 func EnsureDir(path string) error {
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return fmt.Errorf("prepare storage directory %q: %w", path, err)
@@ -49,8 +61,8 @@ func EnsureDir(path string) error {
 	return nil
 }
 
-func ScanTasks(db *sql.DB, query string) ([]models.Task, error) {
-	rows, err := db.Query(query)
+func ScanTasks(db *sql.DB, query string, args ...any) ([]models.Task, error) {
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query tasks: %w", err)
 	}
