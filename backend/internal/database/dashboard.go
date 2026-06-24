@@ -100,17 +100,18 @@ func GetNotCompletedTasksCount(db *sql.DB) (int64, error) {
 // If there is no task, it returns an empty slice and nil
 func GetOverdueTasks(db *sql.DB) ([]models.Task, error) {
 	query := `
-	SELECT
-		id,
-		name,
-		deadline,
-		status,
-		subject_id
+		SELECT
+			id,
+			name,
+			description,
+			deadline,
+			status,
+			subject_id
 	FROM tasks
 	WHERE
 		status <> 'completed'
-		AND deadline <> ''
-		AND deadline::timestamptz < CURRENT_TIMESTAMP
+		AND deadline IS NOT NULL
+		AND deadline < CURRENT_TIMESTAMP
 	ORDER BY deadline DESC;
 `
 
@@ -126,24 +127,26 @@ func GetOverdueTasks(db *sql.DB) ([]models.Task, error) {
 // If there is no task, it returns nil, nil
 func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
 	query := `
-	SELECT
-		id,
-		name,
-		deadline,
-		status,
-		subject_id
+		SELECT
+			id,
+			name,
+			description,
+			deadline,
+			status,
+			subject_id
 	FROM tasks
 	WHERE
 		status <> 'completed'
-		AND deadline <> ''
-		AND deadline::timestamptz >= CURRENT_TIMESTAMP
+		AND deadline IS NOT NULL
+		AND deadline >= CURRENT_TIMESTAMP
 	ORDER BY deadline
 	LIMIT 1;
 `
 
 	var task models.Task
+	var deadline sql.NullTime
 
-	err := db.QueryRow(query).Scan(&task.ID, &task.Name, &task.Deadline, &task.Status, &task.SubjectID)
+	err := db.QueryRow(query).Scan(&task.ID, &task.Name, &task.Description, &deadline, &task.Status, &task.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -151,6 +154,7 @@ func GetNearestDeadlineTask(db *sql.DB) (*models.Task, error) {
 
 		return nil, fmt.Errorf("failed to get nearest deadline task: %w", err)
 	}
+	task.Deadline = utils.NullTimePtr(deadline)
 
 	return &task, nil
 }

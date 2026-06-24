@@ -6,12 +6,17 @@ The backend runs on port `8080` by default.
 http://localhost:8080
 ```
 
-JSON routes that create or change resources require `Content-Type:
-application/json`. Static files are served from `/static/lecturer-avatars/*`.
+JSON API routes are served under `/api`. Routes that create or change resources
+require `Content-Type: application/json`. Static files are served from
+`/static/lecturer-avatars/*`.
+
+Date/time fields use RFC3339 timestamps, for example
+`2026-06-10T00:00:00Z`. Nullable date/time fields are returned as `null` when
+unset.
 
 ## Dashboard
 
-### `GET /dashboard`
+### `GET /api/dashboard`
 
 Returns aggregate study metrics.
 
@@ -28,7 +33,8 @@ Response:
   "nearest_deadline_task": {
     "id": 5,
     "name": "Prepare lab report",
-    "deadline": "2026-06-01",
+    "description": "Finish graphs and notes.",
+    "deadline": "2026-06-01T00:00:00Z",
     "status": "ongoing",
     "subject_id": 1
   },
@@ -48,15 +54,15 @@ Subject shape:
   "name": "Databases",
   "lecturer": "Dr. Smith",
   "lecturer_avatar_url": "/static/lecturer-avatars/example.webp",
-  "exam_date": "2026-06-10"
+  "exam_date": "2026-06-10T00:00:00Z"
 }
 ```
 
-### `GET /subjects/`
+### `GET /api/subjects/`
 
 Returns all subjects.
 
-### `POST /subjects/`
+### `POST /api/subjects/`
 
 Creates one or more subjects. The request body is an array.
 
@@ -68,20 +74,20 @@ Request:
     "name": "Databases",
     "lecturer": "Dr. Smith",
     "lecturer_avatar_url": "",
-    "exam_date": "2026-06-10"
+    "exam_date": "2026-06-10T00:00:00Z"
   }
 ]
 ```
 
-### `DELETE /subjects/`
+### `DELETE /api/subjects/`
 
 Deletes all subjects. Related tasks are deleted first by the backend.
 
-### `GET /subjects/{id}`
+### `GET /api/subjects/{id}`
 
 Returns one subject by numeric ID.
 
-### `PUT /subjects/{id}`
+### `PUT /api/subjects/{id}`
 
 Replaces a subject.
 
@@ -91,11 +97,11 @@ Request:
 {
   "name": "Advanced Databases",
   "lecturer": "Dr. Smith",
-  "exam_date": "2026-06-12"
+  "exam_date": "2026-06-12T00:00:00Z"
 }
 ```
 
-### `PATCH /subjects/{id}`
+### `PATCH /api/subjects/{id}`
 
 Updates only the provided subject fields.
 
@@ -113,12 +119,12 @@ Supported fields:
 - `lecturer`
 - `exam_date`
 
-### `DELETE /subjects/{id}`
+### `DELETE /api/subjects/{id}`
 
 Deletes one subject by numeric ID. Related tasks are deleted first by the
 backend.
 
-### `POST /subjects/avatar/`
+### `POST /api/subjects/avatar/`
 
 Uploads a lecturer avatar image and stores it as WebP.
 
@@ -150,7 +156,8 @@ Task shape:
 {
   "id": 1,
   "name": "Read chapter 4",
-  "deadline": "2026-05-30",
+  "description": "Summarize the main definitions.",
+  "deadline": "2026-05-30T00:00:00Z",
   "status": "ongoing",
   "subject_id": 1
 }
@@ -162,11 +169,11 @@ Supported frontend status values:
 - `ongoing`
 - `completed`
 
-### `GET /tasks/`
+### `GET /api/tasks/`
 
 Returns all tasks.
 
-### `POST /tasks/`
+### `POST /api/tasks/`
 
 Creates one or more tasks. The request body is an array.
 
@@ -176,22 +183,23 @@ Request:
 [
   {
     "name": "Read chapter 4",
-    "deadline": "2026-05-30",
+    "description": "Summarize the main definitions.",
+    "deadline": "2026-05-30T00:00:00Z",
     "status": "ongoing",
     "subject_id": 1
   }
 ]
 ```
 
-### `DELETE /tasks/`
+### `DELETE /api/tasks/`
 
 Deletes all tasks.
 
-### `GET /tasks/{id}`
+### `GET /api/tasks/{id}`
 
 Returns one task by numeric ID.
 
-### `PUT /tasks/{id}`
+### `PUT /api/tasks/{id}`
 
 Replaces a task.
 
@@ -200,13 +208,14 @@ Request:
 ```json
 {
   "name": "Read chapters 4-6",
-  "deadline": "2026-06-04",
+  "description": "Expanded reading scope before exam week.",
+  "deadline": "2026-06-04T00:00:00Z",
   "status": "ongoing",
   "subject_id": 1
 }
 ```
 
-### `PATCH /tasks/{id}`
+### `PATCH /api/tasks/{id}`
 
 Updates only the provided task fields.
 
@@ -221,11 +230,12 @@ Request:
 Supported fields:
 
 - `name`
+- `description`
 - `deadline`
 - `status`
 - `subject_id`
 
-### `DELETE /tasks/{id}`
+### `DELETE /api/tasks/{id}`
 
 Deletes one task by numeric ID.
 
@@ -242,7 +252,7 @@ User response shape:
 
 Passwords are accepted in request bodies but are never returned by the API.
 
-### `POST /register/`
+### `POST /api/auth/register`
 
 Registers a user.
 
@@ -255,7 +265,7 @@ Request:
 }
 ```
 
-### `POST /login/`
+### `POST /api/auth/login`
 
 Checks a username and password.
 
@@ -270,15 +280,27 @@ Request:
 
 Success response: `200 OK` with an empty body.
 
-### `GET /users/`
+### `POST /api/auth/refresh`
+
+Rotates the refresh token cookie and issues new access and refresh cookies.
+
+Success response: `204 No Content`.
+
+### `POST /api/logout`
+
+Logs out the current user.
+
+Success response: `204 No Content`.
+
+### `GET /api/users/`
 
 Returns all users.
 
-### `DELETE /users/`
+### `DELETE /api/users/`
 
 Deletes all users.
 
-### `PUT /users/{username}`
+### `PUT /api/users/{username}`
 
 Replaces a user identified by username. Both `username` and `password` are
 required.
@@ -292,7 +314,7 @@ Request:
 }
 ```
 
-### `PATCH /users/{username}`
+### `PATCH /api/users/{username}`
 
 Updates only the provided user fields.
 
@@ -309,7 +331,7 @@ Supported fields:
 - `username`
 - `password`
 
-### `DELETE /users/{username}`
+### `DELETE /api/users/{username}`
 
 Deletes one user by username.
 
@@ -320,7 +342,8 @@ Runnable request examples live in `backend/postman/`:
 - `dashboard.http`
 - `subjects.http`
 - `tasks.http`
-- `user.http`
+- `auth.http`
+- `users.http`
 
 ## Static Files
 

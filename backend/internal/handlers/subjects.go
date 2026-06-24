@@ -171,7 +171,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.ExamDate != nil {
-		subject.ExamDate = *req.ExamDate
+		subject.ExamDate = req.ExamDate
 	}
 
 	if err = database.UpdateSubject(h.DB, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {

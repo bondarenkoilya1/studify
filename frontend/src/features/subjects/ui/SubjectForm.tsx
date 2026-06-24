@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { type CreateSubjectPayload } from "../../../entities/subject/types.ts";
+import { dateInputToDate } from "../../../shared/lib/dateFormat.ts";
 import { Button } from "../../../shared/ui/Button.tsx";
 import { subjectSchema } from "../model/schema.ts";
 
@@ -9,11 +10,17 @@ type SubjectFormProps = {
   onSubmit: (subject: CreateSubjectPayload) => Promise<void> | void;
 };
 
-type SubjectFormField = keyof CreateSubjectPayload;
+type SubjectFormState = {
+  name: string;
+  lecturer: string;
+  exam_date: string;
+};
+
+type SubjectFormField = keyof SubjectFormState;
 type SubjectFormErrors = Partial<Record<SubjectFormField, string>>;
 type TouchedFields = Partial<Record<SubjectFormField, boolean>>;
 
-const emptyFormState: CreateSubjectPayload = {
+const emptyFormState: SubjectFormState = {
   name: "",
   lecturer: "",
   exam_date: "",
@@ -25,7 +32,7 @@ const controlClassName =
 const invalidControlClassName =
   "border-red-300 focus-visible:border-red-500 focus-visible:ring-[var(--color-danger-soft)]";
 
-function validateSubjectForm(form: CreateSubjectPayload): SubjectFormErrors {
+function validateSubjectForm(form: SubjectFormState): SubjectFormErrors {
   const result = subjectSchema.safeParse({
     ...form,
     name: form.name.trim(),
@@ -49,7 +56,7 @@ export function SubjectForm({
   submitError = null,
   onSubmit,
 }: SubjectFormProps) {
-  const [form, setForm] = useState<CreateSubjectPayload>(emptyFormState);
+  const [form, setForm] = useState<SubjectFormState>(emptyFormState);
   const [touchedFields, setTouchedFields] = useState<TouchedFields>({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const validationErrors = validateSubjectForm(form);
@@ -79,7 +86,7 @@ export function SubjectForm({
     await onSubmit({
       name: form.name.trim(),
       lecturer: form.lecturer.trim(),
-      exam_date: form.exam_date,
+      exam_date: dateInputToDate(form.exam_date),
     });
 
     setForm(emptyFormState);

@@ -4,27 +4,31 @@ import (
 	"database/sql"
 	"fmt"
 	"studify/internal/models"
+	"studify/internal/utils"
+	"time"
 )
 
 func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
 	query := `
 	SELECT
-		id,
-		name,
-		COALESCE(lecturer, ''), 
-		COALESCE(exam_date, ''),
-		COALESCE(lecturer_avatar_url, '')
-	FROM subjects
+			id,
+			name,
+			COALESCE(lecturer, ''),
+			exam_date,
+			COALESCE(lecturer_avatar_url, '')
+		FROM subjects
 	WHERE id = $1;
 `
 
 	row := db.QueryRow(query, id)
 	s := &models.Subject{}
+	var examDate sql.NullTime
 
-	err := row.Scan(&s.ID, &s.Name, &s.Lecturer, &s.ExamDate, &s.LecturerAvatarURL)
+	err := row.Scan(&s.ID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
+	s.ExamDate = utils.NullTimePtr(examDate)
 
 	return s, nil
 }
@@ -32,12 +36,12 @@ func GetSubjectByID(db *sql.DB, id int64) (*models.Subject, error) {
 func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 	query := `
 	SELECT
-		id,
-		name,
-		COALESCE(lecturer, ''),
-		COALESCE(exam_date, ''),
-		COALESCE(lecturer_avatar_url, '')
-	FROM subjects;
+			id,
+			name,
+			COALESCE(lecturer, ''),
+			exam_date,
+			COALESCE(lecturer_avatar_url, '')
+		FROM subjects;
 `
 
 	rows, err := db.Query(query)
@@ -50,11 +54,13 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 
 	for rows.Next() {
 		var s models.Subject
+		var examDate sql.NullTime
 
-		err = rows.Scan(&s.ID, &s.Name, &s.Lecturer, &s.ExamDate, &s.LecturerAvatarURL)
+		err = rows.Scan(&s.ID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan subject: %w", err)
 		}
+		s.ExamDate = utils.NullTimePtr(examDate)
 
 		subjects = append(subjects, s)
 	}
@@ -66,7 +72,7 @@ func GetSubjects(db *sql.DB) ([]models.Subject, error) {
 	return subjects, nil
 }
 
-func InsertSubject(db *sql.DB, name, lecturer, lecturerAvatarURL, examDate string) (*models.Subject, error) {
+func InsertSubject(db *sql.DB, name, lecturer, lecturerAvatarURL string, examDate *time.Time) (*models.Subject, error) {
 	query := `
 	INSERT INTO subjects (name, lecturer, lecturer_avatar_url, exam_date)
 	VALUES ($1, $2, $3, $4)
@@ -87,7 +93,7 @@ func InsertSubject(db *sql.DB, name, lecturer, lecturerAvatarURL, examDate strin
 	}, nil
 }
 
-func UpdateSubject(db *sql.DB, id int64, name, lecturer, examDate string) error {
+func UpdateSubject(db *sql.DB, id int64, name, lecturer string, examDate *time.Time) error {
 	query := `
 	UPDATE subjects
 	SET

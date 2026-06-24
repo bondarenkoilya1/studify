@@ -64,22 +64,23 @@ manage the tasks connected to them, and keep the main study metrics visible.
 ## API Overview
 
 The backend exposes REST-style JSON routes for dashboard metrics, subjects,
-tasks, users, and login/register. The full route reference lives in
+tasks, users, and auth. The full route reference lives in
 [API.md](./API.md).
 
 Representative routes:
 
 ```http
-GET   /dashboard
-GET   /subjects/
-POST  /subjects/
-PATCH /subjects/{id}
-GET   /tasks/
-POST  /tasks/
-PATCH /tasks/{id}
-POST  /register/
-POST  /login/
-PATCH /users/{username}
+GET   /api/dashboard
+GET   /api/subjects/
+POST  /api/subjects/
+PATCH /api/subjects/{id}
+GET   /api/tasks/
+POST  /api/tasks/
+PATCH /api/tasks/{id}
+POST  /api/auth/register
+POST  /api/auth/login
+POST  /api/auth/refresh
+PATCH /api/users/{username}
 ```
 
 Example task payload:
@@ -87,7 +88,8 @@ Example task payload:
 ```json
 {
   "name": "Read chapter 4",
-  "deadline": "2026-05-30",
+  "description": "Summarize the main definitions.",
+  "deadline": "2026-05-30T00:00:00Z",
   "status": "ongoing",
   "subject_id": 1
 }

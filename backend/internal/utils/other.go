@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"studify/internal/models"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -58,10 +59,12 @@ func ScanTasks(db *sql.DB, query string) ([]models.Task, error) {
 	tasks := []models.Task{}
 	for rows.Next() {
 		t := &models.Task{}
-		err = rows.Scan(&t.ID, &t.Name, &t.Deadline, &t.Status, &t.SubjectID)
+		var deadline sql.NullTime
+		err = rows.Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.Status, &t.SubjectID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan task: %w", err)
 		}
+		t.Deadline = NullTimePtr(deadline)
 		tasks = append(tasks, *t)
 	}
 
@@ -70,4 +73,12 @@ func ScanTasks(db *sql.DB, query string) ([]models.Task, error) {
 	}
 
 	return tasks, nil
+}
+
+func NullTimePtr(value sql.NullTime) *time.Time {
+	if !value.Valid {
+		return nil
+	}
+
+	return &value.Time
 }

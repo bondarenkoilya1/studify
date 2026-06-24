@@ -1,15 +1,13 @@
 import { type FormEvent } from "react";
 import { getTasks } from "../../features/tasks/api/tasks-api.ts";
+import { type Subject } from "../../entities/subject/types.ts";
 import {
-  type CreateSubjectPayload,
-  type Subject,
-  type UpdateSubjectPayload,
-} from "../../entities/subject/types.ts";
-import {
+  type SubjectDraft,
   type SubjectFormErrors,
+  type SubjectFormState,
   useSubjectsPage,
 } from "../../features/subjects/model/useSubjectsPage.ts";
-import { formatOptionalDate } from "../../shared/lib/dateFormat.ts";
+import { dateToDateInputValue, formatOptionalDate } from "../../shared/lib/dateFormat.ts";
 import { MetricCard } from "../../shared/ui/MetricCard.tsx";
 import { Sidebar } from "../../shared/ui/navigation/Sidebar.tsx";
 import { subjectAssets, subjectSidebarItems } from "./subjects.assets.ts";
@@ -189,14 +187,14 @@ function SubjectsOverview({
   tasks,
 }: {
   isLoading: boolean;
-  onUpdateDraft: (id: number, field: keyof UpdateSubjectPayload, value: string) => void;
+  onUpdateDraft: (id: number, field: keyof SubjectDraft, value: string) => void;
   onUpdateSubject: (
     event: FormEvent<HTMLFormElement>,
     id: number,
-    currentSubject: CreateSubjectPayload,
+    currentSubject: SubjectFormState,
   ) => Promise<void>;
   pendingSubjectId: number | null;
-  subjectDrafts: Record<number, UpdateSubjectPayload>;
+  subjectDrafts: Record<number, SubjectDraft>;
   subjectUpdateErrors: Record<number, string>;
   subjectUpdateSuccesses: Record<number, string>;
   subjects: Subject[];
@@ -266,14 +264,14 @@ function SubjectCard({
   updateError,
   updateSuccess,
 }: {
-  draft?: UpdateSubjectPayload;
+  draft?: SubjectDraft;
   isSaving: boolean;
   nextDeadline: string;
-  onUpdateDraft: (id: number, field: keyof UpdateSubjectPayload, value: string) => void;
+  onUpdateDraft: (id: number, field: keyof SubjectDraft, value: string) => void;
   onUpdateSubject: (
     event: FormEvent<HTMLFormElement>,
     id: number,
-    currentSubject: CreateSubjectPayload,
+    currentSubject: SubjectFormState,
   ) => Promise<void>;
   openTasks: number;
   subject: Subject;
@@ -284,7 +282,7 @@ function SubjectCard({
   const currentSubject = {
     name: subject.name,
     lecturer: subject.lecturer,
-    exam_date: subject.exam_date,
+    exam_date: dateToDateInputValue(subject.exam_date),
   };
 
   return (
@@ -338,7 +336,8 @@ function SubjectCard({
           <InlineEditRow
             icon={tinyExam}
             label="Exam date"
-            value={draft?.exam_date ?? subject.exam_date}
+            type="date"
+            value={draft?.exam_date ?? dateToDateInputValue(subject.exam_date)}
             disabled={isSaving}
             onChange={(value) => onUpdateDraft(subject.id, "exam_date", value)}
           />
@@ -392,12 +391,14 @@ function InlineEditRow({
   icon,
   label,
   onChange,
+  type = "text",
   value,
 }: {
   disabled: boolean;
   icon: string;
   label: string;
   onChange: (value: string) => void;
+  type?: "date" | "text";
   value: string;
 }) {
   return (
@@ -408,6 +409,7 @@ function InlineEditRow({
       </span>
       <input
         aria-label={label}
+        type={type}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
@@ -429,12 +431,12 @@ function CreateSubjectPanel({
   touched,
 }: {
   errors: SubjectFormErrors;
-  form: CreateSubjectPayload;
+  form: SubjectFormState;
   hasSubmitted: boolean;
   isSubmitting: boolean;
-  onChange: (field: keyof CreateSubjectPayload, value: string) => void;
+  onChange: (field: keyof SubjectFormState, value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  onTouch: (field: keyof CreateSubjectPayload) => void;
+  onTouch: (field: keyof SubjectFormState) => void;
   submitError: Error | null;
   touched: SubjectFormErrors;
 }) {

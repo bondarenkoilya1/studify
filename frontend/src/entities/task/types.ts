@@ -1,7 +1,8 @@
 export type Task = {
   id: number;
   name: string;
-  deadline: string;
+  description: string;
+  deadline: Date | null;
   status: TaskStatus | string;
   subject_id: number;
 };

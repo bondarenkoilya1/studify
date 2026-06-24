@@ -1,12 +1,14 @@
 import { type FormEvent, useState } from "react";
 import { type CreateTaskPayload, type TaskStatus } from "../../../entities/task/types.ts";
 import { type Subject } from "../../../entities/subject/types.ts";
+import { dateInputToDate } from "../../../shared/lib/dateFormat.ts";
 import { statusLabels } from "../../../shared/lib/taskStatus.ts";
 import { Button } from "../../../shared/ui/Button.tsx";
 import { taskSchema } from "../model/schema.ts";
 
 type TaskFormState = {
   name: string;
+  description: string;
   subject_id: number;
   deadline: string;
   status: TaskStatus;
@@ -27,6 +29,7 @@ type TaskFormProps = {
 
 const emptyFormState: TaskFormState = {
   name: "",
+  description: "",
   subject_id: 0,
   deadline: "",
   status: "not_completed",
@@ -53,11 +56,12 @@ function validateTaskForm(form: TaskFormState, selectedSubjectId: number): TaskF
 
   const fieldErrors = result.error.flatten().fieldErrors;
 
-  return {
-    name: fieldErrors.name?.[0],
-    subject_id: fieldErrors.subject_id?.[0],
-    deadline: fieldErrors.deadline?.[0],
-    status: fieldErrors.status?.[0],
+    return {
+      name: fieldErrors.name?.[0],
+      description: fieldErrors.description?.[0],
+      subject_id: fieldErrors.subject_id?.[0],
+      deadline: fieldErrors.deadline?.[0],
+      status: fieldErrors.status?.[0],
   };
 }
 
@@ -97,8 +101,9 @@ export function TaskForm({
 
     await onSubmit({
       name: form.name.trim(),
+      description: form.description.trim(),
       subject_id: selectedSubjectId,
-      deadline: form.deadline,
+      deadline: dateInputToDate(form.deadline),
       status: form.status,
     });
 
@@ -114,6 +119,7 @@ export function TaskForm({
   const subjectSelectValue = selectedSubjectId || "";
   const isDisabled = isSubmitting || isSubjectsLoading || !hasSubjects;
   const nameError = getVisibleError("name");
+  const descriptionError = getVisibleError("description");
   const subjectError =
     getVisibleError("subject_id") ||
     (!isSubjectsLoading && !hasSubjects ? "Create a subject before adding tasks." : undefined);
@@ -162,6 +168,37 @@ export function TaskForm({
           {nameError ? (
             <span id="task-name-error" className="text-xs font-medium text-red-700">
               {nameError}
+            </span>
+          ) : null}
+        </label>
+
+        <label
+          htmlFor="task-description"
+          className="grid gap-2 text-sm font-medium text-[var(--color-text)]"
+        >
+          Description
+          <textarea
+            id="task-description"
+            name="description"
+            autoComplete="off"
+            aria-label="Description"
+            aria-invalid={Boolean(descriptionError)}
+            aria-describedby={descriptionError ? "task-description-error" : undefined}
+            value={form.description}
+            disabled={isSubmitting}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                description: event.target.value,
+              }))
+            }
+            onBlur={() => markFieldTouched("description")}
+            placeholder="Optional notes"
+            className={`${getControlClassName(descriptionError)} min-h-24 py-3`}
+          />
+          {descriptionError ? (
+            <span id="task-description-error" className="text-xs font-medium text-red-700">
+              {descriptionError}
             </span>
           ) : null}
         </label>

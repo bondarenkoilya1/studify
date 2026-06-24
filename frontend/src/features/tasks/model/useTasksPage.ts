@@ -5,6 +5,7 @@ import { createTask, getTasks, updateTask } from "../api/tasks-api.ts";
 import { type Task, type TaskStatus } from "../../../entities/task/types.ts";
 import { type Subject } from "../../../entities/subject/types.ts";
 import { getErrorMessage } from "../../../shared/lib/errors.ts";
+import { dateInputToDate } from "../../../shared/lib/dateFormat.ts";
 
 export const taskStatusOptions: TaskStatus[] = ["not_completed", "ongoing", "completed"];
 
@@ -14,6 +15,7 @@ type StatusUpdateContext = {
 
 export type TaskFormState = {
   name: string;
+  description: string;
   subject_id: number;
   deadline: string;
   status: TaskStatus;
@@ -23,6 +25,7 @@ export type TaskFormErrors = Partial<Record<keyof TaskFormState, string>>;
 
 const emptyTaskForm: TaskFormState = {
   name: "",
+  description: "",
   subject_id: 0,
   deadline: "",
   status: "not_completed",
@@ -139,8 +142,9 @@ export function useTasksPage() {
 
     await createTaskMutation.mutateAsync({
       name: taskForm.name.trim(),
+      description: taskForm.description.trim(),
       subject_id: selectedSubjectId,
-      deadline: taskForm.deadline,
+      deadline: dateInputToDate(taskForm.deadline),
       status: taskForm.status,
     });
 

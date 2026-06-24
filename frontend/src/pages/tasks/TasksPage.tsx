@@ -326,6 +326,11 @@ function TaskRow({
     >
       <div>
         <h3 className="font-black">{task.name}</h3>
+        {task.description ? (
+          <p className="mt-1 line-clamp-2 text-sm font-medium text-[#72809a]">
+            {task.description}
+          </p>
+        ) : null}
         {error ? (
           <p className="mt-2 rounded-[8px] border border-[#ffb3c4] bg-[#fff3f6] px-3 py-2 text-sm font-semibold text-[#c21646]">
             {error}
@@ -433,6 +438,22 @@ function CreateTaskPanel({
               onChange={(event) => onChange("name", event.target.value)}
               placeholder="e.g. Read chapter 4"
               className={`${inputClassName} ${showError("name") ? "border-[#ff5b82] ring-4 ring-[#ffe7ee]" : ""}`}
+              />
+          </TaskCreateField>
+
+          <TaskCreateField
+            icon={iconOpenTasks}
+            label="Description"
+            error={showError("description") ? errors.description : undefined}
+          >
+            <textarea
+              aria-label="Description"
+              value={form.description}
+              disabled={isSubmitting}
+              onBlur={() => onTouch("description")}
+              onChange={(event) => onChange("description", event.target.value)}
+              placeholder="Optional notes"
+              className={`${inputClassName} min-h-24 py-3 ${showError("description") ? "border-[#ff5b82] ring-4 ring-[#ffe7ee]" : ""}`}
             />
           </TaskCreateField>
 

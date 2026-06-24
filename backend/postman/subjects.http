@@ -19,42 +19,42 @@ Accept: application/json
     "name": "Mathematics",
     "lecturer": "Dr. Elena Petrova",
     "lecturer_avatar_url": "",
-    "exam_date": "2026-06-24"
+    "exam_date": "2026-06-24T00:00:00Z"
   },
   {
     "name": "Physics",
     "lecturer": "Prof. Ivan Sokolov",
-    "exam_date": "2026-06-27"
+    "exam_date": "2026-06-27T00:00:00Z"
   },
   {
     "name": "Computer Science",
     "lecturer": "Dr. Maria Kuznetsova",
-    "exam_date": "2026-07-01"
+    "exam_date": "2026-07-01T00:00:00Z"
   },
   {
     "name": "Databases",
     "lecturer": "Prof. Alexey Morozov",
-    "exam_date": "2026-07-04"
+    "exam_date": "2026-07-04T00:00:00Z"
   },
   {
     "name": "Economics",
     "lecturer": "Dr. Olga Smirnova",
-    "exam_date": "2026-07-08"
+    "exam_date": "2026-07-08T00:00:00Z"
   },
   {
     "name": "Psychology",
     "lecturer": "Dr. Pavel Volkov",
-    "exam_date": "2026-07-11"
+    "exam_date": "2026-07-11T00:00:00Z"
   },
   {
     "name": "Spanish",
     "lecturer": "Sofia Garcia",
-    "exam_date": "2026-07-15"
+    "exam_date": "2026-07-15T00:00:00Z"
   },
   {
     "name": "Art History",
     "lecturer": "Dr. Anna Lebedeva",
-    "exam_date": "2026-07-18"
+    "exam_date": "2026-07-18T00:00:00Z"
   }
 ]
 
@@ -66,7 +66,7 @@ Accept: application/json
 {
   "name": "Advanced Mathematics",
   "lecturer": "Dr. Elena Petrova",
-  "exam_date": "2026-06-25"
+  "exam_date": "2026-06-25T00:00:00Z"
 }
 
 ### Update one subject

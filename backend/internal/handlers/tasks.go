@@ -67,7 +67,7 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 
 	createdSubjects := make([]models.Task, 0, len(newTasks))
 	for _, t := range newTasks {
-		task, err := database.InsertTask(h.DB, t.Name, t.Deadline, t.Status, t.SubjectID)
+		task, err := database.InsertTask(h.DB, t.Name, t.Description, t.Deadline, t.Status, t.SubjectID)
 		if err != nil {
 			log.Printf("failed to insert task: %v", err)
 			http.Error(w, "Failed to insert tasks", http.StatusInternalServerError)
@@ -98,7 +98,7 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := database.UpdateTask(h.DB, id, newTask.Name, newTask.Deadline, newTask.Status, newTask.SubjectID)
+	task, err := database.UpdateTask(h.DB, id, newTask.Name, newTask.Description, newTask.Deadline, newTask.Status, newTask.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
@@ -123,7 +123,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == nil && req.Deadline == nil && req.Status == nil && req.SubjectID == nil {
+	if req.Name == nil && req.Description == nil && req.Deadline == nil && req.Status == nil && req.SubjectID == nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -150,6 +150,10 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		task.Name = *req.Name
 	}
 
+	if req.Description != nil {
+		task.Description = *req.Description
+	}
+
 	if req.Status != nil {
 		task.Status = *req.Status
 	}
@@ -159,10 +163,10 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Deadline != nil {
-		task.Deadline = *req.Deadline
+		task.Deadline = req.Deadline
 	}
 
-	updatedTask, err := database.UpdateTask(h.DB, id, task.Name, task.Deadline, task.Status, task.SubjectID)
+	updatedTask, err := database.UpdateTask(h.DB, id, task.Name, task.Description, task.Deadline, task.Status, task.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Task not found", http.StatusNotFound)

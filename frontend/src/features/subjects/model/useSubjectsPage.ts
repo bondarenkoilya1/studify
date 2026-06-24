@@ -9,34 +9,42 @@ import { getTasks } from "../../tasks/api/tasks-api.ts";
 import {
   type CreateSubjectPayload,
   type Subject,
-  type UpdateSubjectPayload,
 } from "../../../entities/subject/types.ts";
 import { getErrorMessage } from "../../../shared/lib/errors.ts";
+import { dateInputToDate } from "../../../shared/lib/dateFormat.ts";
 
 type SubjectUpdateContext = {
   previousSubjects?: Subject[];
 };
 
-export type SubjectFormErrors = Partial<Record<keyof CreateSubjectPayload, string>>;
+export type SubjectFormState = {
+  name: string;
+  lecturer: string;
+  exam_date: string;
+};
 
-const emptySubjectForm: CreateSubjectPayload = {
+export type SubjectDraft = Partial<SubjectFormState>;
+
+export type SubjectFormErrors = Partial<Record<keyof SubjectFormState, string>>;
+
+const emptySubjectForm: SubjectFormState = {
   name: "",
   lecturer: "",
   exam_date: "",
 };
 
-function validateSubjectForm(form: CreateSubjectPayload): SubjectFormErrors {
+function validateSubjectForm(form: SubjectFormState): SubjectFormErrors {
   return form.name.trim() ? {} : { name: "Subject name is required" };
 }
 
 export function useSubjectsPage() {
   const queryClient = useQueryClient();
   const subjectSuccessTimeouts = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  const [subjectDrafts, setSubjectDrafts] = useState<Record<number, UpdateSubjectPayload>>({});
+  const [subjectDrafts, setSubjectDrafts] = useState<Record<number, SubjectDraft>>({});
   const [subjectUpdateErrors, setSubjectUpdateErrors] = useState<Record<number, string>>({});
   const [subjectUpdateSuccesses, setSubjectUpdateSuccesses] = useState<Record<number, string>>({});
   const [pendingSubjectId, setPendingSubjectId] = useState<number | null>(null);
-  const [createForm, setCreateForm] = useState<CreateSubjectPayload>(emptySubjectForm);
+  const [createForm, setCreateForm] = useState<SubjectFormState>(emptySubjectForm);
   const [createTouched, setCreateTouched] = useState<SubjectFormErrors>({});
   const [hasSubmittedCreate, setHasSubmittedCreate] = useState(false);
 
@@ -140,7 +148,7 @@ export function useSubjectsPage() {
     }, 1800);
   }
 
-  function updateSubjectDraft(id: number, field: keyof UpdateSubjectPayload, value: string) {
+  function updateSubjectDraft(id: number, field: keyof SubjectDraft, value: string) {
     setSubjectUpdateErrors((current) => {
       const next = { ...current };
       delete next[id];
@@ -167,7 +175,7 @@ export function useSubjectsPage() {
     await createSubjectMutation.mutateAsync({
       name: createForm.name.trim(),
       lecturer: createForm.lecturer.trim(),
-      exam_date: createForm.exam_date.trim(),
+      exam_date: dateInputToDate(createForm.exam_date),
     });
     setCreateForm(emptySubjectForm);
     setCreateTouched({});
@@ -177,7 +185,7 @@ export function useSubjectsPage() {
   async function handleUpdateSubject(
     event: FormEvent<HTMLFormElement>,
     id: number,
-    currentSubject: CreateSubjectPayload,
+    currentSubject: SubjectFormState,
   ) {
     event.preventDefault();
 
@@ -194,12 +202,12 @@ export function useSubjectsPage() {
     });
     clearSubjectSuccess(id);
 
-    const nextSubject: CreateSubjectPayload = {
+    const nextSubjectForm: SubjectFormState = {
       ...currentSubject,
       ...draft,
     };
     const changedFields = Object.entries(draft).filter(([field, value]) => {
-      return value !== currentSubject[field as keyof CreateSubjectPayload];
+      return value !== currentSubject[field as keyof SubjectFormState];
     });
 
     if (changedFields.length === 0) {
@@ -213,7 +221,14 @@ export function useSubjectsPage() {
     }
 
     try {
-      await updateSubjectMutation.mutateAsync({ id, subject: nextSubject });
+      await updateSubjectMutation.mutateAsync({
+        id,
+        subject: {
+          name: nextSubjectForm.name.trim(),
+          lecturer: nextSubjectForm.lecturer.trim(),
+          exam_date: dateInputToDate(nextSubjectForm.exam_date),
+        },
+      });
     } catch {
       // Rollback and card-level messaging are handled by the mutation callbacks.
     } finally {

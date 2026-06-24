@@ -5,27 +5,45 @@ import {
 } from "../../../entities/subject/types.ts";
 import { request } from "../../../shared/api/http-client.ts";
 
+export type SubjectResponse = Omit<Subject, "exam_date"> & {
+  exam_date: string | null;
+};
+
+export function parseSubject(subject: SubjectResponse): Subject {
+  return {
+    ...subject,
+    exam_date: subject.exam_date ? new Date(subject.exam_date) : null,
+  };
+}
+
+function serializeSubjectPayload(subject: CreateSubjectPayload | UpdateSubjectPayload) {
+  return {
+    ...subject,
+    exam_date: subject.exam_date instanceof Date ? subject.exam_date.toISOString() : subject.exam_date,
+  };
+}
+
 export function getSubjects() {
-  return request<Subject[]>("/subjects/");
+  return request<SubjectResponse[]>("/subjects/").then((subjects) => subjects.map(parseSubject));
 }
 
-export function createSubject(subject: CreateSubjectPayload) {
-  return request<Subject[]>("/subjects/", {
+export function createSubject(subject: CreateSubjectPayload): Promise<Subject[]> {
+  return request<SubjectResponse[]>("/subjects/", {
     method: "POST",
-    body: JSON.stringify([subject]),
-  });
+    body: JSON.stringify([serializeSubjectPayload(subject)]),
+  }).then((subjects) => subjects.map(parseSubject));
 }
 
-export function updateSubject(id: number, subject: UpdateSubjectPayload) {
-  return request<Subject>(`/subjects/${id}`, {
+export function updateSubject(id: number, subject: UpdateSubjectPayload): Promise<Subject> {
+  return request<SubjectResponse>(`/subjects/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(subject),
-  });
+    body: JSON.stringify(serializeSubjectPayload(subject)),
+  }).then(parseSubject);
 }
 
-export function replaceSubject(id: number, subject: CreateSubjectPayload) {
-  return request<Subject>(`/subjects/${id}`, {
+export function replaceSubject(id: number, subject: CreateSubjectPayload): Promise<Subject> {
+  return request<SubjectResponse>(`/subjects/${id}`, {
     method: "PUT",
-    body: JSON.stringify(subject),
-  });
+    body: JSON.stringify(serializeSubjectPayload(subject)),
+  }).then(parseSubject);
 }
