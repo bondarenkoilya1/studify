@@ -32,7 +32,7 @@ func newApplication() (*application, error) {
 	return &application{
 		addr:   cfg.ServerAddr,
 		db:     db,
-		router: newRouter(h),
+		router: newRouter(h, cfg.CORSOrigins),
 	}, nil
 }
 

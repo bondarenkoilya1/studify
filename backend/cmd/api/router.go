@@ -10,15 +10,12 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func newRouter(h *handlers.Handler) http.Handler {
+func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{
-			"http://localhost:5173",
-			"http://localhost:3000",
-		},
+		AllowedOrigins:   corsOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
 		AllowCredentials: true,

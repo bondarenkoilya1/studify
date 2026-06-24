@@ -1,5 +1,6 @@
 .idea
 .DS_Store
+.env
 
 backend/tmp
 backend/.air.toml

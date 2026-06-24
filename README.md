@@ -61,6 +61,27 @@ manage the tasks connected to them, and keep the main study metrics visible.
 └── preview.png
 ```
 
+## Environment
+
+Docker Compose reads root `.env`. Create it from `.env.example` and fill the JWT
+secrets before starting the stack:
+
+```bash
+make env
+```
+
+For manual backend/frontend runs, use `backend/.env.example` and
+`frontend/.env.example` as templates for app-specific `.env` files. Full setup
+details live in [SETUP.md](./SETUP.md).
+
+Common local commands:
+
+```bash
+make docker-up
+make migrate-up
+make backend-test
+```
+
 ## API Overview
 
 The backend exposes REST-style JSON routes for dashboard metrics, subjects,

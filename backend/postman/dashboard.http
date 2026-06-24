@@ -1,4 +1,5 @@
 @baseUrl = http://localhost:8080
+# If BACKEND_HOST_PORT is not 8080, update baseUrl.
 
 ### Get dashboard status
 # Run subjects.http setup and tasks.http setup first to see non-empty totals.

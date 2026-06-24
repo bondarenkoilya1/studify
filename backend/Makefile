@@ -1,6 +1,11 @@
 APP_NAME ?= studify
 MAIN ?= ./cmd/api
 
+ifneq (,$(wildcard .env))
+include .env
+export
+endif
+
 .PHONY: run build test fmt fmt-check vet lint check clean deps
 
 run:

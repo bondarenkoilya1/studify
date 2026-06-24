@@ -1,6 +1,7 @@
 # API Reference
 
-The backend runs on port `8080` by default.
+The backend runs on `BACKEND_HOST_PORT` when started through Docker Compose.
+The local default is `8080`.
 
 ```txt
 http://localhost:8080

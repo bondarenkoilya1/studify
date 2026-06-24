@@ -9,13 +9,23 @@ This guide covers local installation, database setup, and running Studify.
 - Docker, if you want the full local stack with PostgreSQL
 - `psql`, if you run migrations from your host machine
 
-## Option A: Start Everything With Docker Compose
+## Environment Files
+
+Root `.env` is used by Docker Compose and root `Makefile` commands.
 
 ```bash
-docker compose up --build -d
+make env
 ```
 
-The services will be available at:
+Fill at least:
+
+```env
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
+```
+
+The other root `.env` values are optional. If they are empty, the local defaults
+from `docker-compose.yaml` and `Makefile` are used:
 
 ```txt
 Backend:  http://localhost:8080
@@ -23,61 +33,75 @@ Frontend: http://localhost:5173
 Postgres: localhost:4444
 ```
 
-The backend reads `DATABASE_URL` and `JWT_SECRET`. Docker Compose sets
-`DATABASE_URL` to the internal PostgreSQL service URL and reads `JWT_SECRET`
-from `backend/.env`.
-
-Run the SQL files in `backend/migrations` against the database before using a
-fresh database.
+For manual app runs, use app-specific env files:
 
 ```bash
-psql "postgres://studify:studify@localhost:4444/studify?sslmode=disable" -f backend/migrations/000001_create_subjects_table.up.sql
-psql "postgres://studify:studify@localhost:4444/studify?sslmode=disable" -f backend/migrations/000002_create_tasks_table.up.sql
-psql "postgres://studify:studify@localhost:4444/studify?sslmode=disable" -f backend/migrations/000003_create_users_table.up.sql
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
-## Option B: Start Services Manually
+## Docker Compose
 
-Start PostgreSQL and set the backend database URL:
+Start the full stack:
 
 ```bash
-export DATABASE_URL="postgres://studify:studify@localhost:5432/studify?sslmode=disable"
-export JWT_SECRET="replace-with-a-long-random-local-secret"
+make docker-up
 ```
 
-Run migrations from `backend/migrations`, then start the API:
+Apply migrations to the PostgreSQL instance exposed on the host:
 
 ```bash
-psql "$DATABASE_URL" -f backend/migrations/000001_create_subjects_table.up.sql
-psql "$DATABASE_URL" -f backend/migrations/000002_create_tasks_table.up.sql
-psql "$DATABASE_URL" -f backend/migrations/000003_create_users_table.up.sql
-cd backend
-make run
+make migrate-up
 ```
 
-The API will be available at:
-
-```txt
-http://localhost:8080
-```
-
-## Frontend
-
-Create `frontend/.env` from the example:
+Other useful commands:
 
 ```bash
-cd frontend
-cp .env.example .env
+make docker-ps
+make docker-logs
+make docker-down
 ```
 
-Set the backend URL:
+Docker Compose builds the backend `DATABASE_URL` from root `.env` and uses the
+internal Docker hostname `postgres`.
+
+## Manual Backend
+
+Fill `backend/.env`:
+
+```env
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
+ISSUER=
+DATABASE_URL=
+SERVER_ADDR=
+ENV=
+CORS_ALLOWED_ORIGINS=
+```
+
+For a local PostgreSQL instance, `DATABASE_URL` usually looks like:
+
+```env
+DATABASE_URL=postgres://studify:studify@localhost:5432/studify?sslmode=disable
+SERVER_ADDR=:8080
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+```
+
+Run the backend:
+
+```bash
+make backend-run
+```
+
+The backend `Makefile` automatically loads `backend/.env` when it exists.
+
+## Manual Frontend
+
+Fill `frontend/.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080
 ```
-
-The frontend calls the backend directly. The Go backend is configured to allow
-local Vite origins such as `http://localhost:5173`.
 
 Start the frontend:
 
@@ -91,4 +115,25 @@ Vite will print the local URL, usually:
 
 ```txt
 http://localhost:5173
+```
+
+## Migrations
+
+Root `make migrate-up` and `make migrate-down` use the PostgreSQL values from
+root `.env`:
+
+```env
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+POSTGRES_HOST_PORT=
+```
+
+Empty values fall back to local defaults:
+
+```txt
+POSTGRES_USER=studify
+POSTGRES_PASSWORD=studify
+POSTGRES_DB=studify
+POSTGRES_HOST_PORT=4444
 ```

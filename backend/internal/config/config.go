@@ -13,6 +13,7 @@ type Config struct {
 	DatabaseURL      string
 	ServerAddr       string
 	Env              string
+	CORSOrigins      []string
 }
 
 func Load() (*Config, error) {
@@ -23,6 +24,7 @@ func Load() (*Config, error) {
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		ServerAddr:       os.Getenv("SERVER_ADDR"),
 		Env:              os.Getenv("ENV"),
+		CORSOrigins:      splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
 	}
 
 	if cfg.JWTAccessSecret == "" {
@@ -49,10 +51,34 @@ func Load() (*Config, error) {
 		cfg.Env = "dev"
 	}
 
+	if len(cfg.CORSOrigins) == 0 {
+		cfg.CORSOrigins = []string{
+			"http://localhost:5173",
+			"http://localhost:3000",
+		}
+	}
+
 	return cfg, nil
 }
 
 func (c *Config) IsProduction() bool {
 	env := strings.ToLower(c.Env)
 	return env == "prod" || env == "production"
+}
+
+func splitEnvList(value string) []string {
+	if value == "" {
+		return nil
+	}
+
+	parts := strings.Split(value, ",")
+	items := make([]string, 0, len(parts))
+	for _, part := range parts {
+		item := strings.TrimSpace(part)
+		if item != "" {
+			items = append(items, item)
+		}
+	}
+
+	return items
 }

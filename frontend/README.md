@@ -20,5 +20,6 @@ bun run build
 bun run lint
 ```
 
-Set `VITE_API_BASE_URL` to point the frontend at a backend URL other than
-`http://localhost:8080`.
+Set `VITE_API_BASE_URL` in `frontend/.env` to point the frontend at the
+backend. With Docker Compose, this value is provided from root `.env` through
+`docker-compose.yaml`.
