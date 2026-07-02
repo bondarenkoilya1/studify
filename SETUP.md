@@ -1,139 +1,107 @@
 # Setup
 
-This guide covers local installation, database setup, and running Studify.
-
 ## Requirements
 
-- Go
-- Bun
-- Docker, if you want the full local stack with PostgreSQL
-- `psql`, if you run migrations from your host machine
+- Docker with the Compose plugin
+- `psql` for running migrations from the root Makefile
+- Go, only when running or checking the backend outside Docker
 
-## Environment Files
+## Docker Compose
 
-Root `.env` is used by Docker Compose and root `Makefile` commands.
+Create the root environment file:
 
 ```bash
 make env
 ```
 
-Fill at least:
+`JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be non-empty. Use different,
+random values. All supported root variables are listed in `.env.example`.
 
-```env
-JWT_ACCESS_SECRET=
-JWT_REFRESH_SECRET=
-```
-
-The other root `.env` values are optional. If they are empty, the local defaults
-from `docker-compose.yaml` and `Makefile` are used:
-
-```txt
-Backend:  http://localhost:8080
-Frontend: http://localhost:5173
-Postgres: localhost:4444
-```
-
-For manual app runs, use app-specific env files:
-
-```bash
-cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-```
-
-## Docker Compose
-
-Start the full stack:
+Start the stack:
 
 ```bash
 make docker-up
 ```
 
-Apply migrations to the PostgreSQL instance exposed on the host:
+This starts:
+
+- PostgreSQL on `POSTGRES_HOST_PORT` (`4444` by default);
+- the Go API on `BACKEND_HOST_PORT` (`8080` by default);
+- an empty Vite placeholder on `FRONTEND_HOST_PORT` (`5173` by default).
+
+Apply the database migrations after PostgreSQL is healthy:
 
 ```bash
 make migrate-up
 ```
 
-Other useful commands:
+Useful commands:
 
 ```bash
 make docker-ps
 make docker-logs
 make docker-down
+make migrate-down
 ```
 
-Docker Compose builds the backend `DATABASE_URL` from root `.env` and uses the
-internal Docker hostname `postgres`.
+`docker-down` preserves the PostgreSQL named volume. To remove stored data,
+explicitly remove the Compose volume separately.
 
-## Manual Backend
+## Backend outside Docker
 
-Fill `backend/.env`:
+Create `backend/.env` from `backend/.env.example` and fill every required value:
 
-```env
-JWT_ACCESS_SECRET=
-JWT_REFRESH_SECRET=
-ISSUER=
-DATABASE_URL=
-SERVER_ADDR=
-ENV=
-CORS_ALLOWED_ORIGINS=
+```bash
+cp backend/.env.example backend/.env
 ```
 
-For a local PostgreSQL instance, `DATABASE_URL` usually looks like:
+Example:
 
 ```env
-DATABASE_URL=postgres://studify:studify@localhost:5432/studify?sslmode=disable
+JWT_ACCESS_SECRET=replace-with-a-random-secret
+JWT_REFRESH_SECRET=replace-with-a-different-random-secret
+ISSUER=studify
+DATABASE_URL=postgres://studify:studify@localhost:4444/studify?sslmode=disable
 SERVER_ADDR=:8080
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+ENV=dev
+CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
 
-Run the backend:
+`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ISSUER`, and `DATABASE_URL` are
+required. `SERVER_ADDR` defaults to `:8080`, `ENV` defaults to `dev`, and
+`CORS_ALLOWED_ORIGINS` defaults to
+`http://localhost:5173,http://localhost:3000`.
+
+Run or check the backend:
 
 ```bash
 make backend-run
+make backend-test
+make -C backend fmt-check
+make -C backend vet
 ```
 
-The backend `Makefile` automatically loads `backend/.env` when it exists.
-
-## Manual Frontend
-
-Fill `frontend/.env`:
-
-```env
-VITE_API_BASE_URL=http://localhost:8080
-```
-
-Start the frontend:
-
-```bash
-cd frontend
-bun install
-bun run dev
-```
-
-Vite will print the local URL, usually:
-
-```txt
-http://localhost:5173
-```
+The backend Makefile loads `backend/.env` automatically when it exists.
 
 ## Migrations
 
-Root `make migrate-up` and `make migrate-down` use the PostgreSQL values from
-root `.env`:
+The root migration commands connect through the PostgreSQL host port and run
+the versioned SQL files in order:
 
-```env
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_DB=
-POSTGRES_HOST_PORT=
+```bash
+make migrate-up
+make migrate-down
 ```
 
-Empty values fall back to local defaults:
+Defaults:
 
-```txt
-POSTGRES_USER=studify
-POSTGRES_PASSWORD=studify
-POSTGRES_DB=studify
-POSTGRES_HOST_PORT=4444
+```text
+database: studify
+user:     studify
+password: studify
+host:     localhost
+port:     4444
 ```
+
+The migration commands are not a migration-state manager: rerunning `migrate-up`
+against an already migrated database can fail because objects already exist.

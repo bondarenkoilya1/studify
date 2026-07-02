@@ -1,248 +1,52 @@
-# API Reference
+# API reference
 
-The backend runs on `BACKEND_HOST_PORT` when started through Docker Compose.
-The local default is `8080`.
+The default base URL is `http://localhost:8080`. API routes use the `/api`
+prefix. Request and response bodies are JSON unless stated otherwise.
 
-```txt
-http://localhost:8080
-```
+## Authentication
 
-JSON API routes are served under `/api`. Routes that create or change resources
-require `Content-Type: application/json`. Static files are served from
-`/static/lecturer-avatars/*`.
+`POST /api/auth/register` and `POST /api/auth/login` issue `access_token` and
+`refresh_token` HttpOnly cookies. Send cookies on subsequent requests. All API
+routes except register, login, and refresh require a valid access-token cookie.
 
-Date/time fields use RFC3339 timestamps, for example
-`2026-06-10T00:00:00Z`. Nullable date/time fields are returned as `null` when
-unset.
+The access token is valid for 15 minutes. The refresh token is valid for 30
+days. `POST /api/auth/refresh` rotates both cookies. In production mode cookies
+also use the `Secure` attribute.
 
-## Dashboard
+Current limitation: the backend sets the refresh cookie path to `/refresh`,
+while the refresh and logout routes are `/api/auth/refresh` and `/api/logout`.
+A browser therefore does not attach that cookie to either route. Refresh
+rotation and server-side revocation on logout will not work in the normal
+browser flow until those paths are aligned.
 
-### `GET /api/dashboard`
-
-Returns aggregate study metrics.
-
-Response:
-
-```json
-{
-  "total_subjects": 3,
-  "total_tasks": 8,
-  "total_completed_tasks": 2,
-  "total_ongoing_tasks": 4,
-  "total_not_completed_tasks": 2,
-  "completion_percent": 25,
-  "nearest_deadline_task": {
-    "id": 5,
-    "name": "Prepare lab report",
-    "description": "Finish graphs and notes.",
-    "deadline": "2026-06-01T00:00:00Z",
-    "status": "ongoing",
-    "subject_id": 1
-  },
-  "overdue_tasks": []
-}
-```
-
-If there is no upcoming unfinished task, `nearest_deadline_task` is `null`.
-
-## Subjects
-
-Subject shape:
-
-```json
-{
-  "id": 1,
-  "name": "Databases",
-  "lecturer": "Dr. Smith",
-  "lecturer_avatar_url": "/static/lecturer-avatars/example.webp",
-  "exam_date": "2026-06-10T00:00:00Z"
-}
-```
-
-### `GET /api/subjects/`
-
-Returns all subjects.
-
-### `POST /api/subjects/`
-
-Creates one or more subjects. The request body is an array.
-
-Request:
-
-```json
-[
-  {
-    "name": "Databases",
-    "lecturer": "Dr. Smith",
-    "lecturer_avatar_url": "",
-    "exam_date": "2026-06-10T00:00:00Z"
-  }
-]
-```
-
-### `DELETE /api/subjects/`
-
-Deletes all subjects. Related tasks are deleted first by the backend.
-
-### `GET /api/subjects/{id}`
-
-Returns one subject by numeric ID.
-
-### `PUT /api/subjects/{id}`
-
-Replaces a subject.
-
-Request:
-
-```json
-{
-  "name": "Advanced Databases",
-  "lecturer": "Dr. Smith",
-  "exam_date": "2026-06-12T00:00:00Z"
-}
-```
-
-### `PATCH /api/subjects/{id}`
-
-Updates only the provided subject fields.
-
-Request:
-
-```json
-{
-  "lecturer": "Prof. Elena Petrova"
-}
-```
-
-Supported fields:
-
-- `name`
-- `lecturer`
-- `exam_date`
-
-### `DELETE /api/subjects/{id}`
-
-Deletes one subject by numeric ID. Related tasks are deleted first by the
-backend.
-
-### `POST /api/subjects/avatar/`
-
-Uploads a lecturer avatar image and stores it as WebP.
-
-Headers:
+Routes with a JSON request body require:
 
 ```http
-Content-Type: image/png
+Content-Type: application/json
 ```
 
-Supported image formats:
+Missing or invalid authentication returns `401 Unauthorized`. An unsupported
+content type returns `415 Unsupported Media Type`. Handler validation errors
+are returned as plain-text error bodies.
 
-- `png`
-- `jpeg`
-- `webp`
+### Register
 
-Response:
+```http
+POST /api/auth/register
+```
 
 ```json
 {
-  "lecturer_avatar_url": "/static/lecturer-avatars/uuid.webp"
+  "username": "student",
+  "password": "strong password"
 }
 ```
 
-## Tasks
+Usernames are 3–32 characters and may contain English letters, digits, dots,
+and underscores. They cannot start or end with a dot or contain consecutive
+dots. Registration passwords are 8–72 bytes.
 
-Task shape:
-
-```json
-{
-  "id": 1,
-  "name": "Read chapter 4",
-  "description": "Summarize the main definitions.",
-  "deadline": "2026-05-30T00:00:00Z",
-  "status": "ongoing",
-  "subject_id": 1
-}
-```
-
-Supported frontend status values:
-
-- `not_completed`
-- `ongoing`
-- `completed`
-
-### `GET /api/tasks/`
-
-Returns all tasks.
-
-### `POST /api/tasks/`
-
-Creates one or more tasks. The request body is an array.
-
-Request:
-
-```json
-[
-  {
-    "name": "Read chapter 4",
-    "description": "Summarize the main definitions.",
-    "deadline": "2026-05-30T00:00:00Z",
-    "status": "ongoing",
-    "subject_id": 1
-  }
-]
-```
-
-### `DELETE /api/tasks/`
-
-Deletes all tasks.
-
-### `GET /api/tasks/{id}`
-
-Returns one task by numeric ID.
-
-### `PUT /api/tasks/{id}`
-
-Replaces a task.
-
-Request:
-
-```json
-{
-  "name": "Read chapters 4-6",
-  "description": "Expanded reading scope before exam week.",
-  "deadline": "2026-06-04T00:00:00Z",
-  "status": "ongoing",
-  "subject_id": 1
-}
-```
-
-### `PATCH /api/tasks/{id}`
-
-Updates only the provided task fields.
-
-Request:
-
-```json
-{
-  "status": "completed"
-}
-```
-
-Supported fields:
-
-- `name`
-- `description`
-- `deadline`
-- `status`
-- `subject_id`
-
-### `DELETE /api/tasks/{id}`
-
-Deletes one task by numeric ID.
-
-## Users And Auth
-
-User response shape:
+Success: `201 Created` with the created user:
 
 ```json
 {
@@ -251,103 +55,216 @@ User response shape:
 }
 ```
 
-Passwords are accepted in request bodies but are never returned by the API.
+### Login
 
-### `POST /api/auth/register`
+```http
+POST /api/auth/login
+```
 
-Registers a user.
+The request has the same shape as registration. Success: `200 OK` with an empty
+body and new auth cookies.
 
-Request:
+### Refresh
+
+```http
+POST /api/auth/refresh
+```
+
+Requires the refresh-token cookie. Success: `204 No Content` and rotated auth
+cookies. See the cookie-path limitation above.
+
+### Logout
+
+```http
+POST /api/logout
+```
+
+Requires authentication. Revokes the current refresh token when the cookie is
+available, clears both cookies, and returns `204 No Content`. See the
+cookie-path limitation above.
+
+## Dashboard
+
+```http
+GET /api/dashboard
+```
+
+Returns statistics for the authenticated user:
 
 ```json
 {
-  "username": "student",
-  "password": "secret"
+  "total_subjects": 2,
+  "total_tasks": 4,
+  "total_completed_tasks": 1,
+  "total_ongoing_tasks": 2,
+  "total_not_completed_tasks": 1,
+  "completion_percent": 25,
+  "nearest_deadline_task": {
+    "id": 3,
+    "name": "Prepare report",
+    "description": "Add charts",
+    "subject_id": 1,
+    "deadline": "2026-07-10T12:00:00Z",
+    "status": "ongoing"
+  },
+  "overdue_tasks": []
 }
 ```
 
-### `POST /api/auth/login`
+`nearest_deadline_task` is `null` when no unfinished future task exists.
 
-Checks a username and password.
+## Subjects
 
-Request:
+Subject response:
 
 ```json
 {
-  "username": "student",
-  "password": "secret"
+  "id": 1,
+  "user_id": 1,
+  "name": "Databases",
+  "lecturer": "Dr. Smith",
+  "lecturer_avatar_url": "/static/lecturer-avatars/file.webp",
+  "exam_date": "2026-07-20T09:00:00Z"
 }
 ```
 
-Success response: `200 OK` with an empty body.
+`exam_date` is an RFC3339 timestamp or `null`.
 
-### `POST /api/auth/refresh`
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/subjects/` | List the current user's subjects |
+| `POST` | `/api/subjects/` | Create subjects from a JSON array |
+| `DELETE` | `/api/subjects/` | Delete all current user's subjects and their tasks |
+| `GET` | `/api/subjects/{id}` | Get one subject |
+| `PUT` | `/api/subjects/{id}` | Replace one subject |
+| `PATCH` | `/api/subjects/{id}` | Update provided fields |
+| `DELETE` | `/api/subjects/{id}` | Delete one subject and its tasks |
+| `POST` | `/api/subjects/avatar/` | Upload a lecturer avatar |
 
-Rotates the refresh token cookie and issues new access and refresh cookies.
+Create request:
 
-Success response: `204 No Content`.
+```json
+[
+  {
+    "name": "Databases",
+    "lecturer": "Dr. Smith",
+    "lecturer_avatar_url": "",
+    "exam_date": "2026-07-20T09:00:00Z"
+  }
+]
+```
 
-### `POST /api/logout`
+`PATCH` accepts `name`, `lecturer`, and `exam_date`. `PUT` uses the complete
+subject representation accepted by the handler.
 
-Logs out the current user.
+Avatar upload sends raw PNG, JPEG, or WebP bytes with the matching image content
+type, for example:
 
-Success response: `204 No Content`.
+```http
+Content-Type: image/png
+```
 
-### `GET /api/users/`
+Success returns:
 
-Returns all users.
+```json
+{
+  "lecturer_avatar_url": "/static/lecturer-avatars/generated-file.webp"
+}
+```
 
-### `DELETE /api/users/`
+Uploaded files are publicly served by:
 
-Deletes all users.
+```http
+GET /static/lecturer-avatars/{file}
+```
 
-### `PUT /api/users/{username}`
+## Tasks
 
-Replaces a user identified by username. Both `username` and `password` are
-required.
+Task response:
 
-Request:
+```json
+{
+  "id": 1,
+  "name": "Read chapter 4",
+  "description": "Write a summary",
+  "subject_id": 1,
+  "deadline": "2026-07-10T12:00:00Z",
+  "status": "ongoing"
+}
+```
+
+`deadline` is an RFC3339 timestamp or `null`. Supported statuses are
+`not_completed`, `ongoing`, and `completed`.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/tasks/` | List the current user's tasks |
+| `POST` | `/api/tasks/` | Create tasks from a JSON array |
+| `DELETE` | `/api/tasks/` | Delete all current user's tasks |
+| `GET` | `/api/tasks/{id}` | Get one task |
+| `PUT` | `/api/tasks/{id}` | Replace one task |
+| `PATCH` | `/api/tasks/{id}` | Update provided fields |
+| `DELETE` | `/api/tasks/{id}` | Delete one task |
+
+Create request:
+
+```json
+[
+  {
+    "name": "Read chapter 4",
+    "description": "Write a summary",
+    "subject_id": 1,
+    "deadline": "2026-07-10T12:00:00Z",
+    "status": "ongoing"
+  }
+]
+```
+
+`PATCH` accepts `name`, `description`, `subject_id`, `deadline`, and `status`.
+
+## Users
+
+User response:
+
+```json
+{
+  "id": 1,
+  "username": "student"
+}
+```
+
+Passwords are accepted in write requests but never returned.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| `GET` | `/api/users/` | List users |
+| `DELETE` | `/api/users/` | Delete all users |
+| `PUT` | `/api/users/{username}` | Replace username and password |
+| `PATCH` | `/api/users/{username}` | Update username and/or password |
+| `DELETE` | `/api/users/{username}` | Delete a user |
+
+Replace request:
 
 ```json
 {
   "username": "updated_student",
-  "password": "new_secret"
+  "password": "new strong password"
 }
 ```
 
-### `PATCH /api/users/{username}`
-
-Updates only the provided user fields.
-
-Request:
+Partial update:
 
 ```json
 {
-  "password": "new_secret"
+  "password": "another strong password"
 }
 ```
 
-Supported fields:
+These routes require authentication, but the current backend does not implement
+roles or restrict user-management operations to the authenticated account.
+They must not be exposed as an administrative API without additional
+authorization.
 
-- `username`
-- `password`
+## Request examples
 
-### `DELETE /api/users/{username}`
-
-Deletes one user by username.
-
-## REST Client Examples
-
-Runnable request examples live in `backend/postman/`:
-
-- `dashboard.http`
-- `subjects.http`
-- `tasks.http`
-- `auth.http`
-- `users.http`
-
-## Static Files
-
-### `GET /static/lecturer-avatars/{file}`
-
-Serves uploaded lecturer avatar files.
+Runnable JetBrains HTTP Client requests are in `backend/postman/`.

@@ -19,7 +19,7 @@ endif
 MIGRATIONS_DIR = backend/migrations
 POSTGRES_DSN = postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_HOST_PORT)/$(POSTGRES_DB)?sslmode=disable
 
-.PHONY: env check-docker-env docker-up docker-down docker-ps docker-logs migrate-up migrate-down backend-run backend-test frontend-dev
+.PHONY: env check-docker-env docker-up docker-down docker-ps docker-logs migrate-up migrate-down backend-run backend-test
 
 env:
 	test -f .env || cp .env.example .env
@@ -57,6 +57,3 @@ backend-run:
 
 backend-test:
 	$(MAKE) -C backend test
-
-frontend-dev:
-	cd frontend && bun run dev
