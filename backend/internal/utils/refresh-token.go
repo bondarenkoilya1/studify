@@ -76,7 +76,7 @@ func (s *AuthService) SetRefreshTokenCookies(token models.RefreshToken, w http.R
 	cookie := http.Cookie{
 		Name:     "refresh_token",
 		Value:    string(token),
-		Path:     "/refresh",
+		Path:     "/",
 		HttpOnly: true,
 		Secure:   s.secureCookies,
 		SameSite: http.SameSiteLaxMode,
@@ -92,7 +92,7 @@ func (s *AuthService) ClearRefreshToken(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
-		Path:     "/refresh",
+		Path:     "/",
 		HttpOnly: true,
 		Secure:   s.secureCookies,
 		SameSite: http.SameSiteLaxMode,

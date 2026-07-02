@@ -30,7 +30,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-studify}:${POSTGRES_PASSWORD:-studify}@postgres:5432/${POSTGRES_DB:-studify}?sslmode=disable
       SERVER_ADDR: :${BACKEND_CONTAINER_PORT:-8080}
       ENV: ${ENV:-dev}
-      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_HOST_PORT:-5173},http://localhost:3000
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_HOST_PORT:-5173},http://localhost:${SWAGGER_HOST_PORT:-8081},http://localhost:3000
     ports:
       - "${BACKEND_HOST_PORT:-8080}:${BACKEND_CONTAINER_PORT:-8080}"
     volumes:
@@ -39,6 +39,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  swagger:
+    image: swaggerapi/swagger-ui:v5.30.2
+    container_name: studify-swagger
+    environment:
+      SWAGGER_JSON: /spec/openapi.yaml
+      WITH_CREDENTIALS: "true"
+      DISPLAY_REQUEST_DURATION: "true"
+    ports:
+      - "${SWAGGER_HOST_PORT:-8081}:8080"
+    volumes:
+      - ./backend/docs/openapi.yaml:/spec/openapi.yaml:ro
+    depends_on:
+      - backend
 
   frontend:
     build:

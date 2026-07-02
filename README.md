@@ -48,7 +48,7 @@ JWT_ACCESS_SECRET=replace-with-a-random-secret
 JWT_REFRESH_SECRET=replace-with-a-different-random-secret
 ```
 
-Start PostgreSQL, the backend, and the empty frontend placeholder:
+Start PostgreSQL, the backend, Swagger UI, and the empty frontend placeholder:
 
 ```bash
 make docker-up
@@ -58,6 +58,8 @@ make migrate-up
 Default addresses:
 
 - API: `http://localhost:8080`
+- Swagger UI: `http://localhost:8081`
+- OpenAPI specification: `backend/docs/openapi.yaml`
 - frontend placeholder: `http://localhost:5173`
 - PostgreSQL: `localhost:4444`
 

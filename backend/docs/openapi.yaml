@@ -1,0 +1,965 @@
+openapi: 3.0.3
+info:
+  title: Studify API
+  version: 1.0.0
+  description: |
+    REST API for users, subjects, study tasks, and dashboard statistics.
+
+    Authentication uses HttpOnly `access_token` and `refresh_token` cookies.
+    Register or log in first; Swagger UI keeps the cookies and sends them with
+    subsequent requests.
+servers:
+  - url: http://localhost:8080
+    description: Local Docker backend
+tags:
+  - name: Authentication
+  - name: Dashboard
+  - name: Subjects
+  - name: Tasks
+  - name: Users
+  - name: Static files
+paths:
+  /api/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a user
+      description: Creates a user and sets access and refresh token cookies.
+      operationId: registerUser
+      requestBody:
+        $ref: "#/components/requestBodies/Credentials"
+      responses:
+        "201":
+          description: User created; authentication cookies are set.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/AuthCookies"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log in
+      description: Validates credentials and sets access and refresh token cookies.
+      operationId: loginUser
+      requestBody:
+        $ref: "#/components/requestBodies/Credentials"
+      responses:
+        "200":
+          description: Login successful; response body is empty and authentication cookies are set.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/AuthCookies"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Rotate authentication tokens
+      description: Validates and revokes the current refresh token, then sets new access and refresh token cookies.
+      operationId: refreshTokens
+      security:
+        - refreshCookie: []
+      responses:
+        "204":
+          description: Tokens rotated; authentication cookies are replaced.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/AuthCookies"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/logout:
+    post:
+      tags: [Authentication]
+      summary: Log out
+      description: Revokes the refresh token when available and clears both authentication cookies.
+      operationId: logoutUser
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: Logged out.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard statistics
+      operationId: getDashboard
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Statistics for the authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/subjects/:
+    get:
+      tags: [Subjects]
+      summary: List subjects
+      operationId: listSubjects
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: All subjects belonging to the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      tags: [Subjects]
+      summary: Create subjects
+      operationId: createSubjects
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/SubjectInput"
+      responses:
+        "201":
+          description: Created subjects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Subjects]
+      summary: Delete all subjects
+      description: Deletes every subject belonging to the authenticated user. Related tasks are deleted by the database.
+      operationId: deleteSubjects
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: Subjects deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/subjects/{id}:
+    parameters:
+      - $ref: "#/components/parameters/NumericId"
+    get:
+      tags: [Subjects]
+      summary: Get a subject
+      operationId: getSubject
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Subject found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      tags: [Subjects]
+      summary: Replace a subject
+      operationId: replaceSubject
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectInput"
+      responses:
+        "200":
+          description: Replaced subject.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      tags: [Subjects]
+      summary: Update a subject
+      description: At least one property must be supplied.
+      operationId: updateSubject
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubjectPatch"
+      responses:
+        "200":
+          description: Updated subject.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subject"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Subjects]
+      summary: Delete a subject
+      description: Deletes the subject owned by the authenticated user. Related tasks are deleted by the database.
+      operationId: deleteSubject
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: Subject deleted.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/subjects/avatar/:
+    post:
+      tags: [Subjects]
+      summary: Upload a lecturer avatar
+      description: |
+        Sends raw PNG, JPEG, or WebP image bytes (not multipart form data).
+        Maximum body size is 2 MiB and maximum dimensions are 2560×2560.
+        The server converts the image to WebP.
+      operationId: uploadLecturerAvatar
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Avatar stored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvatarUpload"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "413":
+          description: Image body or dimensions exceed the limit.
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          description: The decoded image is not PNG, JPEG, or WebP.
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/tasks/:
+    get:
+      tags: [Tasks]
+      summary: List tasks
+      operationId: listTasks
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: All tasks belonging to the authenticated user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      tags: [Tasks]
+      summary: Create tasks
+      operationId: createTasks
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created tasks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Referenced subject not found.
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Tasks]
+      summary: Delete all tasks
+      operationId: deleteTasks
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: Tasks deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/tasks/{id}:
+    parameters:
+      - $ref: "#/components/parameters/NumericId"
+    get:
+      tags: [Tasks]
+      summary: Get a task
+      operationId: getTask
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Task found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    put:
+      tags: [Tasks]
+      summary: Replace a task
+      operationId: replaceTask
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "200":
+          description: Replaced task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      tags: [Tasks]
+      summary: Update a task
+      description: At least one property must be supplied.
+      operationId: updateTask
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskPatch"
+      responses:
+        "200":
+          description: Updated task.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Tasks]
+      summary: Delete a task
+      operationId: deleteTask
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: Task deleted.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/users/:
+    get:
+      tags: [Users]
+      summary: List users
+      operationId: listUsers
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: All users without password hashes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Users]
+      summary: Delete all users
+      operationId: deleteUsers
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: Users deleted.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/users/{username}:
+    parameters:
+      - $ref: "#/components/parameters/Username"
+    put:
+      tags: [Users]
+      summary: Replace a user
+      description: Replaces username and password and issues a new access token cookie.
+      operationId: replaceUser
+      security:
+        - accessCookie: []
+      requestBody:
+        $ref: "#/components/requestBodies/Credentials"
+      responses:
+        "200":
+          description: Replaced user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    patch:
+      tags: [Users]
+      summary: Update a user
+      description: At least one property must be supplied.
+      operationId: updateUser
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPatch"
+      responses:
+        "200":
+          description: Updated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      tags: [Users]
+      summary: Delete a user
+      operationId: deleteUser
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: User deleted.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /static/lecturer-avatars/{file}:
+    get:
+      tags: [Static files]
+      summary: Get an uploaded lecturer avatar
+      operationId: getLecturerAvatar
+      parameters:
+        - name: file
+          in: path
+          required: true
+          description: Generated WebP filename.
+          schema:
+            type: string
+            pattern: '^[0-9a-f-]+\.webp$'
+          example: 550e8400-e29b-41d4-a716-446655440000.webp
+      responses:
+        "200":
+          description: WebP image.
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  securitySchemes:
+    accessCookie:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: HttpOnly JWT cookie issued by register, login, or refresh.
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+      description: HttpOnly JWT cookie issued by register, login, or refresh.
+  parameters:
+    NumericId:
+      name: id
+      in: path
+      required: true
+      description: Positive database identifier.
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    Username:
+      name: username
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 3
+        maxLength: 32
+        pattern: '^[A-Za-z0-9._]+$'
+  headers:
+    AuthCookies:
+      description: The backend emits separate access_token and refresh_token Set-Cookie headers.
+      schema:
+        type: string
+  requestBodies:
+    Credentials:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Credentials"
+  responses:
+    BadRequest:
+      description: Invalid path parameter, JSON, or field value.
+      content:
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication cookie is missing, invalid, or expired.
+      content:
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Resource not found.
+      content:
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: A user with the requested username already exists.
+      content:
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnsupportedMediaType:
+      description: Content-Type must be application/json.
+      content:
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalError:
+      description: Internal server error.
+      content:
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Error:
+      type: string
+      description: Plain-text error message, usually terminated by a newline.
+      example: unauthorized
+    Credentials:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: '^[A-Za-z0-9._]+$'
+          example: student
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+          writeOnly: true
+          example: strong password
+    User:
+      type: object
+      required: [id, username]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        username:
+          type: string
+          example: student
+    UserPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 32
+          example: updated_student
+        password:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 72
+          writeOnly: true
+          example: another strong password
+    Subject:
+      type: object
+      required: [id, user_id, name, lecturer, lecturer_avatar_url, exam_date]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Databases
+        lecturer:
+          type: string
+          example: Dr. Smith
+        lecturer_avatar_url:
+          type: string
+          example: /static/lecturer-avatars/550e8400-e29b-41d4-a716-446655440000.webp
+        exam_date:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-20T09:00:00Z"
+    SubjectInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: Databases
+        lecturer:
+          type: string
+          example: Dr. Smith
+        lecturer_avatar_url:
+          type: string
+          example: /static/lecturer-avatars/550e8400-e29b-41d4-a716-446655440000.webp
+        exam_date:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-20T09:00:00Z"
+    SubjectPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          example: Advanced Databases
+        lecturer:
+          type: string
+          example: Dr. Jones
+        exam_date:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-21T09:00:00Z"
+    Task:
+      type: object
+      required: [id, name, description, subject_id, deadline, status]
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: Read chapter 4
+        description:
+          type: string
+          example: Write a summary
+        subject_id:
+          type: integer
+          format: int64
+          example: 1
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-10T12:00:00Z"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+    TaskInput:
+      type: object
+      required: [name, subject_id, status]
+      properties:
+        name:
+          type: string
+          example: Read chapter 4
+        description:
+          type: string
+          example: Write a summary
+        subject_id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 1
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-10T12:00:00Z"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+    TaskPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          example: Read chapters 4 and 5
+        description:
+          type: string
+          example: Write a two-page summary
+        subject_id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 1
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-07-11T12:00:00Z"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+    TaskStatus:
+      type: string
+      enum: [not_completed, ongoing, completed]
+      example: ongoing
+    DashboardStatus:
+      type: object
+      required:
+        - total_subjects
+        - total_tasks
+        - total_completed_tasks
+        - total_ongoing_tasks
+        - total_not_completed_tasks
+        - completion_percent
+        - nearest_deadline_task
+        - overdue_tasks
+      properties:
+        total_subjects:
+          type: integer
+          format: int64
+          example: 2
+        total_tasks:
+          type: integer
+          format: int64
+          example: 4
+        total_completed_tasks:
+          type: integer
+          format: int64
+          example: 1
+        total_ongoing_tasks:
+          type: integer
+          format: int64
+          example: 2
+        total_not_completed_tasks:
+          type: integer
+          format: int64
+          example: 1
+        completion_percent:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          example: 25
+        nearest_deadline_task:
+          allOf:
+            - $ref: "#/components/schemas/Task"
+          nullable: true
+        overdue_tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+    AvatarUpload:
+      type: object
+      required: [lecturer_avatar_url]
+      properties:
+        lecturer_avatar_url:
+          type: string
+          example: ./data/lecturer-avatars/550e8400-e29b-41d4-a716-446655440000.webp

@@ -13,12 +13,6 @@ The access token is valid for 15 minutes. The refresh token is valid for 30
 days. `POST /api/auth/refresh` rotates both cookies. In production mode cookies
 also use the `Secure` attribute.
 
-Current limitation: the backend sets the refresh cookie path to `/refresh`,
-while the refresh and logout routes are `/api/auth/refresh` and `/api/logout`.
-A browser therefore does not attach that cookie to either route. Refresh
-rotation and server-side revocation on logout will not work in the normal
-browser flow until those paths are aligned.
-
 Routes with a JSON request body require:
 
 ```http
@@ -71,7 +65,7 @@ POST /api/auth/refresh
 ```
 
 Requires the refresh-token cookie. Success: `204 No Content` and rotated auth
-cookies. See the cookie-path limitation above.
+cookies.
 
 ### Logout
 
@@ -80,8 +74,7 @@ POST /api/logout
 ```
 
 Requires authentication. Revokes the current refresh token when the cookie is
-available, clears both cookies, and returns `204 No Content`. See the
-cookie-path limitation above.
+available, clears both cookies, and returns `204 No Content`.
 
 ## Dashboard
 
