@@ -22,13 +22,15 @@ const usernameSchema = z
 const passwordSchema = z
   .string()
   .refine((value) => getUTF8Length(value) >= 8, {
-    message: "Password must be at least 8 bytes",
+    message: "Password must be at least 8 characters",
   })
   .refine((value) => getUTF8Length(value) <= 72, {
-    message: "Password must be at most 72 bytes",
+    message: "Password must be no longer than 72 characters",
   });
 
 export const RegisterByUsernameSchema = z.object({
   username: usernameSchema,
   password: passwordSchema,
 });
+
+export type RegisterByUsernameFormData = z.infer<typeof RegisterByUsernameSchema>;

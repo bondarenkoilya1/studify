@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-studify-canvas: #f5f9ff;
+  --color-studify-wash: #eaf3ff;
+  --color-studify-surface: #ffffff;
+  --color-studify-field: #f8fbff;
+  --color-studify-border: #bfd4f5;
+  --color-studify-text: #10213b;
+  --color-studify-muted: #60718a;
+  --color-studify-primary: #1677ff;
+  --color-studify-primary-hover: #0866df;
+  --color-studify-primary-active: #0759c2;
+  --color-studify-focus: #8dbdff;
+  --color-studify-shadow: #7da9e8;
+}

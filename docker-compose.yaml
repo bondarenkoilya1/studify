@@ -60,7 +60,9 @@ services:
       dockerfile: Dockerfile.dev
     container_name: studify-frontend
     working_dir: /app
-    command: bun run dev -- --host 0.0.0.0 --port ${FRONTEND_CONTAINER_PORT:-5173}
+    command: >
+      sh -c "bun install --frozen-lockfile &&
+      bun run dev -- --hostname 0.0.0.0 --port ${FRONTEND_CONTAINER_PORT:-5173}"
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:${BACKEND_HOST_PORT:-8080}
     ports:
