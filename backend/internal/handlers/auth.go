@@ -198,33 +198,41 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	refreshTokenCookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			w.WriteHeader(http.StatusUnauthorized)
+			h.rejectRefresh(w)
 			return
 		}
 
 		log.Printf("failed to get refresh token cookie: %v", err)
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
 	userID, refreshTokenID, err := h.Auth.ParseRefreshToken(refreshTokenCookie.Value)
 	if err != nil {
 		log.Printf("failed to parse refresh token: %v", err)
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
-	refreshToken, err := database.GetRefreshTokenByTokenID(h.DB, string(refreshTokenID))
+	tx, err := h.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		log.Printf("failed to begin refresh token transaction: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	refreshToken, err := database.GetRefreshTokenByTokenIDTx(tx, string(refreshTokenID))
 	if err != nil {
 		log.Printf("failed to get refresh token by token ID: %v", err)
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
 	isValid := utils.CompareTokenHash(models.RefreshToken(refreshTokenCookie.Value), refreshToken.TokenHash)
 	if !isValid {
 		log.Printf("refresh token hash mismatch for token ID %q", refreshTokenID)
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
@@ -235,7 +243,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 			userID,
 		)
 
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
@@ -246,21 +254,21 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 			refreshTokenID,
 		)
 
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
 	if refreshToken.RevokedAt != nil {
 		log.Printf("refresh token is revoked: token ID %q", refreshTokenID)
 
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
 	if !refreshToken.ExpiresAt.After(time.Now()) {
 		log.Printf("refresh token is expired: token ID %q", refreshTokenID)
 
-		w.WriteHeader(http.StatusUnauthorized)
+		h.rejectRefresh(w)
 		return
 	}
 
@@ -272,14 +280,6 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	}
 
 	newRefreshTokenHash := utils.HashRefreshToken(newRefreshToken)
-
-	tx, err := h.DB.BeginTx(r.Context(), nil)
-	if err != nil {
-		log.Printf("failed to begin refresh token transaction: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	defer tx.Rollback()
 
 	_, err = database.InsertRefreshTokenTx(
 		tx,
@@ -294,14 +294,14 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.RevokeRefreshTokenTx(tx, string(refreshTokenID)); err != nil {
+	if err = database.ReplaceRefreshTokenTx(tx, string(refreshTokenID), string(newRefreshTokenID)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("refresh token was already revoked: token ID %q", refreshTokenID)
-			w.WriteHeader(http.StatusUnauthorized)
+			h.rejectRefresh(w)
 			return
 		}
 
-		log.Printf("failed to revoke refresh token: %v", err)
+		log.Printf("failed to replace refresh token: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -325,4 +325,10 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) rejectRefresh(w http.ResponseWriter) {
+	h.Auth.ClearAccessToken(w)
+	h.Auth.ClearRefreshToken(w)
+	http.Error(w, "unauthorized", http.StatusUnauthorized)
 }

@@ -48,6 +48,14 @@ func GetRefreshTokenByID(db *sql.DB, id int64) (*models.RefreshTokenRecord, erro
 }
 
 func GetRefreshTokenByTokenID(db *sql.DB, tokenID string) (*models.RefreshTokenRecord, error) {
+	return getRefreshTokenByTokenID(db, tokenID, false)
+}
+
+func GetRefreshTokenByTokenIDTx(tx *sql.Tx, tokenID string) (*models.RefreshTokenRecord, error) {
+	return getRefreshTokenByTokenID(tx, tokenID, true)
+}
+
+func getRefreshTokenByTokenID(exec refreshTokenExecutor, tokenID string, forUpdate bool) (*models.RefreshTokenRecord, error) {
 	query := `
 	SELECT
 		id,
@@ -59,10 +67,13 @@ func GetRefreshTokenByTokenID(db *sql.DB, tokenID string) (*models.RefreshTokenR
 		revoked_at,
 		replaced_by_token_id
 	FROM refresh_tokens
-	WHERE token_id = $1;
+	WHERE token_id = $1
 `
+	if forUpdate {
+		query += "FOR UPDATE"
+	}
 
-	row := db.QueryRow(query, tokenID)
+	row := exec.QueryRow(query, tokenID)
 	refreshToken := &models.RefreshTokenRecord{}
 
 	err := row.Scan(
@@ -303,6 +314,32 @@ func RevokeRefreshToken(db *sql.DB, tokenID string) error {
 
 func RevokeRefreshTokenTx(tx *sql.Tx, tokenID string) error {
 	return revokeRefreshToken(tx, tokenID)
+}
+
+func ReplaceRefreshTokenTx(tx *sql.Tx, tokenID, replacedByTokenID string) error {
+	query := `
+	UPDATE refresh_tokens
+	SET
+		revoked_at = NOW(),
+		replaced_by_token_id = $2
+	WHERE token_id = $1 AND revoked_at IS NULL;
+`
+
+	result, err := tx.Exec(query, tokenID, replacedByTokenID)
+	if err != nil {
+		return fmt.Errorf("failed to replace refresh token: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get replaced refresh tokens count: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }
 
 func revokeRefreshToken(exec refreshTokenExecutor, tokenID string) error {
