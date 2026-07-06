@@ -85,6 +85,27 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user
+      description: Returns the user identified by the access token cookie.
+      operationId: getCurrentUser
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Current authenticated user.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/logout:
     post:
       tags: [Authentication]
@@ -92,12 +113,11 @@ paths:
       description: Revokes the refresh token when available and clears both authentication cookies.
       operationId: logoutUser
       security:
-        - accessCookie: []
+        - refreshCookie: []
+        - {}
       responses:
         "204":
           description: Logged out.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalError"
   /api/dashboard:

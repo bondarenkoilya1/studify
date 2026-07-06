@@ -34,6 +34,27 @@ func GetUserByUsername(db *sql.DB, username string) (*models.User, error) {
 	return user, nil
 }
 
+func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
+	query := `
+		SELECT
+			id,
+			username
+		FROM users
+		WHERE id = $1;
+	`
+
+	user := &models.User{}
+	if err := db.QueryRow(query, id).Scan(&user.ID, &user.Username); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
+	}
+
+	return user, nil
+}
+
 func GetUsers(db *sql.DB) ([]models.User, error) {
 	query := `
 		SELECT

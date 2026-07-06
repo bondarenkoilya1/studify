@@ -27,6 +27,31 @@ func (h *Handler) GetUsers(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := database.GetUserByID(h.DB, userID)
+	if err != nil {
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to get current user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(user); err != nil {
+		log.Printf("failed to encode current user to JSON: %v", err)
+	}
+}
+
 func (h *Handler) ReplaceUser(w http.ResponseWriter, r *http.Request) {
 	currentUsername := chi.URLParam(r, "username")
 	if currentUsername == "" {
