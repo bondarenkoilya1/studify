@@ -7,10 +7,11 @@ import {
 import { registerByUsername } from "@/features/register-by-username/api";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { router } from "next/client";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/app/providers/auth-provider";
 
 export function useRegisterForm() {
+  const router = useRouter();
   const { setAuthenticatedUser, setLoading, setError } = useAuth();
   const {
     register,
@@ -25,6 +26,7 @@ export function useRegisterForm() {
       setLoading();
       const user = await registerByUsername(data);
       setAuthenticatedUser(user);
+      router.push("/");
     } catch {
       setError();
     }
