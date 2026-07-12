@@ -1,8 +1,5 @@
 import * as z from "zod";
-
-function getUTF8Length(string: string): number {
-  return new TextEncoder().encode(string).length;
-}
+import { getUTF8Length } from "@/shared/utils";
 
 const usernameSchema = z
   .string()

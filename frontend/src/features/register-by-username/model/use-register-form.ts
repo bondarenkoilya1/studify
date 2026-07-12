@@ -8,7 +8,7 @@ import { registerByUsername } from "@/features/register-by-username/api";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/providers/auth-provider";
+import { useAuth } from "@/shared/providers";
 
 export function useRegisterForm() {
   const router = useRouter();
