@@ -147,6 +147,9 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	//
 
 	w.WriteHeader(http.StatusOK)
+	if err = json.NewEncoder(w).Encode(user); err != nil {
+		log.Printf("failed to encode user to JSON: %v", err)
+	}
 }
 
 func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {

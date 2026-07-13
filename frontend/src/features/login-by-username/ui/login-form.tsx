@@ -1,11 +1,15 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
-import Link from "next/link";
+import { useLoginForm } from "@/features/login-by-username/model/use-login-form";
 
 export const LoginForm = () => {
+  const { registerField, errors, isSubmitting, onSubmit } = useLoginForm();
+
   return (
     <div className="w-full max-w-md">
       <div className="mb-7 flex flex-col items-center sm:mb-9">
@@ -18,7 +22,10 @@ export const LoginForm = () => {
         </p>
       </div>
 
-      <form className="border-studify-border bg-studify-surface shadow-studify-shadow/20 rounded-2xl border p-5 shadow-xl sm:p-8">
+      <form
+        className="border-studify-border bg-studify-surface shadow-studify-shadow/20 rounded-2xl border p-5 shadow-xl sm:p-8"
+        onSubmit={onSubmit}
+      >
         <div className="space-y-5 sm:space-y-6">
           <FormField htmlFor="username" label="Username">
             <Input
@@ -27,7 +34,16 @@ export const LoginForm = () => {
               placeholder="octocat"
               autoComplete="username"
               controlSize="large"
+              aria-describedby={errors.username ? "username-error" : undefined}
+              aria-invalid={Boolean(errors.username)}
+              {...registerField("username")}
             />
+
+            {errors.username?.message && (
+              <p className="mt-2 text-sm text-red-500" id="username-error">
+                {errors.username.message}
+              </p>
+            )}
           </FormField>
 
           <FormField htmlFor="password" label="Password">
@@ -37,11 +53,20 @@ export const LoginForm = () => {
               placeholder="Your password"
               autoComplete="current-password"
               controlSize="large"
+              aria-describedby={errors.password ? "password-error" : undefined}
+              aria-invalid={Boolean(errors.password)}
+              {...registerField("password")}
             />
+
+            {errors.password?.message && (
+              <p className="mt-2 text-sm text-red-500" id="password-error">
+                {errors.password.message}
+              </p>
+            )}
           </FormField>
 
-          <Button className="w-full" controlSize="large" type="submit">
-            Sign in
+          <Button className="w-full" controlSize="large" disabled={isSubmitting} type="submit">
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
         </div>
 

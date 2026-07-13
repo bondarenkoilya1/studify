@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
@@ -14,6 +16,7 @@ export const RegisterForm = () => {
         <h1 className="text-center text-3xl font-light tracking-[-0.03em] sm:text-4xl">
           Create your account
         </h1>
+
         <p className="text-studify-muted mt-3 text-center text-base sm:text-lg">
           Join Studify and start learning.
         </p>
@@ -35,6 +38,7 @@ export const RegisterForm = () => {
               aria-invalid={Boolean(errors.username)}
               {...registerField("username")}
             />
+
             {errors.username?.message && (
               <p className="mt-2 text-sm text-red-500" id="username-error">
                 {errors.username.message}
@@ -53,6 +57,7 @@ export const RegisterForm = () => {
               aria-invalid={Boolean(errors.password)}
               {...registerField("password")}
             />
+
             {errors.password?.message && (
               <p className="mt-2 text-sm text-red-500" id="password-error">
                 {errors.password.message}
@@ -63,6 +68,16 @@ export const RegisterForm = () => {
           <Button className="w-full" controlSize="large" disabled={isSubmitting} type="submit">
             {isSubmitting ? "Creating..." : "Create account"}
           </Button>
+
+          <p className="text-studify-muted text-center text-sm">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-foreground font-medium transition-colors hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
         </div>
       </form>
     </div>

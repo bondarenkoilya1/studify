@@ -1,8 +1,9 @@
 import { User } from "@/entities/user";
 import { httpClient } from "@/shared/api/httpClient";
 import { env } from "@/shared/config";
+import type { UserRequest } from "@/shared/api/auth";
 
-export function loginByUsername(username: string, password: string): Promise<User> {
+export function loginByUsername({ username, password }: UserRequest): Promise<User> {
   const url = env.apiBaseUrl + "/api/auth/login";
   const options: RequestInit = {
     method: "POST",
