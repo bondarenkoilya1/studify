@@ -1,7 +1,7 @@
-import { httpClient } from "@/shared/api/httpClient";
 import type { User } from "@/entities/user";
-import type { UserRequest } from "@/shared/api/auth";
 import { env } from "@/shared/config";
+import { UserRequest } from "@/shared/types";
+import { httpClient } from "@/shared/api/client";
 
 export function registerByUsername({ username, password }: UserRequest): Promise<User> {
   const url = env.apiBaseUrl + "/api/auth/register";

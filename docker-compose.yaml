@@ -65,6 +65,7 @@ services:
       bun run dev -- --hostname 0.0.0.0 --port ${FRONTEND_CONTAINER_PORT:-5173}"
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:${BACKEND_HOST_PORT:-8080}
+      API_INTERNAL_BASE_URL: http://backend:${BACKEND_CONTAINER_PORT:-8080}
     ports:
       - "${FRONTEND_HOST_PORT:-5173}:${FRONTEND_CONTAINER_PORT:-5173}"
     volumes:

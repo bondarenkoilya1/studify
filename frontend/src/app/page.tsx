@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { CenteredPage } from "@/shared/ui/centered-page";
+import { getMe } from "@/shared/api/server";
 
-export default function Home() {
+export default async function Home() {
+  const user = await getMe();
+  console.log(user);
+
   return (
     <CenteredPage>
       <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
