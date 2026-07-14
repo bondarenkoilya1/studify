@@ -1,10 +1,10 @@
 import type { User } from "@/entities/user";
-import { env } from "@/shared/config";
+import { publicEnv } from "@/shared/config/public-env";
 import { UserRequest } from "@/shared/types";
 import { httpClient } from "@/shared/api/client";
 
 export function registerByUsername({ username, password }: UserRequest): Promise<User> {
-  const url = env.apiBaseUrl + "/api/auth/register";
+  const url = publicEnv.apiBaseUrl + "/api/auth/register";
   const options: RequestInit = {
     method: "POST",
     headers: {

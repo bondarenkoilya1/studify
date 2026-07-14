@@ -1,0 +1,13 @@
+import { z } from "zod";
+
+const schema = z.object({
+  NEXT_PUBLIC_API_BASE_URL: z.url(),
+});
+
+const env = schema.parse({
+  NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+});
+
+export const publicEnv = {
+  apiBaseUrl: env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, ""),
+};

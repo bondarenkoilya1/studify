@@ -4,7 +4,6 @@ import { getMe } from "@/shared/api/server";
 
 export default async function Home() {
   const user = await getMe();
-  console.log(user);
 
   return (
     <CenteredPage>
