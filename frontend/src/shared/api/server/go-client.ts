@@ -17,4 +17,20 @@ export const goClient = {
 
     return fetch(url, { method: "GET", headers });
   },
+  async post(path: string, body?: BodyInit, options?: RequestInit): Promise<Response> {
+    if (!env.apiBaseUrl) {
+      throw new Error("API_INTERNAL_BASE_URL is not set");
+    }
+
+    const url = `${env.apiBaseUrl}/api/${path.replace(/^\//, "")}`;
+    const cookieStore = await cookies();
+
+    const headers = new Headers({
+      Cookie: cookieStore.toString(),
+      Accept: "application/json",
+      ...options?.headers,
+    });
+
+    return fetch(url, { method: "POST", headers, body, ...options });
+  },
 };
