@@ -21,9 +21,16 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [status, setStatus] = useState<AuthStatus>("idle");
+type AuthProviderProps = {
+  children: ReactNode;
+  initialUser: User | null;
+};
+
+export function AuthProvider({ children, initialUser }: AuthProviderProps) {
+  const [user, setUser] = useState<User | null>(initialUser);
+  const [status, setStatus] = useState<AuthStatus>(
+    initialUser ? "authenticated" : "idle"
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
