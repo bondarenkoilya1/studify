@@ -5,6 +5,8 @@ import { getMe } from "@/shared/api/server";
 export default async function Home() {
   const user = await getMe();
 
+  console.table(user);
+
   return (
     <CenteredPage>
       <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
