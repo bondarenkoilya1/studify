@@ -2,6 +2,7 @@
 
 import { cn } from "@/shared/lib/cn";
 import { useEffect, useRef, useState } from "react";
+import { LogoutButton } from "@/features/logout-button/ui/logout-button";
 
 type ProfileButtonProps = {
   userName: string;
@@ -32,7 +33,7 @@ export function ProfileButton({ userName, userId }: ProfileButtonProps) {
         className={cn(
           "flex items-center gap-3 rounded-lg border border-studify-border bg-studify-surface px-4 py-2 text-sm",
           "shadow-sm transition-colors hover:bg-studify-field",
-          "focus-visible:ring-studify-focus/50 focus-visible:outline-none focus-visible:ring-[3px]"
+          "focus-visible:ring-studify-focus/50 focus-visible:outline-none focus-visible:ring-[3px]",
         )}
       >
         <span className="font-medium text-studify-text">{userName}</span>
@@ -45,17 +46,10 @@ export function ProfileButton({ userName, userId }: ProfileButtonProps) {
         <div
           className={cn(
             "absolute right-0 top-full z-10 mt-2 min-w-max rounded-lg border border-studify-border",
-            "bg-studify-surface shadow-lg"
+            "bg-studify-surface shadow-lg",
           )}
         >
-          <button
-            className={cn(
-              "block w-full px-4 py-2 text-left text-sm font-medium text-red-500",
-              "bg-studify-surface hover:bg-studify-field transition-colors rounded-lg"
-            )}
-          >
-            Log out
-          </button>
+          <LogoutButton />
         </div>
       )}
     </div>
