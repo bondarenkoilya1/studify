@@ -9,30 +9,34 @@ import { LoginByUsernameFormData, LoginByUsernameSchema } from "@/features/login
 
 export function useLoginForm() {
   const router = useRouter();
-  const { setAuthenticatedUser, setLoading, setError } = useAuth();
+  const { setUser } = useAuth();
+
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<LoginByUsernameFormData>({
     resolver: zodResolver(LoginByUsernameSchema),
   });
 
-  async function onSubmit(data: LoginByUsernameFormData) {
+  const onSubmit = handleSubmit(async (data) => {
     try {
-      setLoading();
       const user = await loginByUsername(data);
-      setAuthenticatedUser(user);
+      setUser(user);
       router.push("/");
+      router.refresh();
     } catch {
-      setError();
+      setError("root", {
+        message: "Invalid username or password",
+      });
     }
-  }
+  });
 
   return {
     registerField: register,
     errors,
     isSubmitting,
-    onSubmit: handleSubmit(onSubmit),
+    onSubmit,
   };
 }

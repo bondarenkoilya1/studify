@@ -15,13 +15,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
+  console.time("getMe");
+
   const user = await getMe();
+
+  console.timeEnd("getMe");
 
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-studify-canvas">
-        <Header user={user} />
-        <Providers user={user}>{children}</Providers>
+        <Providers user={user}>
+          <Header user={user} />
+          {children}
+        </Providers>
       </body>
     </html>
   );
