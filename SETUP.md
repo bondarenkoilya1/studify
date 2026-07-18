@@ -11,11 +11,11 @@
 Create the root environment file:
 
 ```bash
-make env
+make publicEnv
 ```
 
 `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be non-empty. Use different,
-random values. All supported root variables are listed in `.env.example`.
+random values. All supported root variables are listed in `.publicEnv.example`.
 
 Start the stack:
 
@@ -49,15 +49,15 @@ explicitly remove the Compose volume separately.
 
 ## Backend outside Docker
 
-Create `backend/.env` from `backend/.env.example` and fill every required value:
+Create `backend/.publicEnv` from `backend/.publicEnv.example` and fill every required value:
 
 ```bash
-cp backend/.env.example backend/.env
+cp backend/.publicEnv.example backend/.publicEnv
 ```
 
 Example:
 
-```env
+```publicEnv
 JWT_ACCESS_SECRET=replace-with-a-random-secret
 JWT_REFRESH_SECRET=replace-with-a-different-random-secret
 ISSUER=studify
@@ -81,7 +81,7 @@ make -C backend fmt-check
 make -C backend vet
 ```
 
-The backend Makefile loads `backend/.env` automatically when it exists.
+The backend Makefile loads `backend/.publicEnv` automatically when it exists.
 
 ## Migrations
 

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxlintc/configuration_schema.json",
+  "plugins": ["react", "react-perf", "typescript", "unicorn", "next"],
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "globals": {
+    "React": "readonly"
+  },
+  "rules": {
+    "correctness": "error",
+    "perf": "warn",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "style": "off",
+    "restriction": "off"
+  },
+  "ignorePatterns": ["node_modules", "dist", "build", ".next", "coverage", "*.tsbuildinfo"]
+}

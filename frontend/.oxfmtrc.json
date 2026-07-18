@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oxc-project/oxc/main/crates/oxfmt/configuration_schema.json",
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "quoteProps": "as-needed",
+  "jsxSingleQuote": false,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "arrowParens": "always",
+  "endOfLine": "lf",
+  "sortPackageJson": true,
+  "plugins": [
+    "oxfmt-plugin-tailwind"
+  ],
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    "coverage",
+    "*.tsbuildinfo",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ]
+}

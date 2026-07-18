@@ -38,12 +38,12 @@ rebuilt.
 Requirements: Docker with the Compose plugin and `psql`.
 
 ```bash
-make env
+make publicEnv
 ```
 
-Set non-empty secrets in `.env`:
+Set non-empty secrets in `.publicEnv`:
 
-```env
+```publicEnv
 JWT_ACCESS_SECRET=replace-with-a-random-secret
 JWT_REFRESH_SECRET=replace-with-a-different-random-secret
 ```

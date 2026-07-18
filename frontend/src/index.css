@@ -8,9 +8,12 @@
   --color-studify-border: #bfd4f5;
   --color-studify-text: #10213b;
   --color-studify-muted: #60718a;
+
+  /* Разделяем имена четко, чтобы линтер не путал префиксы */
   --color-studify-primary: #1677ff;
-  --color-studify-primary-hover: #0866df;
-  --color-studify-primary-active: #0759c2;
+  --color-studify-hover: #0866df;
+  --color-studify-active: #0759c2;
+
   --color-studify-focus: #8dbdff;
   --color-studify-shadow: #7da9e8;
 }

@@ -1,6 +1,6 @@
-import { httpClient } from "@/shared/api/client";
+import { httpClient } from "@/shared/api";
 
 export async function logout() {
-  await httpClient<void>("/api/auth/logout", { method: "POST" });
-  window.localStorage.href = "/";
+  await httpClient.post<void>("/api/auth/logout");
+  window.location.href = "/";
 }

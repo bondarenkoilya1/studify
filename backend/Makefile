@@ -1,8 +1,8 @@
 APP_NAME ?= studify
 MAIN ?= ./cmd/api
 
-ifneq (,$(wildcard .env))
-include .env
+ifneq (,$(wildcard .publicEnv))
+include .publicEnv
 export
 endif
 

@@ -1,7 +1,3 @@
-"use client";
-
-import Link from "next/link";
-
 import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
@@ -11,21 +7,27 @@ export const RegisterForm = () => {
   const { registerField, errors, isSubmitting, onSubmit } = useRegisterForm();
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md text-studify-text">
       <div className="mb-7 flex flex-col items-center sm:mb-9">
         <h1 className="text-center text-3xl font-light tracking-[-0.03em] sm:text-4xl">
           Create your account
         </h1>
 
-        <p className="text-studify-muted mt-3 text-center text-base sm:text-lg">
+        <p className="mt-3 text-center text-base text-studify-muted sm:text-lg">
           Join Studify and start learning.
         </p>
       </div>
 
       <form
-        className="border-studify-border bg-studify-surface shadow-studify-shadow/20 rounded-2xl border p-5 shadow-xl sm:p-8"
+        className="rounded-2xl border border-studify-border bg-studify-surface p-5 shadow-xl shadow-studify-shadow/10 sm:p-8"
         onSubmit={onSubmit}
       >
+        {errors.root?.message && (
+          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+            {errors.root.message}
+          </div>
+        )}
+
         <div className="space-y-5 sm:space-y-6">
           <FormField htmlFor="username" label="Username">
             <Input
@@ -65,18 +67,23 @@ export const RegisterForm = () => {
             )}
           </FormField>
 
-          <Button className="w-full" controlSize="large" disabled={isSubmitting} type="submit">
+          <Button
+            className="w-full bg-studify-primary text-white hover:bg-studify-hover active:bg-studify-active transition-colors duration-200"
+            controlSize="large"
+            disabled={isSubmitting}
+            type="submit"
+          >
             {isSubmitting ? "Creating..." : "Create account"}
           </Button>
 
-          <p className="text-studify-muted text-center text-sm">
+          <p className="text-center text-sm text-studify-muted">
             Already have an account?{" "}
-            <Link
+            <a
               href="/login"
-              className="text-foreground font-medium transition-colors hover:underline"
+              className="font-medium text-studify-primary transition-colors hover:text-studify-hover hover:underline"
             >
               Sign in
-            </Link>
+            </a>
           </p>
         </div>
       </form>

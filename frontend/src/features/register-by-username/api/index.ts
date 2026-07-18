@@ -1,10 +1,12 @@
 import type { User } from "@/entities/user";
-import { UserRequest } from "@/shared/types";
-import { httpClient } from "@/shared/api/client";
+import { httpClient } from "@/shared/api";
+import type { UserRequest } from "@/shared/types";
 
-export function registerByUsername({ username, password }: UserRequest): Promise<User> {
-  return httpClient<User>("/api/auth/register", {
-    method: "POST",
+export function registerByUsername({
+  username,
+  password,
+}: UserRequest): Promise<User> {
+  return httpClient.post<User>("/api/auth/register", {
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",

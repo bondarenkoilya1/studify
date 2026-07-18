@@ -1,10 +1,10 @@
 .idea
 .DS_Store
-.env
+.publicEnv
 
 backend/tmp
 backend/.air.toml
 backend/data/*.db
-backend/.env
+backend/.publicEnv
 
 ai

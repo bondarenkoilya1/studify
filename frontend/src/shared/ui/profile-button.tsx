@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/shared/lib/cn";
 import { useEffect, useRef, useState } from "react";
 import { LogoutButton } from "@/features/logout-button/ui/logout-button";
@@ -15,14 +13,18 @@ export function ProfileButton({ userName, userId }: ProfileButtonProps) {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 

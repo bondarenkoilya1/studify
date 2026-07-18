@@ -1,5 +1,5 @@
-ifneq (,$(wildcard .env))
-include .env
+ifneq (,$(wildcard .publicEnv))
+include .publicEnv
 export
 endif
 
@@ -19,16 +19,16 @@ endif
 MIGRATIONS_DIR = backend/migrations
 POSTGRES_DSN = postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_HOST_PORT)/$(POSTGRES_DB)?sslmode=disable
 
-.PHONY: env check-docker-env docker-up docker-down docker-ps docker-logs migrate-up migrate-down backend-run backend-test
+.PHONY: publicEnv check-docker-publicEnv docker-up docker-down docker-ps docker-logs migrate-up migrate-down backend-run backend-test
 
-env:
-	test -f .env || cp .env.example .env
+publicEnv:
+	test -f .publicEnv || cp .publicEnv.example .publicEnv
 
-check-docker-env:
-	@test -n "$(JWT_ACCESS_SECRET)" || (echo "JWT_ACCESS_SECRET is required in .env"; exit 1)
-	@test -n "$(JWT_REFRESH_SECRET)" || (echo "JWT_REFRESH_SECRET is required in .env"; exit 1)
+check-docker-publicEnv:
+	@test -n "$(JWT_ACCESS_SECRET)" || (echo "JWT_ACCESS_SECRET is required in .publicEnv"; exit 1)
+	@test -n "$(JWT_REFRESH_SECRET)" || (echo "JWT_REFRESH_SECRET is required in .publicEnv"; exit 1)
 
-docker-up: check-docker-env
+docker-up: check-docker-publicEnv
 	docker compose up --build -d
 
 docker-down:

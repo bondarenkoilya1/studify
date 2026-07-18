@@ -1,23 +1,16 @@
-"use client";
-
 import { useState } from "react";
 import { cn } from "@/shared/lib/cn";
 import { logout } from "@/features/logout-button";
-import { useAuth } from "@/shared/providers";
-import { useRouter } from "next/navigation";
 
 export function LogoutButton() {
   const [loading, setLoading] = useState(false);
-  const { setUser } = useAuth();
-  const router = useRouter();
 
   async function handleClick() {
     if (loading) return;
     setLoading(true);
     try {
       await logout();
-      setUser(null);
-      router.refresh();
+      console.log("Logout button clicked");
     } catch (err) {
       console.error("Logout failed", err);
       // TODO: show error in a toast when a toast/toastify library is added to the project

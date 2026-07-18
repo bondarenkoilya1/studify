@@ -1,43 +1,38 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
   "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "dev": "next dev --webpack",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "lint:fix": "oxlint --fix",
-    "format": "oxfmt --write .",
-    "format:check": "oxfmt --check .",
-    "typecheck": "tsc --noEmit",
-    "check": "bun run typecheck && bun run lint && bun run format:check"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
-    "next": "16.2.10",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "react-hook-form": "^7.80.0",
+    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-router": "^1.170.18",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hook-form": "^7.82.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "babel-plugin-react-compiler": "1.0.0",
-    "oxfmt": "^0.57.0",
-    "oxlint": "^1.72.0",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  },
-  "ignoreScripts": [
-    "sharp",
-    "unrs-resolver"
-  ],
-  "trustedDependencies": [
-    "sharp",
-    "unrs-resolver"
-  ]
+    "@babel/core": "^7.29.7",
+    "@rolldown/plugin-babel": "^0.2.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-plugin": "^1.168.22",
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1"
+  }
 }

@@ -62,8 +62,8 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) IsProduction() bool {
-	env := strings.ToLower(c.Env)
-	return env == "prod" || env == "production"
+	publicEnv := strings.ToLower(c.Env)
+	return publicEnv == "prod" || publicEnv == "production"
 }
 
 func splitEnvList(value string) []string {

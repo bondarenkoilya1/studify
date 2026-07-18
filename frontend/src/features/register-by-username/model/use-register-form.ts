@@ -1,19 +1,12 @@
-"use client";
-
 import {
-  RegisterByUsernameFormData,
+  type RegisterByUsernameFormData,
   RegisterByUsernameSchema,
 } from "@/features/register-by-username/model/schema";
 import { registerByUsername } from "@/features/register-by-username/api";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useAuth } from "@/shared/providers";
 
 export function useRegisterForm() {
-  const router = useRouter();
-  const { setUser } = useAuth();
-
   const {
     register,
     handleSubmit,
@@ -26,9 +19,7 @@ export function useRegisterForm() {
   const onSubmit = handleSubmit(async (data) => {
     try {
       const user = await registerByUsername(data);
-      setUser(user);
-      router.push("/");
-      router.refresh();
+      console.log("User has been registered", user);
     } catch {
       setError("root", {
         message: "Failed to register",
