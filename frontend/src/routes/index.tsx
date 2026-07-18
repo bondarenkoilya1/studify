@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({ component: HomePage });
 
@@ -14,19 +14,19 @@ function HomePage() {
         </p>
 
         <div className="mt-8 flex flex-col gap-3">
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="flex h-12 items-center justify-center rounded-xl bg-studify-primary font-semibold text-white no-underline transition-colors duration-200 hover:bg-studify-hover active:bg-studify-active focus:outline-none focus:ring-2 focus:ring-studify-focus"
           >
             Войти
-          </a>
+          </Link>
 
-          <a
-            href="/register"
+          <Link
+            to="/register"
             className="flex h-12 items-center justify-center rounded-xl border border-studify-border bg-studify-surface font-semibold text-studify-primary no-underline transition-colors duration-200 hover:bg-studify-wash active:bg-studify-field focus:outline-none focus:ring-2 focus:ring-studify-focus"
           >
             Зарегистрироваться
-          </a>
+          </Link>
         </div>
       </section>
     </main>

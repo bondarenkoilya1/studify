@@ -12,11 +12,13 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
     throw new Error(`HTTP request failed with status ${response.status}`);
   }
 
-  if (response.status === 204) {
-    return undefined as T;
+  const text = await response.text();
+
+  if (!text) {
+    return {} as T;
   }
 
-  return (await response.json()) as T;
+  return JSON.parse(text) as T;
 }
 
 export const httpClient = {

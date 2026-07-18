@@ -5,32 +5,40 @@ import {
   type LoginByUsernameFormData,
   LoginByUsernameSchema,
 } from "@/features/login-by-username";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 
 export function useLoginForm() {
   const {
     register,
     handleSubmit,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginByUsernameFormData>({
     resolver: zodResolver(LoginByUsernameSchema),
   });
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const onSubmit = handleSubmit(async (data) => {
-    try {
-      const user = await loginByUsername(data);
-      console.log("User has been logged in", user);
-    } catch {
+  const loginMutation = useMutation({
+    mutationFn: loginByUsername,
+    onSuccess: () => {
+      queryClient
+        .invalidateQueries({ queryKey: ["user"] })
+        .then(() => navigate({ to: "/" }));
+    },
+    onError: () =>
       setError("root", {
         message: "Invalid username or password",
-      });
-    }
+      }),
   });
+
+  const onSubmit = handleSubmit((data) => loginMutation.mutate(data));
 
   return {
     registerField: register,
     errors,
-    isSubmitting,
+    isSubmitting: loginMutation.isPending,
     onSubmit,
   };
 }

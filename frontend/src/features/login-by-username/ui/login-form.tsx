@@ -2,6 +2,7 @@ import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { useLoginForm } from "@/features/login-by-username/model/use-login-form";
+import { Link } from "@tanstack/react-router";
 
 export const LoginForm = () => {
   const { registerField, errors, isSubmitting, onSubmit } = useLoginForm();
@@ -80,12 +81,12 @@ export const LoginForm = () => {
         <div className="mt-6 text-center text-sm">
           <span className="text-studify-muted">Don't have an account? </span>
 
-          <a
-            href="/register"
+          <Link
+            to="/register"
             className="font-medium text-studify-primary transition-colors hover:text-studify-hover hover:underline"
           >
             Create one
-          </a>
+          </Link>
         </div>
       </form>
     </div>
