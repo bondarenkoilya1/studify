@@ -11,8 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuestRouteImport } from './routes/_guest'
+import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
+import { Route as ProtectedUsernameIndexRouteImport } from './routes/_protected/$username/index'
+import { Route as ProtectedUsernameSettingsRouteImport } from './routes/_protected/$username/settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -21,6 +24,10 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const GuestRoute = GuestRouteImport.update({
   id: '/_guest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedRoute = ProtectedRouteImport.update({
+  id: '/_protected',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuestLoginRoute = GuestLoginRouteImport.update({
@@ -33,35 +40,63 @@ const GuestRegisterRoute = GuestRegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => GuestRoute,
 } as any)
+const ProtectedUsernameIndexRoute = ProtectedUsernameIndexRouteImport.update({
+  id: '/$username/',
+  path: '/$username/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedUsernameSettingsRoute =
+  ProtectedUsernameSettingsRouteImport.update({
+    id: '/$username/settings',
+    path: '/$username/settings',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
+  '/$username/settings': typeof ProtectedUsernameSettingsRoute
+  '/$username/': typeof ProtectedUsernameIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
+  '/$username/settings': typeof ProtectedUsernameSettingsRoute
+  '/$username': typeof ProtectedUsernameIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_guest': typeof GuestRouteWithChildren
+  '/_protected': typeof ProtectedRouteWithChildren
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
+  '/_protected/$username/settings': typeof ProtectedUsernameSettingsRoute
+  '/_protected/$username/': typeof ProtectedUsernameIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register'
+  fullPaths:
+    '/' | '/login' | '/register' | '/$username/settings' | '/$username/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register'
-  id: '__root__' | '/' | '/_guest' | '/_guest/login' | '/_guest/register'
+  to: '/' | '/login' | '/register' | '/$username/settings' | '/$username'
+  id:
+    | '__root__'
+    | '/'
+    | '/_guest'
+    | '/_protected'
+    | '/_guest/login'
+    | '/_guest/register'
+    | '/_protected/$username/settings'
+    | '/_protected/$username/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GuestRoute: typeof GuestRouteWithChildren
+  ProtectedRoute: typeof ProtectedRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -80,6 +115,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ProtectedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_guest/login': {
       id: '/_guest/login'
       path: '/login'
@@ -93,6 +135,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/register'
       preLoaderRoute: typeof GuestRegisterRouteImport
       parentRoute: typeof GuestRoute
+    }
+    '/_protected/$username/': {
+      id: '/_protected/$username/'
+      path: '/$username'
+      fullPath: '/$username/'
+      preLoaderRoute: typeof ProtectedUsernameIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/$username/settings': {
+      id: '/_protected/$username/settings'
+      path: '/$username/settings'
+      fullPath: '/$username/settings'
+      preLoaderRoute: typeof ProtectedUsernameSettingsRouteImport
+      parentRoute: typeof ProtectedRoute
     }
   }
 }
@@ -109,9 +165,24 @@ const GuestRouteChildren: GuestRouteChildren = {
 
 const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
 
+interface ProtectedRouteChildren {
+  ProtectedUsernameSettingsRoute: typeof ProtectedUsernameSettingsRoute
+  ProtectedUsernameIndexRoute: typeof ProtectedUsernameIndexRoute
+}
+
+const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedUsernameSettingsRoute: ProtectedUsernameSettingsRoute,
+  ProtectedUsernameIndexRoute: ProtectedUsernameIndexRoute,
+}
+
+const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
+  ProtectedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GuestRoute: GuestRouteWithChildren,
+  ProtectedRoute: ProtectedRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
