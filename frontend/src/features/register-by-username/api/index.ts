@@ -6,11 +6,5 @@ export function registerByUsername({
   username,
   password,
 }: UserRequest): Promise<User> {
-  return httpClient.post<User>("/api/auth/register", {
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ username, password }),
-  });
+  return httpClient.post<User>("/api/auth/register", { username, password });
 }

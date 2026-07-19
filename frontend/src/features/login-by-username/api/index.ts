@@ -7,10 +7,7 @@ export function loginByUsername({
   password,
 }: UserRequest): Promise<User> {
   return httpClient.post<User>("/api/auth/login", {
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ username, password }),
+    username,
+    password,
   });
 }
