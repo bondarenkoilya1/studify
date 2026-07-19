@@ -1,11 +1,13 @@
 import { cn } from "@/shared/lib/cn";
 import { LoginButton } from "@/shared/ui/login-button";
 import { SignupButton } from "@/shared/ui/signup-button";
-import type { User } from "@/entities/user";
+import { useCurrentUser } from "@/entities/user";
 import { Link } from "@tanstack/react-router";
 import { ProfileMenu } from "@/widgets/profile-menu";
 
-export function Header({ user }: { user: User | null }) {
+export function Header() {
+  const { data: user } = useCurrentUser();
+
   return (
     <header
       className={cn(
