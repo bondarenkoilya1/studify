@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { logout } from "@/features/logout-button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useLogout() {
   const queryClient = useQueryClient();
@@ -7,6 +7,5 @@ export function useLogout() {
   return useMutation({
     mutationFn: logout,
     onSuccess: () => queryClient.setQueryData(["user"], null),
-    onError: (error) => console.error(error),
   });
 }

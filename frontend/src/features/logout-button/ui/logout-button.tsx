@@ -2,29 +2,22 @@ import { cn } from "@/shared/lib/cn";
 import { useLogout } from "@/features/logout-button/model";
 
 export function LogoutButton() {
-  const logoutMutation = useLogout();
-
-  async function handleClick() {
-    try {
-      await logoutMutation.mutateAsync();
-    } catch (err) {
-      console.error("Logout failed", err);
-    }
-  }
+  const { mutate, isPending } = useLogout();
 
   return (
     <button
       type="button"
-      onClick={handleClick}
-      disabled={logoutMutation.isPending}
-      aria-label="Log out"
+      onClick={() => mutate()}
+      disabled={isPending}
       className={cn(
-        "block w-full px-4 py-2 text-left text-sm font-medium text-red-500",
-        "bg-studify-surface hover:bg-studify-field transition-colors rounded-lg",
-        logoutMutation.isPending ? "opacity-50 cursor-not-allowed" : "",
+        "block w-full cursor-pointer px-4 py-2 text-left text-sm font-medium text-red-500",
+        "bg-studify-surface rounded-lg transition-colors",
+        "hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30",
+        "focus-visible:bg-red-50 focus-visible:text-red-600 focus-visible:outline-none",
+        isPending && "opacity-50 cursor-not-allowed",
       )}
     >
-      {logoutMutation.isPending ? "Logging out..." : "Log out"}
+      {isPending ? "Logging out..." : "Log out"}
     </button>
   );
 }
