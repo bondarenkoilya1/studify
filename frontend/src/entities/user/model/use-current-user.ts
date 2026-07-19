@@ -1,9 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { getMe } from "@/entities/user/api";
+import { userQuery } from "@/entities/user/model/user-query";
 
-export function useCurrentUser() {
-  return useQuery({
-    queryKey: ["user"],
-    queryFn: getMe,
-  });
-}
+export const useCurrentUser = () => useQuery(userQuery);
