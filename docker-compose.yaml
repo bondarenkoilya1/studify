@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: studify-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-studify}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-studify}
@@ -20,7 +19,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: studify-backend
     working_dir: /app
     command: air
     environment:
@@ -31,6 +29,12 @@ services:
       SERVER_ADDR: :${BACKEND_CONTAINER_PORT:-8080}
       ENV: ${ENV:-dev}
       CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_HOST_PORT:-5173},http://localhost:${SWAGGER_HOST_PORT:-8081},http://localhost:3000
+      MAIL_PROVIDER: ${MAIL_PROVIDER:-smtp}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@studify.dev}
     ports:
       - "${BACKEND_HOST_PORT:-8080}:${BACKEND_CONTAINER_PORT:-8080}"
     volumes:
@@ -39,10 +43,25 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    volumes:
+      - mailpit_data:/data
+    ports:
+      - "${MAILPIT_WEB_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
   swagger:
     image: swaggerapi/swagger-ui:v5.30.2
-    container_name: studify-swagger
     environment:
       SWAGGER_JSON: /spec/openapi.yaml
       WITH_CREDENTIALS: "true"
@@ -58,7 +77,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: studify-frontend
     working_dir: /app
     command: >
       sh -c "bun install --frozen-lockfile &&
@@ -76,4 +94,5 @@ services:
 volumes:
   postgres_data:
   backend_tmp:
+  mailpit_data:
   frontend_node_modules:
