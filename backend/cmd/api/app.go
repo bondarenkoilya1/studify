@@ -6,6 +6,7 @@ import (
 	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/handlers"
+	"studify/internal/mail"
 	"studify/internal/utils"
 )
 
@@ -46,6 +47,16 @@ func run() error {
 		return err
 	}
 	defer app.close()
+
+	c, err := mail.ConnectSMTP("mailpit:1025")
+	if err != nil {
+		println(err)
+	}
+	defer c.Quit()
+
+	if err := mail.SendConfirmationEmail(c, "noreply@studify.com", "gumbalt@gmail.com", "link#$"); err != nil {
+		println(err)
+	}
 
 	return http.ListenAndServe(app.addr, app.router)
 }
