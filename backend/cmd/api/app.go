@@ -60,3 +60,5 @@ func run() error {
 
 	return http.ListenAndServe(app.addr, app.router)
 }
+
+// TODO: maybe I should make a single table "tokens" where I would differ theme by "type" column

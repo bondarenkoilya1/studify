@@ -1,4 +1,4 @@
-package database
+package tokens
 
 import (
 	"database/sql"

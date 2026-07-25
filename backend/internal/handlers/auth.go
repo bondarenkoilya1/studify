@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"studify/internal/config"
 	"studify/internal/database"
+	"studify/internal/database/tokens"
 	"studify/internal/models"
 	"studify/internal/utils"
 	"time"
@@ -64,7 +65,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	refreshTokenHash := utils.HashRefreshToken(refreshToken)
 
-	_, err = database.InsertRefreshToken(h.DB, newUser.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
+	_, err = tokens.InsertRefreshToken(h.DB, newUser.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
 	if err != nil {
 		log.Printf("failed to set insert refresh token: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -132,7 +133,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	refreshTokenHash := utils.HashRefreshToken(refreshToken)
 
-	_, err = database.InsertRefreshToken(h.DB, user.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
+	_, err = tokens.InsertRefreshToken(h.DB, user.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
 	if err != nil {
 		log.Printf("failed to set insert refresh token: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -179,7 +180,7 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.RevokeRefreshToken(h.DB, string(refreshTokenID)); err != nil {
+	if err = tokens.RevokeRefreshToken(h.DB, string(refreshTokenID)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			h.Auth.ClearAccessToken(w)
 			h.Auth.ClearRefreshToken(w)
@@ -225,7 +226,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	refreshToken, err := database.GetRefreshTokenByTokenIDTx(tx, string(refreshTokenID))
+	refreshToken, err := tokens.GetRefreshTokenByTokenIDTx(tx, string(refreshTokenID))
 	if err != nil {
 		log.Printf("failed to get refresh token by token ID: %v", err)
 		h.rejectRefresh(w)
@@ -284,7 +285,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 
 	newRefreshTokenHash := utils.HashRefreshToken(newRefreshToken)
 
-	_, err = database.InsertRefreshTokenTx(
+	_, err = tokens.InsertRefreshTokenTx(
 		tx,
 		int64(userID),
 		string(newRefreshTokenID),
@@ -297,7 +298,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.ReplaceRefreshTokenTx(tx, string(refreshTokenID), string(newRefreshTokenID)); err != nil {
+	if err = tokens.ReplaceRefreshTokenTx(tx, string(refreshTokenID), string(newRefreshTokenID)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("refresh token was already revoked: token ID %q", refreshTokenID)
 			h.rejectRefresh(w)
