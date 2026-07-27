@@ -48,6 +48,11 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
 		r.Post("/refresh", h.RefreshTokens)
 		r.With(middlewares.ValidateAuth(h.Auth)).Get("/me", h.GetCurrentUser)
+
+		r.Route("/confirmation", func(r chi.Router) {
+			r.With(middlewares.ValidateAuth(h.Auth)).Post("/resend", h.ResendConfirmationMail)
+			r.Get("/{token}", h.ConfirmMail)
+		})
 	})
 }
 

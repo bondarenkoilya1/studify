@@ -27,8 +27,10 @@ func newApplication() (*application, error) {
 		return nil, err
 	}
 
+	mailer := mail.NewMailer("mailpit:1025")
+
 	auth := utils.NewAuthService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction())
-	h := &handlers.Handler{DB: db, Auth: auth}
+	h := &handlers.Handler{DB: db, Mailer: mailer, Auth: auth, Config: cfg}
 
 	return &application{
 		addr:   cfg.ServerAddr,
@@ -47,16 +49,6 @@ func run() error {
 		return err
 	}
 	defer app.close()
-
-	c, err := mail.ConnectSMTP("mailpit:1025")
-	if err != nil {
-		println(err)
-	}
-	defer c.Quit()
-
-	if err := mail.SendConfirmationEmail(c, "noreply@studify.com", "gumbalt@gmail.com", "link#$"); err != nil {
-		println(err)
-	}
 
 	return http.ListenAndServe(app.addr, app.router)
 }
