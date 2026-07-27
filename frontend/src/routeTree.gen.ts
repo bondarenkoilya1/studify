@@ -14,6 +14,7 @@ import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
+import { Route as ConfirmTokenRouteImport } from './routes/confirm/$token'
 import { Route as ProtectedUsernameIndexRouteImport } from './routes/_protected/$username/index'
 import { Route as ProtectedUsernameSettingsRouteImport } from './routes/_protected/$username/settings'
 
@@ -40,6 +41,11 @@ const GuestRegisterRoute = GuestRegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => GuestRoute,
 } as any)
+const ConfirmTokenRoute = ConfirmTokenRouteImport.update({
+  id: '/confirm/$token',
+  path: '/confirm/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProtectedUsernameIndexRoute = ProtectedUsernameIndexRouteImport.update({
   id: '/$username/',
   path: '/$username/',
@@ -56,6 +62,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
+  '/confirm/$token': typeof ConfirmTokenRoute
   '/$username/settings': typeof ProtectedUsernameSettingsRoute
   '/$username/': typeof ProtectedUsernameIndexRoute
 }
@@ -63,6 +70,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
+  '/confirm/$token': typeof ConfirmTokenRoute
   '/$username/settings': typeof ProtectedUsernameSettingsRoute
   '/$username': typeof ProtectedUsernameIndexRoute
 }
@@ -73,15 +81,27 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteWithChildren
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
+  '/confirm/$token': typeof ConfirmTokenRoute
   '/_protected/$username/settings': typeof ProtectedUsernameSettingsRoute
   '/_protected/$username/': typeof ProtectedUsernameIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/register' | '/$username/settings' | '/$username/'
+    | '/'
+    | '/login'
+    | '/register'
+    | '/confirm/$token'
+    | '/$username/settings'
+    | '/$username/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/$username/settings' | '/$username'
+  to:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/confirm/$token'
+    | '/$username/settings'
+    | '/$username'
   id:
     | '__root__'
     | '/'
@@ -89,6 +109,7 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/_guest/login'
     | '/_guest/register'
+    | '/confirm/$token'
     | '/_protected/$username/settings'
     | '/_protected/$username/'
   fileRoutesById: FileRoutesById
@@ -97,6 +118,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GuestRoute: typeof GuestRouteWithChildren
   ProtectedRoute: typeof ProtectedRouteWithChildren
+  ConfirmTokenRoute: typeof ConfirmTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -135,6 +157,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/register'
       preLoaderRoute: typeof GuestRegisterRouteImport
       parentRoute: typeof GuestRoute
+    }
+    '/confirm/$token': {
+      id: '/confirm/$token'
+      path: '/confirm/$token'
+      fullPath: '/confirm/$token'
+      preLoaderRoute: typeof ConfirmTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_protected/$username/': {
       id: '/_protected/$username/'
@@ -183,6 +212,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GuestRoute: GuestRouteWithChildren,
   ProtectedRoute: ProtectedRouteWithChildren,
+  ConfirmTokenRoute: ConfirmTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
