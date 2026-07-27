@@ -12,9 +12,11 @@ import (
 	"time"
 )
 
-// createConfirmationToken generates a confirmation token, stores its hash in the database,
+var ErrTokenExpired = errors.New("confirmation token has expired")
+
+// CreateConfirmationToken generates a confirmation token, stores its hash in the database,
 // and returns the confirmation token.
-func createConfirmationToken(tx *sql.Tx, userID models.UserID) (string, error) {
+func CreateConfirmationToken(db *sql.DB, userID models.UserID) (string, error) {
 	tokenBytes := make([]byte, 32)
 	_, err := rand.Read(tokenBytes)
 	if err != nil {
@@ -27,14 +29,14 @@ func createConfirmationToken(tx *sql.Tx, userID models.UserID) (string, error) {
 	hashString := hex.EncodeToString(tokenHash[:])
 	expiresAt := time.Now().Add(4 * time.Hour)
 
-	if err := tokens.InsertConfirmationTokenTx(tx, int64(userID), hashString, expiresAt); err != nil {
+	if err := tokens.InsertConfirmationToken(db, int64(userID), hashString, expiresAt); err != nil {
 		return "", err
 	}
 
 	return token, nil
 }
 
-func validateConfirmationToken(
+func ValidateConfirmationToken(
 	tx *sql.Tx,
 	token string,
 ) (*models.ConfirmationTokenRecord, error) {
@@ -49,7 +51,7 @@ func validateConfirmationToken(
 	}
 
 	if time.Now().After(confirmationToken.ExpiresAt) {
-		return nil, errors.New("confirmation token has expired")
+		return nil, ErrTokenExpired
 	}
 
 	return confirmationToken, nil

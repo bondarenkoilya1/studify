@@ -5,16 +5,22 @@ import (
 	"strings"
 )
 
-func ConnectSMTP(addr string) (*smtp.Client, error) {
-	c, err := smtp.Dial(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
+type Mailer struct {
+	addr string
 }
 
-func SendConfirmationEmail(c *smtp.Client, sender, recipient, link string) error {
+func NewMailer(addr string) *Mailer {
+	return &Mailer{addr: addr}
+}
+
+func (m *Mailer) SendConfirmationEmail(sender, recipient, link string) error {
+	c, err := smtp.Dial(m.addr)
+	if err != nil {
+		return err
+	}
+
+	defer c.Quit()
+
 	if err := c.Mail(sender); err != nil {
 		return err
 	}
@@ -37,11 +43,7 @@ func SendConfirmationEmail(c *smtp.Client, sender, recipient, link string) error
 		return err
 	}
 
-	if err = writer.Close(); err != nil {
-		return err
-	}
-
-	return nil
+	return writer.Close()
 }
 
 func writeHeaders(

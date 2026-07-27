@@ -27,7 +27,7 @@ func GetID(r *http.Request) (int64, error) {
 }
 
 func GetUserID(r *http.Request) (int64, error) {
-	userID := r.Context().Value("userID")
+	userID := r.Context().Value(models.UserIDKey)
 	switch id := userID.(type) {
 	case models.UserID:
 		return int64(id), nil
