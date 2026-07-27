@@ -12,6 +12,7 @@ type Config struct {
 	Issuer           string
 	DatabaseURL      string
 	ServerAddr       string
+	AppURL           string
 	Env              string
 	CORSOrigins      []string
 }
@@ -23,6 +24,7 @@ func Load() (*Config, error) {
 		Issuer:           os.Getenv("ISSUER"),
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		ServerAddr:       os.Getenv("SERVER_ADDR"),
+		AppURL:           os.Getenv("APP_URL"),
 		Env:              os.Getenv("ENV"),
 		CORSOrigins:      splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
 	}
@@ -41,6 +43,10 @@ func Load() (*Config, error) {
 
 	if cfg.DatabaseURL == "" {
 		return nil, errors.New("DATABASE_URL is empty")
+	}
+
+	if cfg.AppURL == "" {
+		return nil, errors.New("APP_URL is empty")
 	}
 
 	if cfg.ServerAddr == "" {
@@ -62,8 +68,8 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) IsProduction() bool {
-	publicEnv := strings.ToLower(c.Env)
-	return publicEnv == "prod" || publicEnv == "production"
+	env := strings.ToLower(c.Env)
+	return env == "prod" || env == "production"
 }
 
 func splitEnvList(value string) []string {
@@ -73,6 +79,7 @@ func splitEnvList(value string) []string {
 
 	parts := strings.Split(value, ",")
 	items := make([]string, 0, len(parts))
+
 	for _, part := range parts {
 		item := strings.TrimSpace(part)
 		if item != "" {

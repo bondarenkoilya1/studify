@@ -10,7 +10,9 @@ import (
 	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/database/tokens"
+	"studify/internal/middlewares"
 	"studify/internal/models"
+	"studify/internal/services"
 	"studify/internal/utils"
 	"time"
 
@@ -335,4 +337,33 @@ func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 	h.Auth.ClearAccessToken(w)
 	h.Auth.ClearRefreshToken(w)
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
+}
+
+func (h *Handler) ConfirmMail(w http.ResponseWriter, r *http.Request) {
+	println("Function ConfirmMail is not ready yet")
+}
+
+func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
+	userID := middlewares.GetUserID(r.Context())
+
+	token, err := services.CreateConfirmationToken(h.DB, userID)
+	if err != nil {
+		log.Printf("failed to create confirmation link: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	link := fmt.Sprintf(
+		"%s/confirm/%s",
+		h.Config.AppURL,
+		token,
+	)
+
+	if err := h.Mailer.SendConfirmationEmail("noreply@studify.com", "gumbalt@gmail.com", link); err != nil {
+		log.Printf("failed to send confirmation email: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
