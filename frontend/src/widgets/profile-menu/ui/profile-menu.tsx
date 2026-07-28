@@ -2,6 +2,7 @@ import { cn } from "@/shared/lib/cn";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { LogoutButton } from "@/features/logout-button";
+import { Settings, Shield } from "lucide-react";
 
 interface ProfileMenuProps {
   email: string;
@@ -13,6 +14,19 @@ const itemClassName = cn(
   "bg-studify-surface hover:bg-studify-field transition-colors rounded-lg",
   "focus-visible:bg-studify-field focus-visible:outline-none",
 );
+
+const menuItems = [
+  {
+    label: "Settings",
+    to: "/settings/profile",
+    icon: Settings,
+  },
+  {
+    label: "Security",
+    to: "/settings/security",
+    icon: Shield,
+  },
+] as const;
 
 export function ProfileMenu({ email, userId }: ProfileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -45,17 +59,6 @@ export function ProfileMenu({ email, userId }: ProfileMenuProps) {
     };
   }, [isOpen]);
 
-  const menuItems = [
-    {
-      label: "Profile",
-      to: `/${email}`,
-    },
-    {
-      label: "Settings",
-      to: `/${email}/settings`,
-    },
-  ] as const;
-
   return (
     <div ref={menuRef} className="relative">
       <button
@@ -82,16 +85,21 @@ export function ProfileMenu({ email, userId }: ProfileMenuProps) {
             "bg-studify-surface p-1 shadow-lg flex flex-col gap-0.5",
           )}
         >
-          {menuItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={itemClassName}
-              onClick={closeMenu}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={cn(itemClassName, "flex items-center gap-2")}
+                onClick={closeMenu}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
 
           <div className="h-px bg-studify-border my-1" />
 

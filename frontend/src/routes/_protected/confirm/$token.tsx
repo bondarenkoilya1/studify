@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/confirm/$token")({
+export const Route = createFileRoute("/_protected/confirm/$token")({
   component: RouteComponent,
 });
 

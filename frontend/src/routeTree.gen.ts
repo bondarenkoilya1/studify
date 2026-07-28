@@ -14,9 +14,10 @@ import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
-import { Route as ConfirmTokenRouteImport } from './routes/confirm/$token'
-import { Route as ProtectedEmailIndexRouteImport } from './routes/_protected/$email/index'
-import { Route as ProtectedEmailSettingsRouteImport } from './routes/_protected/$email/settings'
+import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
+import { Route as ProtectedConfirmTokenRouteImport } from './routes/_protected/confirm/$token'
+import { Route as ProtectedSettingsProfileRouteImport } from './routes/_protected/settings/profile'
+import { Route as ProtectedSettingsSecurityRouteImport } from './routes/_protected/settings/security'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,37 +42,46 @@ const GuestRegisterRoute = GuestRegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => GuestRoute,
 } as any)
-const ConfirmTokenRoute = ConfirmTokenRouteImport.update({
+const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedConfirmTokenRoute = ProtectedConfirmTokenRouteImport.update({
   id: '/confirm/$token',
   path: '/confirm/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtectedEmailIndexRoute = ProtectedEmailIndexRouteImport.update({
-  id: '/$email/',
-  path: '/$email/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedEmailSettingsRoute = ProtectedEmailSettingsRouteImport.update({
-  id: '/$email/settings',
-  path: '/$email/settings',
-  getParentRoute: () => ProtectedRoute,
-} as any)
+const ProtectedSettingsProfileRoute =
+  ProtectedSettingsProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => ProtectedSettingsRoute,
+  } as any)
+const ProtectedSettingsSecurityRoute =
+  ProtectedSettingsSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => ProtectedSettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
-  '/confirm/$token': typeof ConfirmTokenRoute
-  '/$email/settings': typeof ProtectedEmailSettingsRoute
-  '/$email/': typeof ProtectedEmailIndexRoute
+  '/settings': typeof ProtectedSettingsRouteWithChildren
+  '/confirm/$token': typeof ProtectedConfirmTokenRoute
+  '/settings/profile': typeof ProtectedSettingsProfileRoute
+  '/settings/security': typeof ProtectedSettingsSecurityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
-  '/confirm/$token': typeof ConfirmTokenRoute
-  '/$email/settings': typeof ProtectedEmailSettingsRoute
-  '/$email': typeof ProtectedEmailIndexRoute
+  '/settings': typeof ProtectedSettingsRouteWithChildren
+  '/confirm/$token': typeof ProtectedConfirmTokenRoute
+  '/settings/profile': typeof ProtectedSettingsProfileRoute
+  '/settings/security': typeof ProtectedSettingsSecurityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,9 +90,10 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteWithChildren
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
-  '/confirm/$token': typeof ConfirmTokenRoute
-  '/_protected/$email/settings': typeof ProtectedEmailSettingsRoute
-  '/_protected/$email/': typeof ProtectedEmailIndexRoute
+  '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
+  '/_protected/confirm/$token': typeof ProtectedConfirmTokenRoute
+  '/_protected/settings/profile': typeof ProtectedSettingsProfileRoute
+  '/_protected/settings/security': typeof ProtectedSettingsSecurityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,17 +101,19 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/settings'
     | '/confirm/$token'
-    | '/$email/settings'
-    | '/$email/'
+    | '/settings/profile'
+    | '/settings/security'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/register'
+    | '/settings'
     | '/confirm/$token'
-    | '/$email/settings'
-    | '/$email'
+    | '/settings/profile'
+    | '/settings/security'
   id:
     | '__root__'
     | '/'
@@ -108,16 +121,16 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/_guest/login'
     | '/_guest/register'
-    | '/confirm/$token'
-    | '/_protected/$email/settings'
-    | '/_protected/$email/'
+    | '/_protected/settings'
+    | '/_protected/confirm/$token'
+    | '/_protected/settings/profile'
+    | '/_protected/settings/security'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GuestRoute: typeof GuestRouteWithChildren
   ProtectedRoute: typeof ProtectedRouteWithChildren
-  ConfirmTokenRoute: typeof ConfirmTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -157,26 +170,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuestRegisterRouteImport
       parentRoute: typeof GuestRoute
     }
-    '/confirm/$token': {
-      id: '/confirm/$token'
+    '/_protected/settings': {
+      id: '/_protected/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof ProtectedSettingsRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/confirm/$token': {
+      id: '/_protected/confirm/$token'
       path: '/confirm/$token'
       fullPath: '/confirm/$token'
-      preLoaderRoute: typeof ConfirmTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected/$email/': {
-      id: '/_protected/$email/'
-      path: '/$email'
-      fullPath: '/$email/'
-      preLoaderRoute: typeof ProtectedEmailIndexRouteImport
+      preLoaderRoute: typeof ProtectedConfirmTokenRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/$email/settings': {
-      id: '/_protected/$email/settings'
-      path: '/$email/settings'
-      fullPath: '/$email/settings'
-      preLoaderRoute: typeof ProtectedEmailSettingsRouteImport
-      parentRoute: typeof ProtectedRoute
+    '/_protected/settings/profile': {
+      id: '/_protected/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof ProtectedSettingsProfileRouteImport
+      parentRoute: typeof ProtectedSettingsRoute
+    }
+    '/_protected/settings/security': {
+      id: '/_protected/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof ProtectedSettingsSecurityRouteImport
+      parentRoute: typeof ProtectedSettingsRoute
     }
   }
 }
@@ -193,14 +213,27 @@ const GuestRouteChildren: GuestRouteChildren = {
 
 const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
 
+interface ProtectedSettingsRouteChildren {
+  ProtectedSettingsProfileRoute: typeof ProtectedSettingsProfileRoute
+  ProtectedSettingsSecurityRoute: typeof ProtectedSettingsSecurityRoute
+}
+
+const ProtectedSettingsRouteChildren: ProtectedSettingsRouteChildren = {
+  ProtectedSettingsProfileRoute: ProtectedSettingsProfileRoute,
+  ProtectedSettingsSecurityRoute: ProtectedSettingsSecurityRoute,
+}
+
+const ProtectedSettingsRouteWithChildren =
+  ProtectedSettingsRoute._addFileChildren(ProtectedSettingsRouteChildren)
+
 interface ProtectedRouteChildren {
-  ProtectedEmailSettingsRoute: typeof ProtectedEmailSettingsRoute
-  ProtectedEmailIndexRoute: typeof ProtectedEmailIndexRoute
+  ProtectedSettingsRoute: typeof ProtectedSettingsRouteWithChildren
+  ProtectedConfirmTokenRoute: typeof ProtectedConfirmTokenRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
-  ProtectedEmailSettingsRoute: ProtectedEmailSettingsRoute,
-  ProtectedEmailIndexRoute: ProtectedEmailIndexRoute,
+  ProtectedSettingsRoute: ProtectedSettingsRouteWithChildren,
+  ProtectedConfirmTokenRoute: ProtectedConfirmTokenRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
@@ -211,7 +244,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GuestRoute: GuestRouteWithChildren,
   ProtectedRoute: ProtectedRouteWithChildren,
-  ConfirmTokenRoute: ConfirmTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
