@@ -46,24 +46,24 @@ func CreateConfirmationToken(db *sql.DB, userID models.UserID) (string, error) {
 }
 
 func ValidateConfirmationToken(
-	tx *sql.Tx,
+	db *sql.DB,
 	token string,
-) (*models.ConfirmationTokenRecord, error) {
+) error {
 	tokenHash := sha256.Sum256([]byte(token))
 
-	confirmationToken, err := tokens.GetConfirmationTokenByHashTx(
-		tx,
+	confirmationToken, err := tokens.GetConfirmationTokenByHash(
+		db,
 		hex.EncodeToString(tokenHash[:]),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if time.Now().After(confirmationToken.ExpiresAt) {
-		return nil, ErrTokenExpired
+		return ErrTokenExpired
 	}
 
-	return confirmationToken, nil
+	return nil
 }
 
 func (e *EmailService) SendConfirmationEmail(email string, userID models.UserID) error {

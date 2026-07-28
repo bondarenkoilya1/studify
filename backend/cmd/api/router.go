@@ -51,7 +51,7 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 
 		r.Route("/confirm", func(r chi.Router) {
 			r.With(middlewares.ValidateAuth(h.Auth)).Post("/resend", h.ResendConfirmationMail)
-			r.Get("/{token}", h.ConfirmMail)
+			r.With(middlewares.ValidateAuth(h.Auth)).Post("/{token}", h.ConfirmMail)
 		})
 	})
 }
