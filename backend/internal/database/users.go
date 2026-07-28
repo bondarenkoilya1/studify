@@ -14,7 +14,8 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 		SELECT
 			id,
 			email,
-			password
+			password,
+			is_email_verified
 		FROM users
 		WHERE email = $1;
 	`
@@ -24,6 +25,7 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 		&user.ID,
 		&user.Email,
 		&user.Password,
+		&user.IsEmailVerified,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -40,7 +42,8 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 	query := `
 		SELECT
 			id,
-			email
+			email,
+			is_email_verified
 		FROM users
 		WHERE id = $1;
 	`
@@ -49,6 +52,7 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 	err := db.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Email,
+		&user.IsEmailVerified,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -65,7 +69,8 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 	query := `
 		SELECT
 			id,
-			email
+			email,
+			is_email_verified
 		FROM users;
 	`
 
@@ -80,7 +85,11 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 	for rows.Next() {
 		var user models.User
 
-		if err := rows.Scan(&user.ID, &user.Email); err != nil {
+		if err := rows.Scan(
+			&user.ID,
+			&user.Email,
+			&user.IsEmailVerified,
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 
@@ -98,13 +107,14 @@ func InsertUser(db *sql.DB, email, password string) (*models.User, error) {
 	query := `
 		INSERT INTO users (email, password)
 		VALUES ($1, $2)
-		RETURNING id, email;
+		RETURNING id, email, is_email_verified;
 	`
 
 	var user models.User
 	err := db.QueryRow(query, email, password).Scan(
 		&user.ID,
 		&user.Email,
+		&user.IsEmailVerified,
 	)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -125,13 +135,14 @@ func UpdateUser(db *sql.DB, id int64, email, password string) (*models.User, err
 			email = $1,
 			password = $2
 		WHERE id = $3
-		RETURNING id, email;
+		RETURNING id, email, is_email_verified;
 	`
 
 	var user models.User
 	err := db.QueryRow(query, email, password, id).Scan(
 		&user.ID,
 		&user.Email,
+		&user.IsEmailVerified,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -179,6 +190,30 @@ func DeleteUsers(db *sql.DB) error {
 
 	if _, err := db.Exec(query); err != nil {
 		return fmt.Errorf("failed to delete users: %w", err)
+	}
+
+	return nil
+}
+
+func VerifyUserEmail(db *sql.DB, id int64) error {
+	query := `
+		UPDATE users
+		SET is_email_verified = TRUE
+		WHERE id = $1;
+	`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
 	}
 
 	return nil
