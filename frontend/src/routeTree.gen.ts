@@ -15,8 +15,8 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as ConfirmTokenRouteImport } from './routes/confirm/$token'
-import { Route as ProtectedUsernameIndexRouteImport } from './routes/_protected/$username/index'
-import { Route as ProtectedUsernameSettingsRouteImport } from './routes/_protected/$username/settings'
+import { Route as ProtectedEmailIndexRouteImport } from './routes/_protected/$email/index'
+import { Route as ProtectedEmailSettingsRouteImport } from './routes/_protected/$email/settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -46,33 +46,32 @@ const ConfirmTokenRoute = ConfirmTokenRouteImport.update({
   path: '/confirm/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedUsernameIndexRoute = ProtectedUsernameIndexRouteImport.update({
-  id: '/$username/',
-  path: '/$username/',
+const ProtectedEmailIndexRoute = ProtectedEmailIndexRouteImport.update({
+  id: '/$email/',
+  path: '/$email/',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedUsernameSettingsRoute =
-  ProtectedUsernameSettingsRouteImport.update({
-    id: '/$username/settings',
-    path: '/$username/settings',
-    getParentRoute: () => ProtectedRoute,
-  } as any)
+const ProtectedEmailSettingsRoute = ProtectedEmailSettingsRouteImport.update({
+  id: '/$email/settings',
+  path: '/$email/settings',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/confirm/$token': typeof ConfirmTokenRoute
-  '/$username/settings': typeof ProtectedUsernameSettingsRoute
-  '/$username/': typeof ProtectedUsernameIndexRoute
+  '/$email/settings': typeof ProtectedEmailSettingsRoute
+  '/$email/': typeof ProtectedEmailIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/confirm/$token': typeof ConfirmTokenRoute
-  '/$username/settings': typeof ProtectedUsernameSettingsRoute
-  '/$username': typeof ProtectedUsernameIndexRoute
+  '/$email/settings': typeof ProtectedEmailSettingsRoute
+  '/$email': typeof ProtectedEmailIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -82,8 +81,8 @@ export interface FileRoutesById {
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
   '/confirm/$token': typeof ConfirmTokenRoute
-  '/_protected/$username/settings': typeof ProtectedUsernameSettingsRoute
-  '/_protected/$username/': typeof ProtectedUsernameIndexRoute
+  '/_protected/$email/settings': typeof ProtectedEmailSettingsRoute
+  '/_protected/$email/': typeof ProtectedEmailIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -92,16 +91,16 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/confirm/$token'
-    | '/$username/settings'
-    | '/$username/'
+    | '/$email/settings'
+    | '/$email/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/register'
     | '/confirm/$token'
-    | '/$username/settings'
-    | '/$username'
+    | '/$email/settings'
+    | '/$email'
   id:
     | '__root__'
     | '/'
@@ -110,8 +109,8 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/_guest/register'
     | '/confirm/$token'
-    | '/_protected/$username/settings'
-    | '/_protected/$username/'
+    | '/_protected/$email/settings'
+    | '/_protected/$email/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -165,18 +164,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfirmTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/$username/': {
-      id: '/_protected/$username/'
-      path: '/$username'
-      fullPath: '/$username/'
-      preLoaderRoute: typeof ProtectedUsernameIndexRouteImport
+    '/_protected/$email/': {
+      id: '/_protected/$email/'
+      path: '/$email'
+      fullPath: '/$email/'
+      preLoaderRoute: typeof ProtectedEmailIndexRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/$username/settings': {
-      id: '/_protected/$username/settings'
-      path: '/$username/settings'
-      fullPath: '/$username/settings'
-      preLoaderRoute: typeof ProtectedUsernameSettingsRouteImport
+    '/_protected/$email/settings': {
+      id: '/_protected/$email/settings'
+      path: '/$email/settings'
+      fullPath: '/$email/settings'
+      preLoaderRoute: typeof ProtectedEmailSettingsRouteImport
       parentRoute: typeof ProtectedRoute
     }
   }
@@ -195,13 +194,13 @@ const GuestRouteChildren: GuestRouteChildren = {
 const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
 
 interface ProtectedRouteChildren {
-  ProtectedUsernameSettingsRoute: typeof ProtectedUsernameSettingsRoute
-  ProtectedUsernameIndexRoute: typeof ProtectedUsernameIndexRoute
+  ProtectedEmailSettingsRoute: typeof ProtectedEmailSettingsRoute
+  ProtectedEmailIndexRoute: typeof ProtectedEmailIndexRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
-  ProtectedUsernameSettingsRoute: ProtectedUsernameSettingsRoute,
-  ProtectedUsernameIndexRoute: ProtectedUsernameIndexRoute,
+  ProtectedEmailSettingsRoute: ProtectedEmailSettingsRoute,
+  ProtectedEmailIndexRoute: ProtectedEmailIndexRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

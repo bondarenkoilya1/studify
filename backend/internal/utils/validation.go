@@ -2,17 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
+	"net/mail"
 	"studify/internal/models"
 )
 
-var (
-	usernameRegexp = regexp.MustCompile(`^[A-Za-z0-9._]+$`)
-)
-
 func ValidateCredentials(body models.UserRequest, action models.AuthAction) error {
-	if err := IsValidUsername(body.Username); err != nil {
+	if err := IsValidEmail(body.Email); err != nil {
 		return err
 	}
 
@@ -23,29 +18,18 @@ func ValidateCredentials(body models.UserRequest, action models.AuthAction) erro
 	return nil
 }
 
-func IsValidUsername(username string) error {
-	if username == "" {
-		return fmt.Errorf("username is empty")
+func IsValidEmail(email string) error {
+	if email == "" {
+		return fmt.Errorf("email is empty")
 	}
 
-	if len(username) < 3 {
-		return fmt.Errorf("username must be at least 3 characters")
+	if len(email) > 254 {
+		return fmt.Errorf("email is too long")
 	}
 
-	if len(username) > 32 {
-		return fmt.Errorf("username must be 32 characters or fewer")
-	}
-
-	if strings.HasPrefix(username, ".") || strings.HasSuffix(username, ".") {
-		return fmt.Errorf("username cannot start or end with a dot")
-	}
-
-	if strings.Contains(username, "..") {
-		return fmt.Errorf("username cannot contain consecutive dots")
-	}
-
-	if !usernameRegexp.MatchString(username) {
-		return fmt.Errorf("username can contain only English letters, numbers, dots, and underscores")
+	parsed, err := mail.ParseAddress(email)
+	if err != nil || parsed.Address != email {
+		return fmt.Errorf("invalid email format")
 	}
 
 	return nil

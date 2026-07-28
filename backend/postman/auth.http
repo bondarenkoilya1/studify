@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:8080
 # If BACKEND_HOST_PORT is not 8080, update baseUrl.
-@username = maxonchik_ok4
-@updatedUsername = maxonchik_ok5
+@email = maxonchik@gmail.com
+@updatedEmail = maxonchik5@gmail.com
 @password = mafak
 
 ### Register user
@@ -10,7 +10,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "{{username}}",
+  "email": "{{email}}",
   "password": "{{password}}"
 }
 
@@ -20,7 +20,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "{{username}}",
+  "email": "{{email}}",
   "password": "{{password}}"
 }
 
@@ -38,7 +38,7 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "{{updatedUsername}}",
+  "email": "{{updatedEmail}}",
   "password": "{{password}}"
 }
 
@@ -48,6 +48,6 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "username": "",
+  "email": "",
   "password": ""
 }

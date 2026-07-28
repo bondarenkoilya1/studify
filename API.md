@@ -31,12 +31,12 @@ POST /api/auth/register
 
 ```json
 {
-  "username": "student",
+  "email": "student",
   "password": "strong password"
 }
 ```
 
-Usernames are 3–32 characters and may contain English letters, digits, dots,
+Emails are 3–32 characters and may contain English letters, digits, dots,
 and underscores. They cannot start or end with a dot or contain consecutive
 dots. Registration passwords are 8–72 bytes.
 
@@ -45,7 +45,7 @@ Success: `201 Created` with the created user:
 ```json
 {
   "id": 1,
-  "username": "student"
+  "email": "student"
 }
 ```
 
@@ -222,7 +222,7 @@ User response:
 ```json
 {
   "id": 1,
-  "username": "student"
+  "email": "student"
 }
 ```
 
@@ -232,15 +232,15 @@ Passwords are accepted in write requests but never returned.
 | --- | --- | --- |
 | `GET` | `/api/users/` | List users |
 | `DELETE` | `/api/users/` | Delete all users |
-| `PUT` | `/api/users/{username}` | Replace username and password |
-| `PATCH` | `/api/users/{username}` | Update username and/or password |
-| `DELETE` | `/api/users/{username}` | Delete a user |
+| `PUT` | `/api/users/{email}` | Replace email and password |
+| `PATCH` | `/api/users/{email}` | Update email and/or password |
+| `DELETE` | `/api/users/{email}` | Delete a user |
 
 Replace request:
 
 ```json
 {
-  "username": "updated_student",
+  "email": "updated_student",
   "password": "new strong password"
 }
 ```

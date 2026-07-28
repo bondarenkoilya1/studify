@@ -12,7 +12,6 @@ import (
 	"studify/internal/database/tokens"
 	"studify/internal/middlewares"
 	"studify/internal/models"
-	"studify/internal/services"
 	"studify/internal/utils"
 	"time"
 
@@ -39,10 +38,10 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUser, err := database.InsertUser(h.DB, body.Username, passwordHash)
+	newUser, err := database.InsertUser(h.DB, body.Email, passwordHash)
 	if err != nil {
 		if errors.Is(err, database.ErrUserAlreadyExists) {
-			http.Error(w, "user with such username already exists", http.StatusConflict)
+			http.Error(w, "user with such email already exists", http.StatusConflict)
 			return
 		}
 
@@ -101,7 +100,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := database.GetUserByUsername(h.DB, body.Username)
+	user, err := database.GetUserByEmail(h.DB, body.Email)
 	if err != nil {
 		if !errors.Is(err, database.ErrUserNotFound) {
 			log.Printf("failed to get user for login: %v", err)
@@ -109,13 +108,13 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, "invalid username or password", http.StatusUnauthorized)
+		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
 	if err != nil {
-		http.Error(w, "invalid username or password", http.StatusUnauthorized)
+		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
@@ -346,20 +345,14 @@ func (h *Handler) ConfirmMail(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
 	userID := middlewares.GetUserID(r.Context())
 
-	token, err := services.CreateConfirmationToken(h.DB, userID)
+	user, err := database.GetUserByID(h.DB, int64(userID))
 	if err != nil {
-		log.Printf("failed to create confirmation link: %v", err)
+		log.Printf("failed to get user by id: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	link := fmt.Sprintf(
-		"%s/confirm/%s",
-		h.Config.AppURL,
-		token,
-	)
-
-	if err := h.Mailer.SendConfirmationEmail("noreply@studify.com", "gumbalt@gmail.com", link); err != nil {
+	if err := h.EmailService.SendConfirmationEmail(user.Email, userID); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

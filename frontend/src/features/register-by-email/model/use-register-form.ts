@@ -1,8 +1,8 @@
 import {
-  type RegisterByUsernameFormData,
-  RegisterByUsernameSchema,
-} from "@/features/register-by-username/model/schema";
-import { registerByUsername } from "@/features/register-by-username/api";
+  type RegisterByEmailFormData,
+  RegisterByEmailSchema,
+} from "@/features/register-by-email/model/schema";
+import { registerByEmail } from "@/features/register-by-email/api";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,12 +17,12 @@ export function useRegisterForm() {
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<RegisterByUsernameFormData>({
-    resolver: zodResolver(RegisterByUsernameSchema),
+  } = useForm<RegisterByEmailFormData>({
+    resolver: zodResolver(RegisterByEmailSchema),
   });
 
   const registerMutation = useMutation({
-    mutationFn: registerByUsername,
+    mutationFn: registerByEmail,
 
     onError: () => {
       setError("root", {

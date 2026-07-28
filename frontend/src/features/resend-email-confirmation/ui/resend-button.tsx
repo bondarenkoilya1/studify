@@ -10,7 +10,7 @@ export function ResendButton() {
       type="button"
       disabled={isDisabled}
       className={cn(
-        "text-sm hover:underline transition-colors",
+        "text-sm cursor-pointer hover:underline transition-colors",
         isDisabled
           ? "text-gray-400 cursor-not-allowed"
           : "text-blue-600 hover:text-blue-700",

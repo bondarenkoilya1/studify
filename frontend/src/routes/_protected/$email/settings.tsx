@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { User, Settings, Shield, Bell } from "lucide-react";
 
-export const Route = createFileRoute("/_protected/$username/settings")({
+export const Route = createFileRoute("/_protected/$email/settings")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { username } = Route.useParams();
+  const { email } = Route.useParams();
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
@@ -16,14 +16,14 @@ function RouteComponent() {
           <div className="flex items-center gap-5">
             {/* Аватарка */}
             <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border bg-muted font-medium text-muted-foreground shadow-inner text-3xl select-none">
-              {username.substring(0, 2).toUpperCase()}
+              {email.substring(0, 2).toUpperCase()}
             </div>
 
             {/* Инфо */}
             <div className="space-y-1">
-              <h1 className="text-3xl font-bold tracking-tight">{username}</h1>
+              <h1 className="text-3xl font-bold tracking-tight">{email}</h1>
               <p className="text-sm font-medium text-muted-foreground">
-                @{username.toLowerCase()}
+                @{email.toLowerCase()}
               </p>
             </div>
           </div>
@@ -32,16 +32,16 @@ function RouteComponent() {
         {/* Табы навигации */}
         <div className="mt-8 flex border-b border-border/60">
           <Link
-            to="/$username"
-            params={{ username }}
+            to="/$email"
+            params={{ email }}
             className="flex items-center gap-2 border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <User className="h-4 w-4" />
             Профиль
           </Link>
           <Link
-            to="/$username/settings"
-            params={{ username }}
+            to="/$email/settings"
+            params={{ email }}
             className="flex items-center gap-2 border-b-2 border-primary px-4 py-2.5 text-sm font-medium text-foreground transition-colors"
           >
             <Settings className="h-4 w-4" />
@@ -88,7 +88,7 @@ function RouteComponent() {
               </label>
               <input
                 type="text"
-                defaultValue={username}
+                defaultValue={email}
                 className="w-full h-10 rounded-xl border bg-background px-3 py-2 text-sm shadow-xs focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>

@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { LogoutButton } from "@/features/logout-button";
 
 interface ProfileMenuProps {
-  userName: string;
+  email: string;
   userId: number;
 }
 
@@ -14,7 +14,7 @@ const itemClassName = cn(
   "focus-visible:bg-studify-field focus-visible:outline-none",
 );
 
-export function ProfileMenu({ userName, userId }: ProfileMenuProps) {
+export function ProfileMenu({ email, userId }: ProfileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -48,11 +48,11 @@ export function ProfileMenu({ userName, userId }: ProfileMenuProps) {
   const menuItems = [
     {
       label: "Profile",
-      to: `/${userName}`,
+      to: `/${email}`,
     },
     {
       label: "Settings",
-      to: `/${userName}/settings`,
+      to: `/${email}/settings`,
     },
   ] as const;
 
@@ -68,7 +68,7 @@ export function ProfileMenu({ userName, userId }: ProfileMenuProps) {
           "focus-visible:ring-studify-focus/50 focus-visible:outline-none focus-visible:ring-[3px]",
         )}
       >
-        <span className="font-medium text-studify-text">{userName}</span>
+        <span className="font-medium text-studify-text">{email}</span>
         <span className="rounded-full bg-studify-primary/10 px-2 py-1 text-xs font-semibold text-studify-primary">
           ID: #{userId}
         </span>

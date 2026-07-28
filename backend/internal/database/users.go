@@ -9,42 +9,48 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func GetUserByUsername(db *sql.DB, username string) (*models.User, error) {
+func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 	query := `
 		SELECT
 			id,
-			username,
+			email,
 			password
 		FROM users
-		WHERE username = $1;
+		WHERE email = $1;
 	`
 
-	row := db.QueryRow(query, username)
-	user := &models.User{}
-
-	err := row.Scan(&user.ID, &user.Username, &user.Password)
+	var user models.User
+	err := db.QueryRow(query, email).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Password,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
 
-		return nil, fmt.Errorf("failed to get user by username: %w", err)
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 	query := `
 		SELECT
 			id,
-			username
+			email
 		FROM users
 		WHERE id = $1;
 	`
 
-	user := &models.User{}
-	if err := db.QueryRow(query, id).Scan(&user.ID, &user.Username); err != nil {
+	var user models.User
+	err := db.QueryRow(query, id).Scan(
+		&user.ID,
+		&user.Email,
+	)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
@@ -52,14 +58,14 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func GetUsers(db *sql.DB) ([]models.User, error) {
 	query := `
 		SELECT
 			id,
-			username
+			email
 		FROM users;
 	`
 
@@ -69,35 +75,37 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 	}
 	defer rows.Close()
 
-	users := []models.User{}
+	var users []models.User
 
 	for rows.Next() {
 		var user models.User
 
-		err = rows.Scan(&user.ID, &user.Username)
-		if err != nil {
+		if err := rows.Scan(&user.ID, &user.Email); err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 
 		users = append(users, user)
 	}
 
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read users rows: %w", err)
 	}
 
 	return users, nil
 }
 
-func InsertUser(db *sql.DB, username, password string) (*models.User, error) {
+func InsertUser(db *sql.DB, email, password string) (*models.User, error) {
 	query := `
-		INSERT INTO users (username, password)
+		INSERT INTO users (email, password)
 		VALUES ($1, $2)
-		RETURNING id, username
+		RETURNING id, email;
 	`
 
 	var user models.User
-	err := db.QueryRow(query, username, password).Scan(&user.ID, &user.Username)
+	err := db.QueryRow(query, email, password).Scan(
+		&user.ID,
+		&user.Email,
+	)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -110,18 +118,21 @@ func InsertUser(db *sql.DB, username, password string) (*models.User, error) {
 	return &user, nil
 }
 
-func UpdateUser(db *sql.DB, currentUsername, username, password string) (*models.User, error) {
+func UpdateUser(db *sql.DB, id int64, email, password string) (*models.User, error) {
 	query := `
 		UPDATE users
 		SET
-			username = $1,
+			email = $1,
 			password = $2
-		WHERE username = $3
-		RETURNING id, username;
+		WHERE id = $3
+		RETURNING id, email;
 	`
 
 	var user models.User
-	err := db.QueryRow(query, username, password, currentUsername).Scan(&user.ID, &user.Username)
+	err := db.QueryRow(query, email, password, id).Scan(
+		&user.ID,
+		&user.Email,
+	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -138,13 +149,13 @@ func UpdateUser(db *sql.DB, currentUsername, username, password string) (*models
 	return &user, nil
 }
 
-func DeleteUser(db *sql.DB, username string) error {
+func DeleteUser(db *sql.DB, email string) error {
 	query := `
 		DELETE FROM users
-		WHERE username = $1;
+		WHERE email = $1;
 	`
 
-	result, err := db.Exec(query, username)
+	result, err := db.Exec(query, email)
 	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
@@ -166,8 +177,7 @@ func DeleteUsers(db *sql.DB) error {
 		DELETE FROM users;
 	`
 
-	_, err := db.Exec(query)
-	if err != nil {
+	if _, err := db.Exec(query); err != nil {
 		return fmt.Errorf("failed to delete users: %w", err)
 	}
 

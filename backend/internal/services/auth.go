@@ -7,10 +7,19 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"studify/internal/config"
 	"studify/internal/database/tokens"
+	"studify/internal/mail"
 	"studify/internal/models"
 	"time"
 )
+
+type EmailService struct {
+	DB     *sql.DB
+	Mailer *mail.Mailer
+	Config *config.Config
+}
 
 var ErrTokenExpired = errors.New("confirmation token has expired")
 
@@ -55,4 +64,23 @@ func ValidateConfirmationToken(
 	}
 
 	return confirmationToken, nil
+}
+
+func (e *EmailService) SendConfirmationEmail(email string, userID models.UserID) error {
+	token, err := CreateConfirmationToken(e.DB, userID)
+	if err != nil {
+		return fmt.Errorf("create confirmation link: %w", err)
+	}
+
+	link := fmt.Sprintf(
+		"%s/confirm/%s",
+		e.Config.AppURL,
+		token,
+	)
+
+	if err := e.Mailer.SendConfirmationEmail("noreply@studify.com", email, link); err != nil {
+		return fmt.Errorf("send confirmation email: %w", err)
+	}
+
+	return nil
 }

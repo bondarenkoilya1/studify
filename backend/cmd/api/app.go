@@ -7,6 +7,7 @@ import (
 	"studify/internal/database"
 	"studify/internal/handlers"
 	"studify/internal/mail"
+	"studify/internal/services"
 	"studify/internal/utils"
 )
 
@@ -30,7 +31,14 @@ func newApplication() (*application, error) {
 	mailer := mail.NewMailer("mailpit:1025")
 
 	auth := utils.NewAuthService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction())
-	h := &handlers.Handler{DB: db, Mailer: mailer, Auth: auth, Config: cfg}
+
+	emailService := &services.EmailService{
+		DB:     db,
+		Mailer: mailer,
+		Config: cfg,
+	}
+
+	h := &handlers.Handler{DB: db, Auth: auth, Config: cfg, EmailService: emailService}
 
 	return &application{
 		addr:   cfg.ServerAddr,

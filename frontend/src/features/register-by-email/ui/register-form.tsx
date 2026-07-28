@@ -1,7 +1,7 @@
 import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
-import { useRegisterForm } from "@/features/register-by-username/model/use-register-form";
+import { useRegisterForm } from "@/features/register-by-email/model/use-register-form";
 import { Link } from "@tanstack/react-router";
 
 export const RegisterForm = () => {
@@ -30,21 +30,21 @@ export const RegisterForm = () => {
         )}
 
         <div className="space-y-5 sm:space-y-6">
-          <FormField htmlFor="username" label="Username">
+          <FormField htmlFor="email" label="Email">
             <Input
-              id="username"
+              id="email"
               type="text"
-              placeholder="octocat"
-              autoComplete="username"
+              placeholder="octocat@gmail.com"
+              autoComplete="email"
               controlSize="large"
-              aria-describedby={errors.username ? "username-error" : undefined}
-              aria-invalid={Boolean(errors.username)}
-              {...registerField("username")}
+              aria-describedby={errors.email ? "email-error" : undefined}
+              aria-invalid={Boolean(errors.email)}
+              {...registerField("email")}
             />
 
-            {errors.username?.message && (
-              <p className="mt-2 text-sm text-red-500" id="username-error">
-                {errors.username.message}
+            {errors.email?.message && (
+              <p className="mt-2 text-sm text-red-500" id="email-error">
+                {errors.email.message}
               </p>
             )}
           </FormField>

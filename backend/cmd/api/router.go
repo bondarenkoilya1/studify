@@ -37,7 +37,7 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 		})
 	})
 
-	registerStaticRoutes(r)
+	//registerStaticRoutes(r)
 
 	return r
 }
@@ -89,13 +89,13 @@ func registerUserRoutes(r chi.Router, h *handlers.Handler) {
 		r.Get("/", h.GetUsers)
 		r.Delete("/", h.DeleteUsers)
 
-		r.Delete("/{username}", h.DeleteUser)
-		r.With(middlewares.RequireJSON).Put("/{username}", h.ReplaceUser)
-		r.With(middlewares.RequireJSON).Patch("/{username}", h.UpdateUser)
+		r.Delete("/{id}", h.DeleteUser)
+		//r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceUser)
+		//r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateUser)
 	})
 }
 
-func registerStaticRoutes(r chi.Router) {
-	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
-	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))
-}
+//func registerStaticRoutes(r chi.Router) {
+//	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
+//	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))
+//}
