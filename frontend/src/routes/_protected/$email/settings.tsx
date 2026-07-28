@@ -84,7 +84,7 @@ function RouteComponent() {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium tracking-wide">
-                Имя пользователя
+                Почтовый адрес
               </label>
               <input
                 type="text"

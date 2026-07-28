@@ -19,6 +19,7 @@ import (
 )
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
+	// Get and validate data, hash password
 	body := models.UserRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -38,6 +39,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create user
 	newUser, err := database.InsertUser(h.DB, body.Email, passwordHash)
 	if err != nil {
 		if errors.Is(err, database.ErrUserAlreadyExists) {
@@ -50,13 +52,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Access and Refresh token service
 	if err = h.Auth.SetAccessTokenCookies(models.UserID(newUser.ID), w); err != nil {
 		log.Printf("failed to set access token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	// Refresh Token Service
 	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(models.UserID(newUser.ID))
 	if err != nil {
 		log.Printf("failed to generate refresh token: %v", err)
@@ -79,6 +81,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//
+
+	// Send Confirmation Email
+	if err := h.EmailService.SendConfirmationEmail(newUser.Email, models.UserID(newUser.ID)); err != nil {
+		log.Printf("failed to send confirmation email: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
