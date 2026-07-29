@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { CheckCircle2, MailWarning } from "lucide-react";
 import { ResendButton } from "@/features/resend-email-confirmation";
+import { useCurrentUser } from "@/entities/user";
 
 export const Route = createFileRoute("/_protected/settings/security")({
   component: RouteComponent,
@@ -65,6 +67,10 @@ function EmailChangeSection() {
 }
 
 function EmailVerificationSection() {
+  const { data: user } = useCurrentUser();
+
+  const verified = user?.is_email_verified ?? false;
+
   return (
     <section className="space-y-3">
       <div>
@@ -75,17 +81,47 @@ function EmailVerificationSection() {
         </p>
       </div>
 
-      <div className="flex items-center justify-between rounded-xl border bg-muted/30 p-4">
+      {verified ? <VerifiedCard /> : <UnverifiedCard />}
+    </section>
+  );
+}
+
+function VerifiedCard() {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+
+      <div>
+        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+          Email verified
+        </p>
+
+        <p className="text-sm text-muted-foreground">
+          Your email address has been successfully confirmed.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function UnverifiedCard() {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+      <div className="flex items-center gap-3">
+        <MailWarning className="h-5 w-5 text-amber-500" />
+
         <div>
-          <p className="text-sm font-medium">Verification email</p>
+          <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+            Email not verified
+          </p>
 
           <p className="text-sm text-muted-foreground">
-            Didn't receive the confirmation email?
+            Check your inbox or request a new confirmation email.
           </p>
         </div>
-
-        <ResendButton />
       </div>
-    </section>
+
+      <ResendButton />
+    </div>
   );
 }
