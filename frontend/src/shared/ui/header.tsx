@@ -9,7 +9,6 @@ import { ResendButton } from "@/features/resend-email-confirmation";
 
 export function Header() {
   const { data: user } = useCurrentUser();
-  console.log(user);
 
   return (
     <header

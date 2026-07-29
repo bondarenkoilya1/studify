@@ -48,7 +48,6 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
 		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
 		r.Post("/refresh", h.RefreshTokens)
-		r.With(middlewares.ValidateAuth(h.Auth)).Get("/me", h.GetCurrentUser)
 
 		r.Route("/confirm", func(r chi.Router) {
 			r.With(middlewares.ValidateAuth(h.Auth)).Post("/resend", h.ResendConfirmationMail)
@@ -88,6 +87,7 @@ func registerTaskRoutes(r chi.Router, h *handlers.Handler) {
 func registerUserRoutes(r chi.Router, h *handlers.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/", h.GetUsers)
+		r.With(middlewares.ValidateAuth(h.Auth)).Get("/me", h.GetCurrentUser)
 
 		r.Delete("/{id}", h.DeleteUser)
 		//r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceUser)

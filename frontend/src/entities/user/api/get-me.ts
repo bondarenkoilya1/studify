@@ -3,7 +3,7 @@ import { httpClient } from "@/shared/api/http-client";
 
 export async function getMe(): Promise<User | null> {
   try {
-    return await httpClient.get<User>("/api/auth/me");
+    return await httpClient.get<User>("/api/users/me");
   } catch {
     return null;
   }
