@@ -29,7 +29,7 @@ POST {{baseUrl}}/api/auth/refresh
 Accept: application/json
 
 ### Logout user
-POST {{baseUrl}}/api/logout
+POST {{baseUrl}}/api/auth/logout
 Accept: application/json
 
 ### Login updated user

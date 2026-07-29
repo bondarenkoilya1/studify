@@ -70,7 +70,7 @@ cookies.
 ### Logout
 
 ```http
-POST /api/logout
+POST /api/auth/logout
 ```
 
 Requires authentication. Revokes the current refresh token when the cookie is

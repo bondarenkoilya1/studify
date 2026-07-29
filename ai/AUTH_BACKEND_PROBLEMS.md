@@ -16,7 +16,7 @@ Self-service API профиля и административный API долж
 ## 2. Logout не отзывает refresh token в браузере
 
 Refresh cookie создаётся с `Path=/refresh`, тогда как logout расположен по
-адресу `/api/logout`. Браузер не отправляет эту cookie на logout, поэтому
+адресу `/api/auth/logout`. Браузер не отправляет эту cookie на logout, поэтому
 backend очищает cookies, но обычно не отзывает refresh token в базе.
 
 Logout должен завершать серверную сессию, а не только очищать состояние

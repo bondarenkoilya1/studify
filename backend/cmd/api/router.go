@@ -24,7 +24,6 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 		registerAuthRoutes(r, h)
-		r.Post("/logout", h.LogoutUser)
 
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.ValidateAuth(h.Auth))
@@ -44,6 +43,8 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 
 func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 	r.Route("/auth", func(r chi.Router) {
+		r.Post("/logout", h.LogoutUser)
+
 		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
 		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
 		r.Post("/refresh", h.RefreshTokens)
