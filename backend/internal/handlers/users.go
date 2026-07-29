@@ -190,16 +190,6 @@ func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 //	}
 //}
 
-func (h *Handler) DeleteUsers(w http.ResponseWriter, _ *http.Request) {
-	if err := database.DeleteUsers(h.DB); err != nil {
-		log.Printf("failed to delete users: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	email := chi.URLParam(r, "email")
 	if email == "" {

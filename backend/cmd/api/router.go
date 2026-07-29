@@ -87,7 +87,6 @@ func registerTaskRoutes(r chi.Router, h *handlers.Handler) {
 func registerUserRoutes(r chi.Router, h *handlers.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/", h.GetUsers)
-		r.Delete("/", h.DeleteUsers)
 
 		r.Delete("/{id}", h.DeleteUser)
 		//r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceUser)
