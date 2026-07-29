@@ -5,19 +5,19 @@ type User struct {
 	ID              int64  `json:"id"`
 	Email           string `json:"email"`
 	Password        string `json:"-"`
-	IsEmailVerified string `json:"is_email_verified"`
+	IsEmailVerified bool   `json:"is_email_verified"`
 }
 
 type UserRequest struct {
 	Email           string `json:"email"`
 	Password        string `json:"password"`
-	IsEmailVerified string `json:"is_email_verified"`
+	IsEmailVerified bool   `json:"is_email_verified"`
 }
 
 type UpdateUserRequest struct {
 	Email           *string `json:"email"`
 	Password        *string `json:"password"`
-	IsEmailVerified *string `json:"is_email_verified"`
+	IsEmailVerified *bool   `json:"is_email_verified"`
 }
 
 type SafeUser struct {

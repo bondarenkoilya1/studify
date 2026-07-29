@@ -45,10 +45,13 @@ func CreateConfirmationToken(db *sql.DB, userID models.UserID) (string, error) {
 	return token, nil
 }
 
+// ValidateConfirmationToken does not return the token itself,
+// but we can have UserID, TokenHash, ExpiresAt and CreatedAt —
+// everything from the type ConfirmationTokenRecord
 func ValidateConfirmationToken(
 	db *sql.DB,
 	token string,
-) error {
+) (*models.ConfirmationTokenRecord, error) {
 	tokenHash := sha256.Sum256([]byte(token))
 
 	confirmationToken, err := tokens.GetConfirmationTokenByHash(
@@ -56,14 +59,14 @@ func ValidateConfirmationToken(
 		hex.EncodeToString(tokenHash[:]),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if time.Now().After(confirmationToken.ExpiresAt) {
-		return ErrTokenExpired
+		return nil, ErrTokenExpired
 	}
 
-	return nil
+	return confirmationToken, nil
 }
 
 func (e *EmailService) SendConfirmationEmail(email string, userID models.UserID) error {

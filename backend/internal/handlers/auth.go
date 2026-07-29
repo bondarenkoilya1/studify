@@ -12,9 +12,11 @@ import (
 	"studify/internal/database/tokens"
 	"studify/internal/middlewares"
 	"studify/internal/models"
+	"studify/internal/services"
 	"studify/internal/utils"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -347,8 +349,40 @@ func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
 }
 
-func (h *Handler) ConfirmMail(w http.ResponseWriter, r *http.Request) {
-	println("Function ConfirmMail is not ready yet")
+func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	log.Printf(
+		"confirm request: method=%s ua=%q",
+		r.Method,
+		r.UserAgent(),
+	)
+
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		log.Printf("failed to get token from url params")
+		http.Error(w, "missing token", http.StatusBadRequest)
+		return
+	}
+
+	tokenRecord, err := services.ValidateConfirmationToken(h.DB, token)
+	if err != nil {
+		log.Printf("failed to validate confirmation token: %v", err)
+		http.Error(w, "invalid confirmation token", http.StatusBadRequest)
+		return
+	}
+
+	if err := database.VerifyUserEmail(h.DB, int64(tokenRecord.UserID)); err != nil {
+		log.Printf("failed to verify user email: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tokens.DeleteConfirmationToken(h.DB, int64(tokenRecord.UserID)); err != nil {
+		log.Printf("failed to delete confirmation token from db: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
@@ -369,3 +403,13 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// TODO:
+// - Extract issueTokens(userID) (access + refresh token flow)
+// - Extract writeJSON(status, data)
+// - Extract clearAuthCookies()
+// - Extract getRefreshTokenFromRequest()
+// - Extract internalError(loggerMsg, err)
+// - Implement ConfirmEmail()
+// - Add rate limiting for ResendConfirmationMail()
+// - Prevent resending confirmation for verified users

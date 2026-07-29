@@ -9,6 +9,7 @@ import { ResendButton } from "@/features/resend-email-confirmation";
 
 export function Header() {
   const { data: user } = useCurrentUser();
+  console.log(user);
 
   return (
     <header
@@ -21,7 +22,11 @@ export function Header() {
         <Link to="/" className="text-2xl font-bold text-studify-text">
           Studify
         </Link>
-        {import.meta.env.DEV && <DevelopmentServices />}
+        {import.meta.env.DEV && (
+          <DevelopmentServices
+            isEmailVerified={user?.is_email_verified ?? false}
+          />
+        )}
         {user ? (
           <ProfileMenu email={user.email} userId={user.id} />
         ) : (
@@ -35,7 +40,11 @@ export function Header() {
   );
 }
 
-function DevelopmentServices() {
+function DevelopmentServices({
+  isEmailVerified,
+}: {
+  isEmailVerified: boolean;
+}) {
   return (
     <nav className="flex items-center gap-2">
       <a
@@ -48,6 +57,7 @@ function DevelopmentServices() {
         Swagger
         <ExternalLink className="h-3.5 w-3.5 opacity-70" />
       </a>
+
       <a
         href="http://localhost:8025"
         target="_blank"
@@ -58,8 +68,20 @@ function DevelopmentServices() {
         Mailpit
         <ExternalLink className="h-3.5 w-3.5 opacity-70" />
       </a>
-      <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20">
+
+      <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-400">
         <ResendButton />
+      </div>
+
+      <div
+        className={cn(
+          "rounded-md px-3 py-1.5 text-sm font-medium",
+          isEmailVerified
+            ? "border border-green-500/30 bg-green-500/10 text-green-400"
+            : "border border-yellow-500/30 bg-yellow-500/10 text-yellow-400",
+        )}
+      >
+        {isEmailVerified ? "Verified" : "Not verified"}
       </div>
     </nav>
   );
