@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:8080
 # If BACKEND_HOST_PORT is not 8080, update baseUrl.
 
-@email = maxonchik@example.com
+@email =  maxonchik@example.com
 @updatedEmail = maxonchik_new@example.com
 @password = mafak
 @updatedPassword = better_password_123
@@ -20,13 +20,13 @@ Accept: application/json
   "password": "{{updatedPassword}}"
 }
 
-### Update user partially
-PATCH {{baseUrl}}/api/users/{{updatedEmail}}
+### Update user email
+PATCH {{baseUrl}}/api/users/me/email
 Content-Type: application/json
 Accept: application/json
 
 {
-  "password": "{{password}}"
+  "new_email": "{{updatedEmail}}"
 }
 
 ### Delete one user
@@ -36,3 +36,4 @@ Accept: application/json
 ### Delete all users
 DELETE {{baseUrl}}/api/users/
 Accept: application/json
+

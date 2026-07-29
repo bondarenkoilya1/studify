@@ -26,6 +26,10 @@ type SafeUser struct {
 	IsEmailVerified string `json:"is_email_verified"`
 }
 
+type EmailRequest struct {
+	NewEmail string `json:"new_email"`
+}
+
 type AuthAction string
 
 const (

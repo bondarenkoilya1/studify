@@ -32,7 +32,7 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 			return nil, ErrUserNotFound
 		}
 
-		return nil, fmt.Errorf("failed to get user by email: %w", err)
+		return nil, fmt.Errorf("get user by email: %w", err)
 	}
 
 	return &user, nil
@@ -59,7 +59,7 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 			return nil, ErrUserNotFound
 		}
 
-		return nil, fmt.Errorf("failed to get user by id: %w", err)
+		return nil, fmt.Errorf("get user by id: %w", err)
 	}
 
 	return &user, nil
@@ -76,7 +76,7 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 
 	rows, err := db.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get users: %w", err)
+		return nil, fmt.Errorf("get users: %w", err)
 	}
 	defer rows.Close()
 
@@ -90,14 +90,14 @@ func GetUsers(db *sql.DB) ([]models.User, error) {
 			&user.Email,
 			&user.IsEmailVerified,
 		); err != nil {
-			return nil, fmt.Errorf("failed to scan user: %w", err)
+			return nil, fmt.Errorf("scan user: %w", err)
 		}
 
 		users = append(users, user)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read users rows: %w", err)
+		return nil, fmt.Errorf("read users rows: %w", err)
 	}
 
 	return users, nil
@@ -122,7 +122,7 @@ func InsertUser(db *sql.DB, email, password string) (*models.User, error) {
 			return nil, ErrUserAlreadyExists
 		}
 
-		return nil, fmt.Errorf("failed to insert user: %w", err)
+		return nil, fmt.Errorf("insert user: %w", err)
 	}
 
 	return &user, nil
@@ -154,7 +154,7 @@ func UpdateUser(db *sql.DB, id int64, email, password string) (*models.User, err
 			return nil, ErrUserAlreadyExists
 		}
 
-		return nil, fmt.Errorf("failed to update user: %w", err)
+		return nil, fmt.Errorf("update user: %w", err)
 	}
 
 	return &user, nil
@@ -168,12 +168,12 @@ func DeleteUser(db *sql.DB, email string) error {
 
 	result, err := db.Exec(query, email)
 	if err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+		return fmt.Errorf("delete user: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get deleted users count: %w", err)
+		return fmt.Errorf("get deleted users count: %w", err)
 	}
 
 	if rowsAffected == 0 {
@@ -189,7 +189,7 @@ func DeleteUsers(db *sql.DB) error {
 	`
 
 	if _, err := db.Exec(query); err != nil {
-		return fmt.Errorf("failed to delete users: %w", err)
+		return fmt.Errorf("delete users: %w", err)
 	}
 
 	return nil
@@ -217,4 +217,21 @@ func VerifyUserEmail(db *sql.DB, id int64) error {
 	}
 
 	return nil
+}
+
+func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*models.User, error) {
+	query := `
+		UPDATE users
+		SET
+		    email = $1
+		WHERE id = $2
+		RETURNING id, email, is_email_verified;
+	`
+
+	var user models.User
+	if err := db.QueryRow(query, newEmail, id).Scan(&user.ID, &user.Email, &user.IsEmailVerified); err != nil {
+		return nil, fmt.Errorf("update user email: %w", err)
+	}
+
+	return &user, nil
 }

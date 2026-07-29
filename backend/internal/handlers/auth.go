@@ -10,7 +10,6 @@ import (
 	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/database/tokens"
-	"studify/internal/middlewares"
 	"studify/internal/models"
 	"studify/internal/services"
 	"studify/internal/utils"
@@ -386,7 +385,11 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
-	userID := middlewares.GetUserID(r.Context())
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
 	user, err := database.GetUserByID(h.DB, int64(userID))
 	if err != nil {
@@ -395,7 +398,7 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(user.Email, userID); err != nil {
+	if err := h.EmailService.SendConfirmationEmail(user.Email, models.UserID(userID)); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
