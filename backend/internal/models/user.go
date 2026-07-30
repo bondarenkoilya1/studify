@@ -30,6 +30,11 @@ type EmailRequest struct {
 	NewEmail string `json:"new_email"`
 }
 
+type PasswordRequest struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
 type AuthAction string
 
 const (

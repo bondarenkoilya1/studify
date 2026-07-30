@@ -9,11 +9,29 @@ import (
 	"studify/internal/database"
 	"studify/internal/models"
 	"studify/internal/utils"
+
+	"golang.org/x/crypto/bcrypt"
 )
+
+// TODO: Move business logic to UserService:
+//
+// UpdateUserEmail:
+// - Get user by ID
+// - Check that the new email differs from the current one
+// - Update email in the database
+// - Send confirmation email
+//
+// UpdateUserPassword:
+// - Get user by ID
+// - Verify current password
+// - Hash new password
+// - Update password in the database
+// - Rotate/revoke auth tokens
+// - (Optional) Send password changed notification email
 
 // User handlers
 
-func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := utils.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -38,7 +56,7 @@ func (h *Handler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) UpdateCurrentUserEmail(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	body := models.EmailRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -86,6 +104,68 @@ func (h *Handler) UpdateCurrentUserEmail(w http.ResponseWriter, r *http.Request)
 	if err = json.NewEncoder(w).Encode(newUser); err != nil {
 		log.Printf("failed to encode current user to JSON: %v", err)
 	}
+}
+
+func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
+	request := models.PasswordRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		log.Printf("failed to update user password: %v", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if request.OldPassword == "" {
+		log.Printf("failed to update user password. old password is required")
+		http.Error(w, "old password is required", http.StatusBadRequest)
+		return
+	}
+
+	if request.OldPassword == request.NewPassword {
+		log.Printf("failed to update user password. old and new passwords are equal")
+		http.Error(w, "invalid data", http.StatusBadRequest)
+		return
+	}
+
+	if err := utils.IsValidPassword(request.NewPassword, models.AuthActionRegister); err != nil {
+		log.Printf("failed to validate new password: %v", err)
+		http.Error(w, "invalid data", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := database.GetUserByID(h.DB, userID)
+	if err != nil {
+		log.Printf("failed to get user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword)); err != nil {
+		log.Printf("failed to verify old password: %v", err)
+		http.Error(w, "invalid current password", http.StatusUnauthorized)
+		return
+	}
+
+	newPasswordHash, err := utils.HashPassword(request.NewPassword)
+	if err != nil {
+		log.Printf("failed to hash new password: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := database.UpdateUserPassword(h.DB, user.ID, newPasswordHash); err != nil {
+		log.Printf("failed to update user password: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	// todo:Reset tokens
 }
 
 // Admin handlers
