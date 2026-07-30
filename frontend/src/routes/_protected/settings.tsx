@@ -16,7 +16,7 @@ function RouteComponent() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <SettingsHeader email={data.email} />
+      <SettingsHeader email={data.email} id={data.id} />
 
       <div className="flex flex-col gap-6 md:flex-row">
         <SettingsSidebar />
@@ -29,7 +29,7 @@ function RouteComponent() {
   );
 }
 
-function SettingsHeader({ email }: { email: string }) {
+function SettingsHeader({ email, id }: { email: string; id: number }) {
   return (
     <div className="overflow-hidden rounded-2xl border bg-card p-6 text-card-foreground shadow-xs sm:p-8">
       <div className="flex items-center gap-5">
@@ -48,7 +48,13 @@ function SettingsHeader({ email }: { email: string }) {
             Manage your account information and preferences.
           </p>
 
-          <p className="pt-1 text-sm font-medium">{email}</p>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <p className="text-sm font-medium">{email}</p>
+
+            <span className="rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              ID: {id}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -88,7 +94,7 @@ function SettingsSidebar() {
         }}
       >
         <Shield className="h-4 w-4" />
-        Security
+        Password and Security
       </Link>
     </nav>
   );
