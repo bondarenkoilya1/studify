@@ -5,7 +5,6 @@ import { useCurrentUser } from "@/entities/user";
 import { Link } from "@tanstack/react-router";
 import { ProfileMenu } from "@/widgets/profile-menu";
 import { ExternalLink, FileCode2, Mail } from "lucide-react";
-import { ResendButton } from "@/features/resend-email-confirmation";
 
 export function Header() {
   const { data: user } = useCurrentUser();
@@ -67,10 +66,6 @@ function DevelopmentServices({
         Mailpit
         <ExternalLink className="h-3.5 w-3.5 opacity-70" />
       </a>
-
-      <div className="flex items-center gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-400">
-        <ResendButton />
-      </div>
 
       <div
         className={cn(

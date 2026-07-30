@@ -90,6 +90,12 @@ export const httpClient = {
     body?: unknown,
     options?: Omit<RequestInit, "method" | "body">,
   ) => request<T>(url, { ...options, method: "POST", body: body as any }),
+
+  patch: <T>(
+    url: string,
+    body?: unknown,
+    options?: Omit<RequestInit, "method" | "body">,
+  ) => request<T>(url, { ...options, method: "PATCH", body: body as any }),
 };
 
 async function parseResponse<T>(response: Response): Promise<T> {

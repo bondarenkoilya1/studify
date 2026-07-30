@@ -3,9 +3,9 @@ import type { ComponentProps } from "react";
 
 const variants = {
   primary:
-    "bg-studify-primary text-white shadow-sm hover:bg-studify-primary-hover active:bg-studify-primary-active",
+    "bg-studify-primary text-white shadow-sm hover:bg-studify-hover active:bg-studify-active disabled:bg-studify-primary/15 disabled:text-studify-primary/50 disabled:shadow-none",
   secondary:
-    "border-studify-border bg-studify-surface text-studify-text border shadow-sm hover:bg-studify-field",
+    "border border-studify-border bg-studify-surface text-studify-text shadow-sm hover:bg-studify-field disabled:border-studify-border/50 disabled:bg-studify-surface/60 disabled:text-studify-muted disabled:shadow-none",
 } as const;
 
 const sizes = {
@@ -26,13 +26,13 @@ export const Button = ({
   ...props
 }: ButtonProps) => (
   <button
+    type={type}
     className={cn(
-      "focus-visible:ring-studify-focus/50 inline-flex cursor-pointer items-center justify-center font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60",
+      "inline-flex items-center justify-center font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-studify-focus/50 disabled:cursor-not-allowed disabled:pointer-events-none",
       variants[variant],
       sizes[controlSize],
       className,
     )}
-    type={type}
     {...props}
   />
 );

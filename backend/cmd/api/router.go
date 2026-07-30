@@ -87,7 +87,7 @@ func registerTaskRoutes(r chi.Router, h *handlers.Handler) {
 func registerUserRoutes(r chi.Router, h *handlers.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/me", h.GetCurrentUser)
-		r.With(middlewares.RequireJSON).Put("/me/email", h.UpdateCurrentUserEmail)
+		r.With(middlewares.RequireJSON).Patch("/me/email", h.UpdateCurrentUserEmail)
 
 		//r.Get("/", h.GetUsers) // Todo: It should be AdminRoute
 		//r.Delete("/{id}", h.DeleteUser) // Todo: It should be AdminRoute

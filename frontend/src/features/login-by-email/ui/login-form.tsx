@@ -4,7 +4,7 @@ import { Input } from "@/shared/ui/input";
 import { useLoginForm } from "@/features/login-by-email/model/use-login-form";
 import { Link } from "@tanstack/react-router";
 
-export const LoginForm = () => {
+export function LoginForm() {
   const { registerField, errors, isSubmitting, onSubmit } = useLoginForm();
 
   return (
@@ -91,4 +91,4 @@ export const LoginForm = () => {
       </form>
     </div>
   );
-};
+}

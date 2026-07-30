@@ -1,3 +1,1 @@
-export * from "./api";
-export * from "./ui";
-export * from "./model";
+export { EmailVerificationSection } from "./ui/email-verification-section";

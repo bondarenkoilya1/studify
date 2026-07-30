@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCurrentUser } from "@/entities/user";
+import { ChangeEmailSection } from "@/features/change-email";
+import { EmailVerificationSection } from "@/features/resend-email-confirmation";
 
 export const Route = createFileRoute("/_protected/settings/profile")({
   component: RouteComponent,
@@ -21,8 +23,16 @@ function RouteComponent() {
           </h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Update the information associated with your account.
+            Manage your personal information and email preferences.
           </p>
+        </div>
+
+        <div className="my-6 border-t" />
+
+        <div className="space-y-6">
+          <ChangeEmailSection />
+          <div className="border-t" />
+          <EmailVerificationSection />
         </div>
       </div>
     </div>

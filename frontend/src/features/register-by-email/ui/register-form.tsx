@@ -4,7 +4,7 @@ import { Input } from "@/shared/ui/input";
 import { useRegisterForm } from "@/features/register-by-email/model/use-register-form";
 import { Link } from "@tanstack/react-router";
 
-export const RegisterForm = () => {
+export function RegisterForm() {
   const { registerField, errors, isSubmitting, onSubmit } = useRegisterForm();
 
   return (
@@ -90,4 +90,4 @@ export const RegisterForm = () => {
       </form>
     </div>
   );
-};
+}

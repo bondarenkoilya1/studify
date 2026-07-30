@@ -1,7 +1,7 @@
 import { cn } from "@/shared/lib/cn";
-import { useResendEmailConfirmation } from "@/features/resend-email-confirmation";
+import { useResendEmailConfirmation } from "../model/useResendEmailConfirmation";
 
-export function ResendButton() {
+export function ResendEmailButton() {
   const { isDisabled, handleClick } = useResendEmailConfirmation();
 
   return (

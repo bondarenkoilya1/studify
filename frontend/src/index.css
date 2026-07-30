@@ -9,10 +9,14 @@
   --color-studify-text: #10213b;
   --color-studify-muted: #60718a;
 
-  /* Разделяем имена четко, чтобы линтер не путал префиксы */
   --color-studify-primary: #1677ff;
   --color-studify-hover: #0866df;
   --color-studify-active: #0759c2;
+
+  /* Disabled */
+  --color-studify-disabled: #c7d7ef;
+  --color-studify-disabled-surface: #f3f7fd;
+  --color-studify-disabled-text: #9aa9bf;
 
   --color-studify-focus: #8dbdff;
   --color-studify-shadow: #7da9e8;

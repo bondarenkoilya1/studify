@@ -1,5 +1,5 @@
-import { resendEmailConfirmation } from "@/features/resend-email-confirmation";
 import { useState } from "react";
+import { resendEmailConfirmation } from "../api/resend-email-confirmation";
 
 export function useResendEmailConfirmation() {
   const [isDisabled, setDisabled] = useState(false);
