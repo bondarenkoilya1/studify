@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -32,19 +33,12 @@ import (
 // User handlers
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
-	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	user, err := database.GetUserByID(h.DB, userID)
+	user, err := h.currentUser(r)
 	if err != nil {
 		if errors.Is(err, database.ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-
 		log.Printf("failed to get current user: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -69,25 +63,23 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := utils.GetUserID(r)
+	user, err := h.currentUser(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	currentUser, err := database.GetUserByID(h.DB, userID)
-	if err != nil {
-		log.Printf("failed to get user: %v", err)
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to get current user: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if strings.TrimSpace(body.NewEmail) == strings.TrimSpace(currentUser.Email) {
+	if strings.TrimSpace(body.NewEmail) == strings.TrimSpace(user.Email) {
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
 	}
 
-	newUser, err := database.UpdateUserEmail(h.DB, userID, body.NewEmail)
+	newUser, err := database.UpdateUserEmail(h.DB, user.ID, body.NewEmail)
 	if err != nil {
 		log.Printf("failed to update user email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -132,15 +124,13 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := utils.GetUserID(r)
+	user, err := h.currentUser(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	user, err := database.GetUserByID(h.DB, userID)
-	if err != nil {
-		log.Printf("failed to get user: %v", err)
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to get current user: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -343,3 +333,22 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 //
 //	w.WriteHeader(http.StatusNoContent)
 //}
+
+// Helpers
+
+func (h *Handler) currentUser(r *http.Request) (*models.User, error) {
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := database.GetUserByID(h.DB, userID)
+	if err != nil {
+		if errors.Is(err, database.ErrUserNotFound) {
+			return nil, database.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("get current user: %w", err)
+	}
+
+	return user, nil
+}

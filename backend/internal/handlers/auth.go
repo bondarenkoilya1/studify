@@ -385,20 +385,18 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	user, err := h.currentUser(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	user, err := database.GetUserByID(h.DB, int64(userID))
-	if err != nil {
-		log.Printf("failed to get user by id: %v", err)
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to get current user: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(user.Email, models.UserID(userID)); err != nil {
+	if err := h.EmailService.SendConfirmationEmail(user.Email, models.UserID(user.ID)); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
