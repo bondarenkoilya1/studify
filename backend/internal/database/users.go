@@ -235,3 +235,28 @@ func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*models.User, error
 
 	return &user, nil
 }
+
+func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
+	query := `
+		UPDATE users
+		SET
+		    password = $1
+		WHERE id = $2;
+	`
+
+	result, err := db.Exec(query, newPassword, id)
+	if err != nil {
+		return fmt.Errorf("update user password: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
