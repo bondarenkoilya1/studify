@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { changeEmail } from "@/features/change-email/api/change-email";
 import { ChangeEmailSchema, type ChangeEmailFormData } from "./schema";
 import { queryClient } from "@/shared/api";
+import { toast } from "react-toastify";
 
 export function useChangeEmailForm() {
   const { data } = useCurrentUser();
@@ -20,8 +21,9 @@ export function useChangeEmailForm() {
     mutationFn: (values: ChangeEmailFormData) => changeEmail(values.newEmail),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user"] });
-      // Todo: Toast that email has been changed
+      toast.success("Your email was successfully updated!");
     },
+    onError: () => toast.error("Failed to update email."),
   });
 
   const onSubmit = (value: ChangeEmailFormData) => {

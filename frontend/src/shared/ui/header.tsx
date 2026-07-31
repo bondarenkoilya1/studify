@@ -13,7 +13,7 @@ export function Header() {
     <header
       className={cn(
         "border-b border-studify-border bg-studify-surface shadow-sm",
-        "px-6 py-4",
+        "px-64 py-4",
       )}
     >
       <div className="flex items-center justify-between">

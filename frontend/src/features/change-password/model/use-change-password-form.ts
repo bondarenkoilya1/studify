@@ -6,6 +6,7 @@ import {
   ChangePasswordSchema,
 } from "@/features/change-password/model/schema";
 import { changePassword } from "@/features/change-password/api/change-password";
+import { toast } from "react-toastify";
 
 export function useChangePasswordForm() {
   const form = useForm<ChangePasswordFormData>({
@@ -21,8 +22,9 @@ export function useChangePasswordForm() {
       changePassword(values.oldPassword, values.newPassword),
     onSuccess: () => {
       form.reset();
-      // Todo: Toast that password has been changed
+      toast.success("Your password was successfully updated!");
     },
+    onError: () => toast.error("Failed to update password."),
   });
 
   const onSubmit = (value: ChangePasswordFormData) => {
