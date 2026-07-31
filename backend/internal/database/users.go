@@ -65,6 +65,27 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 	return &user, nil
 }
 
+func GetUserPasswordHashByID(db *sql.DB, id int64) (string, error) {
+	query := `
+		SELECT password
+		FROM users
+		WHERE id = $1;
+	`
+
+	var passwordHash string
+
+	err := db.QueryRow(query, id).Scan(&passwordHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrUserNotFound
+		}
+
+		return "", fmt.Errorf("get user password hash by id: %w", err)
+	}
+
+	return passwordHash, nil
+}
+
 func GetUsers(db *sql.DB) ([]models.User, error) {
 	query := `
 		SELECT

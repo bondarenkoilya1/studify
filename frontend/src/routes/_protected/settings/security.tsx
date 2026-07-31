@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { ChangePasswordSection } from "@/features/change-password";
 
 export const Route = createFileRoute("/_protected/settings/security")({
   component: RouteComponent,
@@ -6,23 +7,23 @@ export const Route = createFileRoute("/_protected/settings/security")({
 
 function RouteComponent() {
   return (
-    <div className="rounded-2xl border bg-card p-6 shadow-xs">
-      <div>
-        <h2 className="text-lg font-semibold tracking-tight">
-          Security settings
-        </h2>
+    <div className="flex flex-col gap-6 md:flex-row">
+      <div className="min-w-0 flex-1 rounded-2xl border bg-card p-6 shadow-xs">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">
+            Security settings
+          </h2>
 
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your account security and authentication.
-        </p>
-      </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your password and account security.
+          </p>
+        </div>
 
-      <div className="my-6 border-t" />
+        <div className="my-6 border-t" />
 
-      <div className="space-y-6">
-        {/* Change password */}
-        {/* Two-factor authentication */}
-        {/* Sessions */}
+        <div className="space-y-6">
+          <ChangePasswordSection />
+        </div>
       </div>
     </div>
   );

@@ -87,7 +87,7 @@ func registerTaskRoutes(r chi.Router, h *handlers.Handler) {
 func registerUserRoutes(r chi.Router, h *handlers.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Route("/me", func(r chi.Router) {
-			r.Get("", h.GetUser)
+			r.Get("/", h.GetUser)
 			r.With(middlewares.RequireJSON).Patch("/email", h.UpdateUserEmail)
 			r.With(middlewares.RequireJSON).Patch("/password", h.UpdateUserPassword)
 		})

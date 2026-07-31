@@ -17,13 +17,11 @@ import (
 // TODO: Move business logic to UserService:
 //
 // UpdateUserEmail:
-// - Get user by ID
 // - Check that the new email differs from the current one
 // - Update email in the database
 // - Send confirmation email
 //
 // UpdateUserPassword:
-// - Get user by ID
 // - Verify current password
 // - Hash new password
 // - Update password in the database
@@ -101,19 +99,17 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	request := models.PasswordRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		log.Printf("failed to update user password: %v", err)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		log.Printf("failed to decode password update request: %v", err)
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	if request.OldPassword == "" {
-		log.Printf("failed to update user password. old password is required")
 		http.Error(w, "old password is required", http.StatusBadRequest)
 		return
 	}
 
 	if request.OldPassword == request.NewPassword {
-		log.Printf("failed to update user password. old and new passwords are equal")
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
 	}
@@ -124,20 +120,36 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.currentUser(r)
+	userID, err := utils.GetUserID(r)
+	if err != nil {
+		log.Printf("failed to get user id: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	passwordHash, err := database.GetUserPasswordHashByID(h.DB, userID)
 	if err != nil {
 		if errors.Is(err, database.ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get current user: %v", err)
+
+		log.Printf("failed to get user password hash: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword)); err != nil {
-		log.Printf("failed to verify old password: %v", err)
-		http.Error(w, "invalid current password", http.StatusUnauthorized)
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(passwordHash),
+		[]byte(request.OldPassword),
+	); err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			http.Error(w, "invalid current password", http.StatusUnauthorized)
+			return
+		}
+
+		log.Printf("failed to compare password hash: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -148,14 +160,19 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.UpdateUserPassword(h.DB, user.ID, newPasswordHash); err != nil {
+	if err := database.UpdateUserPassword(h.DB, userID, newPasswordHash); err != nil {
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+
 		log.Printf("failed to update user password: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-	// todo:Reset tokens
+	// TODO: Reset refresh tokens.
 }
 
 // Admin handlers
