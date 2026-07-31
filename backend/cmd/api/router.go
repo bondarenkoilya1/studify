@@ -59,7 +59,7 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 func registerSubjectRoutes(r chi.Router, h *handlers.Handler) {
 	r.Route("/subjects", func(r chi.Router) {
 		r.Get("/", h.GetSubjects)
-		r.With(middlewares.RequireJSON).Post("/", h.AddSubjects)
+		r.With(middlewares.RequireJSON).Post("/", h.AddSubject)
 		r.Delete("/", h.DeleteSubjects)
 
 		r.Get("/{id}", h.GetSubject)

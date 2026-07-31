@@ -72,44 +72,45 @@ func (h *Handler) GetSubjects(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) AddSubjects(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := utils.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var newSubjects []models.Subject
+	var subject models.Subject
 
-	err = json.NewDecoder(r.Body).Decode(&newSubjects)
+	err = json.NewDecoder(r.Body).Decode(&subject)
 	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
 
-	if len(newSubjects) == 0 {
-		http.Error(w, "Subjects list cannot be empty", http.StatusBadRequest)
+	if subject.Name == "" || subject.Lecturer == "" || subject.ExamDate.IsZero() {
+		http.Error(w, "invalid subject data", http.StatusBadRequest)
 		return
 	}
 
-	createdSubjects := make([]models.Subject, 0, len(newSubjects))
-
-	for _, s := range newSubjects {
-		subject, err := database.InsertSubject(h.DB, userID, s.Name, s.Lecturer, s.LecturerAvatarURL, s.ExamDate)
-		if err != nil {
-			log.Printf("failed to insert subject: %v", err)
-			http.Error(w, "Failed to insert subjects", http.StatusInternalServerError)
-			return
-		}
-		createdSubjects = append(createdSubjects, *subject)
+	createdSubject, err := database.InsertSubject(
+		h.DB,
+		userID,
+		subject.Name,
+		subject.Lecturer,
+		subject.LecturerAvatarURL,
+		subject.ExamDate,
+	)
+	if err != nil {
+		log.Printf("failed to insert subject: %v", err)
+		http.Error(w, "failed to insert subject", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err = json.NewEncoder(w).Encode(createdSubjects); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
+	if err := json.NewEncoder(w).Encode(createdSubject); err != nil {
+		log.Printf("failed to encode response: %v", err)
 	}
 }
 
