@@ -1,6 +1,6 @@
 import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
-import { Header } from "@/shared/ui/header";
 import type { QueryClient } from "@tanstack/react-query";
+import { Header } from "@/widgets/header";
 
 interface RouterContext {
   queryClient: QueryClient;

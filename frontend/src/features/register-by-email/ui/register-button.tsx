@@ -1,6 +1,6 @@
 import { Button } from "@/shared/ui/button";
 
-export function SignupButton() {
+export function RegisterButton() {
   return (
     <Button
       type="button"

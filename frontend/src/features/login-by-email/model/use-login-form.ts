@@ -1,12 +1,9 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  loginByEmail,
-  type LoginByEmailFormData,
-  LoginByEmailSchema,
-} from "@/features/login-by-email";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { type LoginByEmailFormData, LoginByEmailSchema } from "./schema";
+import { loginByEmail } from "@/features/login-by-email/api";
 
 export function useLoginForm() {
   const {
