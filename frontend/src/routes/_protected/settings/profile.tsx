@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCurrentUser } from "@/entities/user";
-import { ChangeEmailSection } from "@/features/change-email";
-import { EmailVerificationSection } from "@/features/resend-email-confirmation";
+import { ChangeEmailSection } from "@/features/profile/change-email";
+import { EmailVerificationSection } from "@/features/auth/resend-email-confirmation";
 
 export const Route = createFileRoute("/_protected/settings/profile")({
   component: RouteComponent,

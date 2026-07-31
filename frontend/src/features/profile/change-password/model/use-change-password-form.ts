@@ -1,11 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import {
-  type ChangePasswordFormData,
-  ChangePasswordSchema,
-} from "@/features/change-password/model/schema";
-import { changePassword } from "@/features/change-password/api/change-password";
+import { type ChangePasswordFormData, ChangePasswordSchema } from "./schema";
+import { changePassword } from "../api/change-password";
 import { toast } from "react-toastify";
 
 export function useChangePasswordForm() {

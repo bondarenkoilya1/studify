@@ -2,7 +2,7 @@ import { useCurrentUser } from "@/entities/user";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { changeEmail } from "@/features/change-email/api/change-email";
+import { changeEmail } from "../api/change-email";
 import { ChangeEmailSchema, type ChangeEmailFormData } from "./schema";
 import { queryClient } from "@/shared/api";
 import { toast } from "react-toastify";

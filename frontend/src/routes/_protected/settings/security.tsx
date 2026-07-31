@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ChangePasswordSection } from "@/features/change-password";
+import { ChangePasswordSection } from "@/features/profile/change-password";
 
 export const Route = createFileRoute("/_protected/settings/security")({
   component: RouteComponent,

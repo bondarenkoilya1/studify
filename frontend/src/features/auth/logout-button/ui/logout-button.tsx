@@ -1,5 +1,5 @@
 import { cn } from "@/shared/lib/cn";
-import { useLogout } from "@/features/logout-button/model";
+import { useLogout } from "../model/use-logout";
 import { LogOut } from "lucide-react";
 
 interface Props {

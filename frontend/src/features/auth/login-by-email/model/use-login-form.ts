@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { type LoginByEmailFormData, LoginByEmailSchema } from "./schema";
-import { loginByEmail } from "@/features/login-by-email/api";
+import { loginByEmail } from "../api/login-by-email";
 
 export function useLoginForm() {
   const {

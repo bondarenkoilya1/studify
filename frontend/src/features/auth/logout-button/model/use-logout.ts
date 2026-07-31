@@ -1,4 +1,4 @@
-import { logout } from "@/features/logout-button";
+import { logout } from "../api/logout";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function useLogout() {

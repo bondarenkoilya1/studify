@@ -2,9 +2,9 @@ import { cn } from "@/shared/lib/cn";
 import { useCurrentUser } from "@/entities/user";
 import { Link } from "@tanstack/react-router";
 import { ProfileMenu } from "@/widgets/profile-menu";
-import { LoginButton } from "@/features/login-by-email";
+import { LoginButton } from "@/features/auth/login-by-email";
 import { ExternalLink, FileCode2, Mail } from "lucide-react";
-import { RegisterButton } from "@/features/register-by-email";
+import { RegisterButton } from "@/features/auth/register-by-email";
 
 export function Header() {
   const { data: user } = useCurrentUser();

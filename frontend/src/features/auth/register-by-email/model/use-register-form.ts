@@ -1,8 +1,5 @@
-import {
-  type RegisterByEmailFormData,
-  RegisterByEmailSchema,
-} from "@/features/register-by-email/model/schema";
-import { registerByEmail } from "@/features/register-by-email/api";
+import { type RegisterByEmailFormData, RegisterByEmailSchema } from "./schema";
+import { registerByEmail } from "../api/register-by-email";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
