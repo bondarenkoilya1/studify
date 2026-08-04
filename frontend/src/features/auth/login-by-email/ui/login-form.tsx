@@ -11,11 +11,11 @@ export function LoginForm() {
     <div className="w-full max-w-md text-studify-text">
       <div className="mb-7 flex flex-col items-center sm:mb-9">
         <h1 className="text-center text-3xl font-light tracking-[-0.03em] sm:text-4xl">
-          Welcome back
+          Рады видеть
         </h1>
 
         <p className="mt-3 text-center text-base text-studify-muted sm:text-lg">
-          Sign in to continue using Studify.
+          Войдите, чтобы продолжить пользоваться Studify.
         </p>
       </div>
 
@@ -30,7 +30,7 @@ export function LoginForm() {
         )}
 
         <div className="space-y-5 sm:space-y-6">
-          <FormField htmlFor="email" label="Email">
+          <FormField htmlFor="email" label="Эл. почта">
             <Input
               id="email"
               type="text"
@@ -49,11 +49,11 @@ export function LoginForm() {
             )}
           </FormField>
 
-          <FormField htmlFor="password" label="Password">
+          <FormField htmlFor="password" label="Пароль">
             <Input
               id="password"
               type="password"
-              placeholder="Your password"
+              placeholder="Ваш пароль"
               autoComplete="current-password"
               controlSize="large"
               aria-describedby={errors.password ? "password-error" : undefined}
@@ -74,18 +74,18 @@ export function LoginForm() {
             disabled={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "Входим..." : "Войти"}
           </Button>
         </div>
 
         <div className="mt-6 text-center text-sm">
-          <span className="text-studify-muted">Don't have an account? </span>
+          <span className="text-studify-muted">Нет аккаунта? </span>
 
           <Link
             to="/register"
             className="font-medium text-studify-primary transition-colors hover:text-studify-hover hover:underline"
           >
-            Create one
+            Создать аккаунт
           </Link>
         </div>
       </form>

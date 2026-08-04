@@ -11,11 +11,11 @@ export function RegisterForm() {
     <div className="w-full max-w-md text-studify-text">
       <div className="mb-7 flex flex-col items-center sm:mb-9">
         <h1 className="text-center text-3xl font-light tracking-[-0.03em] sm:text-4xl">
-          Create your account
+          Создать аккаунт
         </h1>
 
         <p className="mt-3 text-center text-base text-studify-muted sm:text-lg">
-          Join Studify and start learning.
+          Присоединяйтесь к Studify и начните учиться.
         </p>
       </div>
 
@@ -30,7 +30,7 @@ export function RegisterForm() {
         )}
 
         <div className="space-y-5 sm:space-y-6">
-          <FormField htmlFor="email" label="Email">
+          <FormField htmlFor="email" label="Эл. почта">
             <Input
               id="email"
               type="text"
@@ -49,11 +49,11 @@ export function RegisterForm() {
             )}
           </FormField>
 
-          <FormField htmlFor="password" label="Password">
+          <FormField htmlFor="password" label="Пароль">
             <Input
               id="password"
               type="password"
-              placeholder="At least 8 characters"
+              placeholder="Не менее 8 символов"
               autoComplete="new-password"
               controlSize="large"
               aria-describedby={errors.password ? "password-error" : undefined}
@@ -74,16 +74,16 @@ export function RegisterForm() {
             disabled={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? "Creating..." : "Create account"}
+            {isSubmitting ? "Создаём..." : "Создать аккаунт"}
           </Button>
 
           <p className="text-center text-sm text-studify-muted">
-            Already have an account?{" "}
+            Уже есть аккаунт?{" "}
             <Link
               to="/login"
               className="font-medium text-studify-primary transition-colors hover:text-studify-hover hover:underline"
             >
-              Sign in
+              Войти
             </Link>
           </p>
         </div>

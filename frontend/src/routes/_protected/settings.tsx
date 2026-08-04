@@ -11,7 +11,7 @@ function RouteComponent() {
   const { data } = useCurrentUser();
 
   if (!data) {
-    return <span>Loading...</span>;
+    return <span>Загрузка...</span>;
   }
 
   return (
@@ -42,10 +42,10 @@ function SettingsHeader({ email, id }: { email: string; id: number }) {
         </div>
 
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Настройки</h1>
 
           <p className="text-sm text-muted-foreground">
-            Manage your account information and preferences.
+            Управляйте аккаунтом и настройками.
           </p>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -82,7 +82,7 @@ function SettingsSidebar() {
         }}
       >
         <User className="h-4 w-4" />
-        Profile
+        Профиль
       </Link>
 
       <Link
@@ -94,7 +94,7 @@ function SettingsSidebar() {
         }}
       >
         <Shield className="h-4 w-4" />
-        Password and Security
+        Пароль и безопасность
       </Link>
     </nav>
   );

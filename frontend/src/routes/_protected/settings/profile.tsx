@@ -11,7 +11,7 @@ function RouteComponent() {
   const { data } = useCurrentUser();
 
   if (!data) {
-    return <span>Loading...</span>;
+    return <span>Загрузка...</span>;
   }
 
   return (
@@ -19,11 +19,11 @@ function RouteComponent() {
       <div className="min-w-0 flex-1 rounded-2xl border bg-card p-6 shadow-xs">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
-            Profile settings
+            Настройки профиля
           </h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage your personal information and email preferences.
+            Управляйте личной информацией и настройками почты.
           </p>
         </div>
 

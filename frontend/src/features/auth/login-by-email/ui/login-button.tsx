@@ -9,7 +9,7 @@ export function LoginButton() {
       onClick={() => (window.location.href = "/login")}
       className="px-6"
     >
-      Sign in
+      Войти
     </Button>
   );
 }

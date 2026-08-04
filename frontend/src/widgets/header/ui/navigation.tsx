@@ -16,7 +16,7 @@ export function HeaderNavigation() {
           className: "text-studify-text",
         }}
       >
-        Subjects
+        Предметы
       </Link>
 
       {/* потом */}
