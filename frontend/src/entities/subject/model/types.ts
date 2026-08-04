@@ -7,9 +7,9 @@ export interface Subject {
   examDate: string;
 }
 
-export type SubjectInput = {
+export interface SubjectInput {
   name: string;
   lecturer: string;
   lecturerAvatarUrl?: string;
   examDate: string;
-};
+}

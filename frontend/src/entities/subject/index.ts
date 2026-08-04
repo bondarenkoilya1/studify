@@ -1,1 +1,1 @@
-export type { Subject } from "./model/types";
+export type { Subject, SubjectInput } from "./model/types";

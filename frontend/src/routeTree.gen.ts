@@ -15,10 +15,11 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
-import { Route as ProtectedSubjectsRouteImport } from './routes/_protected/subjects'
 import { Route as ProtectedConfirmTokenRouteImport } from './routes/_protected/confirm/$token'
 import { Route as ProtectedSettingsProfileRouteImport } from './routes/_protected/settings/profile'
 import { Route as ProtectedSettingsSecurityRouteImport } from './routes/_protected/settings/security'
+import { Route as ProtectedSubjectsIndexRouteImport } from './routes/_protected/subjects/index'
+import { Route as ProtectedSubjectsIdRouteImport } from './routes/_protected/subjects/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -48,11 +49,6 @@ const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedSubjectsRoute = ProtectedSubjectsRouteImport.update({
-  id: '/subjects',
-  path: '/subjects',
-  getParentRoute: () => ProtectedRoute,
-} as any)
 const ProtectedConfirmTokenRoute = ProtectedConfirmTokenRouteImport.update({
   id: '/confirm/$token',
   path: '/confirm/$token',
@@ -70,26 +66,38 @@ const ProtectedSettingsSecurityRoute =
     path: '/security',
     getParentRoute: () => ProtectedSettingsRoute,
   } as any)
+const ProtectedSubjectsIndexRoute = ProtectedSubjectsIndexRouteImport.update({
+  id: '/subjects/',
+  path: '/subjects/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedSubjectsIdRoute = ProtectedSubjectsIdRouteImport.update({
+  id: '/subjects/$id',
+  path: '/subjects/$id',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
-  '/subjects': typeof ProtectedSubjectsRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
+  '/subjects/$id': typeof ProtectedSubjectsIdRoute
+  '/subjects/': typeof ProtectedSubjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
-  '/subjects': typeof ProtectedSubjectsRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
+  '/subjects/$id': typeof ProtectedSubjectsIdRoute
+  '/subjects': typeof ProtectedSubjectsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -99,10 +107,11 @@ export interface FileRoutesById {
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
   '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
-  '/_protected/subjects': typeof ProtectedSubjectsRoute
   '/_protected/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/_protected/settings/profile': typeof ProtectedSettingsProfileRoute
   '/_protected/settings/security': typeof ProtectedSettingsSecurityRoute
+  '/_protected/subjects/$id': typeof ProtectedSubjectsIdRoute
+  '/_protected/subjects/': typeof ProtectedSubjectsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,20 +120,22 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/settings'
-    | '/subjects'
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
+    | '/subjects/$id'
+    | '/subjects/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/register'
     | '/settings'
-    | '/subjects'
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
+    | '/subjects/$id'
+    | '/subjects'
   id:
     | '__root__'
     | '/'
@@ -133,10 +144,11 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/_guest/register'
     | '/_protected/settings'
-    | '/_protected/subjects'
     | '/_protected/confirm/$token'
     | '/_protected/settings/profile'
     | '/_protected/settings/security'
+    | '/_protected/subjects/$id'
+    | '/_protected/subjects/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -189,13 +201,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedSettingsRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/subjects': {
-      id: '/_protected/subjects'
-      path: '/subjects'
-      fullPath: '/subjects'
-      preLoaderRoute: typeof ProtectedSubjectsRouteImport
-      parentRoute: typeof ProtectedRoute
-    }
     '/_protected/confirm/$token': {
       id: '/_protected/confirm/$token'
       path: '/confirm/$token'
@@ -216,6 +221,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/security'
       preLoaderRoute: typeof ProtectedSettingsSecurityRouteImport
       parentRoute: typeof ProtectedSettingsRoute
+    }
+    '/_protected/subjects/': {
+      id: '/_protected/subjects/'
+      path: '/subjects'
+      fullPath: '/subjects/'
+      preLoaderRoute: typeof ProtectedSubjectsIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/subjects/$id': {
+      id: '/_protected/subjects/$id'
+      path: '/subjects/$id'
+      fullPath: '/subjects/$id'
+      preLoaderRoute: typeof ProtectedSubjectsIdRouteImport
+      parentRoute: typeof ProtectedRoute
     }
   }
 }
@@ -247,14 +266,16 @@ const ProtectedSettingsRouteWithChildren =
 
 interface ProtectedRouteChildren {
   ProtectedSettingsRoute: typeof ProtectedSettingsRouteWithChildren
-  ProtectedSubjectsRoute: typeof ProtectedSubjectsRoute
   ProtectedConfirmTokenRoute: typeof ProtectedConfirmTokenRoute
+  ProtectedSubjectsIdRoute: typeof ProtectedSubjectsIdRoute
+  ProtectedSubjectsIndexRoute: typeof ProtectedSubjectsIndexRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedSettingsRoute: ProtectedSettingsRouteWithChildren,
-  ProtectedSubjectsRoute: ProtectedSubjectsRoute,
   ProtectedConfirmTokenRoute: ProtectedConfirmTokenRoute,
+  ProtectedSubjectsIdRoute: ProtectedSubjectsIdRoute,
+  ProtectedSubjectsIndexRoute: ProtectedSubjectsIndexRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

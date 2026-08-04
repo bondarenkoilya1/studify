@@ -3,7 +3,7 @@ import { useGetSubjects } from "@/entities/subject/model/useGetSubjects";
 import { Button } from "@/shared/ui/button";
 import { SubjectList } from "@/widgets/subjects-list";
 
-export const Route = createFileRoute("/_protected/subjects")({
+export const Route = createFileRoute("/_protected/subjects/")({
   component: SubjectsPage,
 });
 
