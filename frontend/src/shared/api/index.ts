@@ -1,2 +1,2 @@
-export * from "./http-client";
+export * from "./http";
 export * from "./query-client";

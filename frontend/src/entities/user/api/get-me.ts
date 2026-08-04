@@ -1,5 +1,5 @@
 import type { User } from "@/entities/user";
-import { httpClient } from "@/shared/api/http-client";
+import { httpClient } from "@/shared/api";
 
 export async function getMe(): Promise<User | null> {
   try {
