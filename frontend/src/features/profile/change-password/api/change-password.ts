@@ -1,11 +1,11 @@
 import { httpClient } from "@/shared/api";
 
 export function changePassword(
-  oldPassword: string,
+  currentPassword: string,
   newPassword: string,
 ): Promise<void> {
   return httpClient.patch<void>("/api/users/me/password", {
-    old_password: oldPassword,
+    current_password: currentPassword,
     new_password: newPassword,
   });
 }

@@ -104,12 +104,12 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if request.OldPassword == "" {
-		http.Error(w, "old password is required", http.StatusBadRequest)
+	if request.CurrentPassword == "" {
+		http.Error(w, "current password is required", http.StatusBadRequest)
 		return
 	}
 
-	if request.OldPassword == request.NewPassword {
+	if request.CurrentPassword == request.NewPassword {
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
 	}
@@ -141,7 +141,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(passwordHash),
-		[]byte(request.OldPassword),
+		[]byte(request.CurrentPassword),
 	); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			http.Error(w, "invalid current password", http.StatusUnauthorized)

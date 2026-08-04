@@ -9,14 +9,14 @@ export function useChangePasswordForm() {
   const form = useForm<ChangePasswordFormData>({
     resolver: zodResolver(ChangePasswordSchema),
     defaultValues: {
-      oldPassword: "",
+      currentPassword: "",
       newPassword: "",
     },
   });
 
   const changePasswordMutation = useMutation({
     mutationFn: (values: ChangePasswordFormData) =>
-      changePassword(values.oldPassword, values.newPassword),
+      changePassword(values.currentPassword, values.newPassword),
     onSuccess: () => {
       form.reset();
       toast.success("Your password was successfully updated!");

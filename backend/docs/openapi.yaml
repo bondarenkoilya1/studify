@@ -777,10 +777,10 @@ components:
           example: newemail@example.com
     PasswordRequest:
       type: object
-      required: [old_password, new_password]
+      required: [current_password, new_password]
       additionalProperties: false
       properties:
-        old_password:
+        current_password:
           type: string
           format: password
           description: Current password for verification

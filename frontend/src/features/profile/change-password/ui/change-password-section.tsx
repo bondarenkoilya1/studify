@@ -18,20 +18,20 @@ export function ChangePasswordSection() {
 
       <form onSubmit={handleSubmit} className="mt-6 max-w-md space-y-4">
         <div className="space-y-2">
-          <label htmlFor="oldPassword" className="text-sm font-medium">
+          <label htmlFor="currentPassword" className="text-sm font-medium">
             Current password
           </label>
 
           <Input
-            id="oldPassword"
+            id="currentPassword"
             type="password"
             autoComplete="current-password"
-            {...register("oldPassword")}
+            {...register("currentPassword")}
           />
 
-          {errors.oldPassword && (
+          {errors.currentPassword && (
             <p className="text-sm text-destructive">
-              {errors.oldPassword.message}
+              {errors.currentPassword.message}
             </p>
           )}
         </div>

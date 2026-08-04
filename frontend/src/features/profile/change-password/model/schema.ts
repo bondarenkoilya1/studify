@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { getUTF8Length } from "@/shared/utils";
 
-const oldPasswordSchema = z.string().min(1, "Password is required");
+const currentPasswordSchema = z.string().min(1, "Password is required");
 
 const newPasswordSchema = z
   .string()
@@ -13,7 +13,7 @@ const newPasswordSchema = z
   });
 
 export const ChangePasswordSchema = z.object({
-  oldPassword: oldPasswordSchema,
+  currentPassword: currentPasswordSchema,
   newPassword: newPasswordSchema,
 });
 
