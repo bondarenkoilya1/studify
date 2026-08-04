@@ -16,8 +16,8 @@ Content-Type: application/json
 Accept: application/json
 
   {
-    "name": "IT",
-    "lecturer": "Dr. Ivan Smith",
+    "name": "Art",
+    "lecturer": "Marry Rose",
     "lecturer_avatar_url": "",
     "exam_date": "2026-05-24T00:00:00Z"
   }

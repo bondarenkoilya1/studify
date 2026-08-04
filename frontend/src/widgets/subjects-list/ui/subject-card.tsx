@@ -1,6 +1,7 @@
 import { CalendarDays, GraduationCap } from "lucide-react";
 
-import type { Subject } from "../model/types";
+import { DeleteSubjectButton } from "@/features/subjects/delete-subject";
+import type { Subject } from "@/entities/subject";
 
 interface SubjectCardProps {
   subject: Subject;
@@ -39,8 +40,12 @@ export function SubjectCard({ subject }: SubjectCardProps) {
           </div>
         </div>
 
-        <div className="rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
-          Экзамен
+        <div className="flex items-center gap-2">
+          <div className="rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
+            Экзамен
+          </div>
+
+          <DeleteSubjectButton id={subject.id} />
         </div>
       </div>
 

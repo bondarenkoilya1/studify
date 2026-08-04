@@ -1,5 +1,5 @@
-import type { Subject } from "../model/types";
 import { SubjectCard } from "./subject-card";
+import type { Subject } from "@/entities/subject";
 
 interface SubjectListProps {
   subjects: Subject[];

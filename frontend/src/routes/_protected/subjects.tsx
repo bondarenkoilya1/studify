@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SubjectList } from "@/entities/subject";
 import { useGetSubjects } from "@/entities/subject/model/useGetSubjects";
 import { Button } from "@/shared/ui/button";
+import { SubjectList } from "@/widgets/subjects-list";
 
 export const Route = createFileRoute("/_protected/subjects")({
   component: SubjectsPage,
