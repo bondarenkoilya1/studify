@@ -5,31 +5,42 @@ info:
   description: |
     REST API for users, subjects, study tasks, and dashboard statistics.
 
+    ## Authentication
     Authentication uses HttpOnly `access_token` and `refresh_token` cookies.
-    Register or log in first; Swagger UI keeps the cookies and sends them with
-    subsequent requests.
+    - Register or log in first to receive cookies
+    - Swagger UI automatically manages cookies for subsequent requests
+    - All protected endpoints require valid `access_token` cookie
+
+    ## Email Verification
+    - After registration, users receive a confirmation email
+    - Must verify email via the confirmation link
+    - Can resend confirmation email if needed
 servers:
   - url: http://localhost:8080
-    description: Local Docker backend
+    description: Local development server
 tags:
   - name: Authentication
+    description: User registration, login, logout, and email confirmation
   - name: Dashboard
+    description: User statistics and overview
   - name: Subjects
+    description: Subject management (lectures, courses)
   - name: Tasks
-  - name: Users
-  - name: Static files
+    description: Study task management
+  - name: Profile
+    description: User account management
 paths:
   /api/auth/register:
     post:
       tags: [Authentication]
-      summary: Register a user
-      description: Creates a user and sets access and refresh token cookies.
+      summary: Register a new user
+      description: Creates a new user account and sets authentication cookies. Sends a confirmation email to verify the email address.
       operationId: registerUser
       requestBody:
         $ref: "#/components/requestBodies/Credentials"
       responses:
         "201":
-          description: User created; authentication cookies are set.
+          description: User created successfully. Authentication cookies are set and confirmation email sent.
           headers:
             Set-Cookie:
               $ref: "#/components/headers/AuthCookies"
@@ -45,17 +56,18 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           $ref: "#/components/responses/InternalError"
+
   /api/auth/login:
     post:
       tags: [Authentication]
-      summary: Log in
-      description: Validates credentials and sets access and refresh token cookies.
+      summary: Log in user
+      description: Validates credentials and sets authentication cookies.
       operationId: loginUser
       requestBody:
         $ref: "#/components/requestBodies/Credentials"
       responses:
         "200":
-          description: Login successful; response body is empty and authentication cookies are set.
+          description: Login successful. Authentication cookies are set.
           headers:
             Set-Cookie:
               $ref: "#/components/headers/AuthCookies"
@@ -67,17 +79,16 @@ paths:
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           $ref: "#/components/responses/InternalError"
+
   /api/auth/refresh:
     post:
       tags: [Authentication]
-      summary: Rotate authentication tokens
-      description: Validates and revokes the current refresh token, then sets new access and refresh token cookies.
+      summary: Refresh authentication tokens
+      description: Validates and revokes the current refresh token, then issues new access and refresh token cookies.
       operationId: refreshTokens
-      security:
-        - refreshCookie: []
       responses:
         "204":
-          description: Tokens rotated; authentication cookies are replaced.
+          description: Tokens rotated successfully. New authentication cookies are set.
           headers:
             Set-Cookie:
               $ref: "#/components/headers/AuthCookies"
@@ -85,30 +96,72 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalError"
+
   /api/auth/logout:
     post:
       tags: [Authentication]
-      summary: Log out
-      description: Revokes the refresh token when available and clears both authentication cookies.
+      summary: Log out user
+      description: Revokes the current refresh token and clears authentication cookies.
       operationId: logoutUser
-      security:
-        - refreshCookie: []
-        - {}
       responses:
         "204":
-          description: Logged out.
+          description: User logged out successfully. Cookies cleared.
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/auth/confirm/resend:
+    post:
+      tags: [Authentication]
+      summary: Resend confirmation email
+      description: Sends a new confirmation email to the authenticated user.
+      operationId: resendConfirmationEmail
+      security:
+        - accessCookie: []
+      responses:
+        "204":
+          description: Confirmation email sent successfully.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/auth/confirm/{token}:
+    post:
+      tags: [Authentication]
+      summary: Confirm email address
+      description: Verifies user's email address using the confirmation token from email link.
+      operationId: confirmEmail
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: Email confirmation token
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Email verified successfully.
+        "400":
+          description: Invalid or expired confirmation token.
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           $ref: "#/components/responses/InternalError"
   /api/dashboard:
     get:
       tags: [Dashboard]
       summary: Get dashboard statistics
+      description: Returns statistics and status for the authenticated user including task counts, completion percentage, and upcoming deadlines.
       operationId: getDashboard
       security:
         - accessCookie: []
       responses:
         "200":
-          description: Statistics for the authenticated user.
+          description: Dashboard statistics for the authenticated user.
           content:
             application/json:
               schema:
@@ -506,96 +559,34 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
-  /api/users/:
-    get:
-      tags: [Users]
-      summary: List users
-      operationId: listUsers
-      security:
-        - accessCookie: []
-      responses:
-        "200":
-          description: All users without password hashes.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
-    delete:
-      tags: [Users]
-      summary: Delete all users
-      operationId: deleteUsers
-      security:
-        - accessCookie: []
-      responses:
-        "204":
-          description: Users deleted.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
   /api/users/me:
     get:
-      tags: [ Authentication ]
-      summary: Get current user
-      description: Returns the user identified by the access token cookie.
+      tags: [Profile]
+      summary: Get current user profile
+      description: Returns the authenticated user's profile information.
       operationId: getCurrentUser
       security:
-        - accessCookie: [ ]
-      responses:
-        "200":
-          description: Current authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/users/{email}:
-    parameters:
-      - $ref: "#/components/parameters/Email"
-    put:
-      tags: [Users]
-      summary: Replace a user
-      description: Replaces email and password and issues a new access token cookie.
-      operationId: replaceUser
-      security:
         - accessCookie: []
-      requestBody:
-        $ref: "#/components/requestBodies/Credentials"
       responses:
         "200":
-          description: Replaced user.
+          description: Current authenticated user profile.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
-        "400":
-          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           $ref: "#/components/responses/InternalError"
+
+  /api/users/me/email:
     patch:
-      tags: [Users]
-      summary: Update a user
-      description: At least one property must be supplied.
-      operationId: updateUser
+      tags: [Profile]
+      summary: Update user email
+      description: Changes the user's email address and sends a new confirmation email. User must verify the new email.
+      operationId: updateUserEmail
       security:
         - accessCookie: []
       requestBody:
@@ -603,10 +594,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UserPatch"
+              $ref: "#/components/schemas/EmailRequest"
       responses:
         "200":
-          description: Updated user.
+          description: Email updated successfully. Confirmation email sent to new address.
           content:
             application/json:
               schema:
@@ -617,53 +608,42 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
-        "409":
-          $ref: "#/components/responses/Conflict"
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           $ref: "#/components/responses/InternalError"
-    delete:
-      tags: [Users]
-      summary: Delete a user
-      operationId: deleteUser
+
+  /api/users/me/password:
+    patch:
+      tags: [Profile]
+      summary: Update user password
+      description: Changes the user's password. Current password verification is required.
+      operationId: updateUserPassword
       security:
         - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordRequest"
       responses:
         "204":
-          description: User deleted.
+          description: Password updated successfully.
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
-          $ref: "#/components/responses/Unauthorized"
+          description: Unauthorized - invalid current password or missing credentials.
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/Error"
         "404":
           $ref: "#/components/responses/NotFound"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           $ref: "#/components/responses/InternalError"
-  /static/lecturer-avatars/{file}:
-    get:
-      tags: [Static files]
-      summary: Get an uploaded lecturer avatar
-      operationId: getLecturerAvatar
-      parameters:
-        - name: file
-          in: path
-          required: true
-          description: Generated WebP filename.
-          schema:
-            type: string
-            pattern: '^[0-9a-f-]+\.webp$'
-          example: 550e8400-e29b-41d4-a716-446655440000.webp
-      responses:
-        "200":
-          description: WebP image.
-          content:
-            image/webp:
-              schema:
-                type: string
-                format: binary
-        "404":
-          $ref: "#/components/responses/NotFound"
 components:
   securitySchemes:
     accessCookie:
@@ -769,15 +749,53 @@ components:
           example: strong password
     User:
       type: object
-      required: [id, email]
+      required: [id, email, is_email_verified]
       properties:
         id:
           type: integer
           format: int64
+          description: Unique user identifier
           example: 1
         email:
           type: string
-          example: student
+          description: User's email address
+          example: student@example.com
+        is_email_verified:
+          type: boolean
+          description: Whether the user has verified their email address
+          example: true
+    EmailRequest:
+      type: object
+      required: [new_email]
+      additionalProperties: false
+      properties:
+        new_email:
+          type: string
+          description: New email address for the user
+          minLength: 1
+          maxLength: 255
+          example: newemail@example.com
+    PasswordRequest:
+      type: object
+      required: [old_password, new_password]
+      additionalProperties: false
+      properties:
+        old_password:
+          type: string
+          format: password
+          description: Current password for verification
+          minLength: 1
+          maxLength: 72
+          writeOnly: true
+          example: currentPassword123
+        new_password:
+          type: string
+          format: password
+          description: New password
+          minLength: 8
+          maxLength: 72
+          writeOnly: true
+          example: newStrongPassword123
     UserPatch:
       type: object
       additionalProperties: false
