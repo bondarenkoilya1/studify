@@ -15,7 +15,7 @@ const gradients = [
 ];
 
 export function SubjectCard({ subject }: SubjectCardProps) {
-  const examDate = new Date(subject.exam_date).toLocaleDateString(undefined, {
+  const examDate = new Date(subject.examDate).toLocaleDateString(undefined, {
     day: "numeric",
     month: "long",
     year: "numeric",

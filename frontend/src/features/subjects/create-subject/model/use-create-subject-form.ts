@@ -15,15 +15,15 @@ export function useCreateSubjectForm() {
     defaultValues: {
       name: "",
       lecturer: "",
-      lecturer_avatar_url: "",
-      exam_date: "",
+      lecturerAvatarUrl: "",
+      examDate: "",
     },
   });
 
   const onSubmit = form.handleSubmit((values) => {
     mutation.mutate({
       ...values,
-      exam_date: new Date(values.exam_date).toISOString(),
+      examDate: new Date(values.examDate).toISOString(),
     });
   });
 

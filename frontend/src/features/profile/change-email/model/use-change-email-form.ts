@@ -34,7 +34,7 @@ export function useChangeEmailForm() {
     register: form.register,
     errors: form.formState.errors,
     handleSubmit: form.handleSubmit(onSubmit),
-    isDisabled: !data?.is_email_verified,
+    isDisabled: !data?.isEmailVerified,
     isPending: changeEmailMutation.isPending,
     error: changeEmailMutation.error,
   };

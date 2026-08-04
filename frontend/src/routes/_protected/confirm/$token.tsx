@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_protected/confirm/$token")({
 
     queryClient.setQueryData(["user"], (old) => {
       if (!old) return old;
-      return { ...old, is_email_verified: true };
+      return { ...old, isEmailVerified: true };
     });
 
     return { success: true };

@@ -1,15 +1,15 @@
 export interface Subject {
   id: number;
-  user_id: number;
+  userId: number;
   name: string;
   lecturer: string;
-  lecturer_avatar_url?: string;
-  exam_date: string;
+  lecturerAvatarUrl?: string;
+  examDate: string;
 }
 
 export type SubjectInput = {
   name: string;
   lecturer: string;
-  lecturer_avatar_url?: string;
-  exam_date: string;
+  lecturerAvatarUrl?: string;
+  examDate: string;
 };

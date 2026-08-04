@@ -17,6 +17,60 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   );
 }
 
+/**
+ * Converts snake_case keys to camelCase
+ */
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Converts camelCase keys to snake_case
+ */
+function camelToSnake(str: string): string {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+}
+
+/**
+ * Recursively transforms object keys from snake_case to camelCase
+ */
+function transformKeysSnakeToCamel(obj: unknown): unknown {
+  if (Array.isArray(obj)) {
+    return obj.map(transformKeysSnakeToCamel);
+  }
+
+  if (isPlainObject(obj)) {
+    const transformed: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const camelKey = snakeToCamel(key);
+      transformed[camelKey] = transformKeysSnakeToCamel(value);
+    }
+    return transformed;
+  }
+
+  return obj;
+}
+
+/**
+ * Recursively transforms object keys from camelCase to snake_case
+ */
+function transformKeysCamelToSnake(obj: unknown): unknown {
+  if (Array.isArray(obj)) {
+    return obj.map(transformKeysCamelToSnake);
+  }
+
+  if (isPlainObject(obj)) {
+    const transformed: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const snakeKey = camelToSnake(key);
+      transformed[snakeKey] = transformKeysCamelToSnake(value);
+    }
+    return transformed;
+  }
+
+  return obj;
+}
+
 async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const fullURL = `${publicEnv.apiBaseUrl}${url}`;
   const headers = new Headers(options.headers);
@@ -25,7 +79,9 @@ async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   if (body && isPlainObject(body)) {
     headers.set("Content-Type", "application/json");
     headers.set("Accept", "application/json");
-    body = JSON.stringify(body);
+    // Transform camelCase to snake_case before sending to backend
+    const transformedBody = transformKeysCamelToSnake(body);
+    body = JSON.stringify(transformedBody);
   }
 
   const config: RequestInit = {
@@ -102,7 +158,9 @@ async function parseResponse<T>(response: Response): Promise<T> {
   const text = await response.text();
   if (!text) return undefined as T;
   try {
-    return JSON.parse(text);
+    const data = JSON.parse(text);
+    // Transform snake_case to camelCase after receiving from backend
+    return transformKeysSnakeToCamel(data) as T;
   } catch {
     return text as unknown as T;
   }

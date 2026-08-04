@@ -66,21 +66,21 @@ export function CreateSubjectSection() {
 
           <div className="space-y-2">
             <label
-              htmlFor="exam_date"
+              htmlFor="examDate"
               className="text-sm font-medium text-studify-text"
             >
               Дата экзамена
             </label>
 
             <input
-              id="exam_date"
+              id="examDate"
               type="datetime-local"
-              {...register("exam_date")}
+              {...register("examDate")}
               className="w-full rounded-lg border border-studify-border bg-studify-field px-3 py-2 outline-none transition focus:border-studify-primary"
             />
 
-            {errors.exam_date && (
-              <p className="text-sm text-red-500">{errors.exam_date.message}</p>
+            {errors.examDate && (
+              <p className="text-sm text-red-500">{errors.examDate.message}</p>
             )}
           </div>
 
