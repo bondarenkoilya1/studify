@@ -12,7 +12,7 @@ func RequireJSON(next http.Handler) http.Handler {
 
 		mediaType, _, err := mime.ParseMediaType(contentType)
 		if err != nil || mediaType != required {
-			http.Error(w, "You need to use the following header -> Content-Type: application/json", http.StatusUnsupportedMediaType)
+			http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
 			return
 		}
 

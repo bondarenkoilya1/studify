@@ -413,6 +413,5 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 // - Extract clearAuthCookies()
 // - Extract getRefreshTokenFromRequest()
 // - Extract internalError(loggerMsg, err)
-// - Implement ConfirmEmail()
 // - Add rate limiting for ResendConfirmationMail()
 // - Prevent resending confirmation for verified users
