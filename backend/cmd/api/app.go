@@ -6,9 +6,9 @@ import (
 	"studify/internal/auth"
 	"studify/internal/config"
 	"studify/internal/database"
+	"studify/internal/email"
 	"studify/internal/handlers"
 	"studify/internal/mail"
-	"studify/internal/services"
 )
 
 type application struct {
@@ -32,7 +32,7 @@ func newApplication() (*application, error) {
 
 	authService := auth.NewService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction())
 
-	emailService := &services.EmailService{
+	emailService := &email.Service{
 		DB:     db,
 		Mailer: mailer,
 		Config: cfg,

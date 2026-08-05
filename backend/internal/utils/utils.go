@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"studify/internal/auth"
 	"studify/internal/models"
 	"time"
 
@@ -29,7 +30,7 @@ func GetID(r *http.Request) (int64, error) {
 func GetUserID(r *http.Request) (int64, error) {
 	userID := r.Context().Value(models.UserIDKey)
 	switch id := userID.(type) {
-	case models.UserID:
+	case auth.UserID:
 		return int64(id), nil
 	case int64:
 		return id, nil
@@ -68,7 +69,7 @@ func ScanTasks(db *sql.DB, query string, args ...any) ([]models.Task, error) {
 	}
 	defer rows.Close()
 
-	tasks := []models.Task{}
+	var tasks []models.Task
 	for rows.Next() {
 		t := &models.Task{}
 		var deadline sql.NullTime

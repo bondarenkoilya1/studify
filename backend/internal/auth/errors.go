@@ -13,4 +13,6 @@ var (
 	ErrInvalidEmail    = errors.New("invalid email")
 	ErrPasswordTooLong = errors.New("password is too long")
 	ErrEmailTooLong    = errors.New("email is too long")
+
+	ErrConfirmationTokenExpired = errors.New("confirmation token has expired")
 )

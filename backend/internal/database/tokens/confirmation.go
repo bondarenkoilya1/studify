@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-
-	"studify/internal/models"
 )
 
 type confirmationTokenExecutor interface {
@@ -16,21 +14,21 @@ type confirmationTokenExecutor interface {
 func GetConfirmationTokenByUserID(
 	db *sql.DB,
 	userID int64,
-) (*models.ConfirmationTokenRecord, error) {
+) (*ConfirmationTokenRecord, error) {
 	return getConfirmationTokenByUserID(db, userID)
 }
 
 func GetConfirmationTokenByUserIDTx(
 	tx *sql.Tx,
 	userID int64,
-) (*models.ConfirmationTokenRecord, error) {
+) (*ConfirmationTokenRecord, error) {
 	return getConfirmationTokenByUserID(tx, userID)
 }
 
 func getConfirmationTokenByUserID(
 	exec confirmationTokenExecutor,
 	userID int64,
-) (*models.ConfirmationTokenRecord, error) {
+) (*ConfirmationTokenRecord, error) {
 	query := `
 	SELECT
 		user_id,
@@ -41,7 +39,7 @@ func getConfirmationTokenByUserID(
 	WHERE user_id = $1;
 	`
 
-	token := &models.ConfirmationTokenRecord{}
+	token := &ConfirmationTokenRecord{}
 
 	err := exec.QueryRow(query, userID).Scan(
 		&token.UserID,
@@ -60,21 +58,21 @@ func getConfirmationTokenByUserID(
 func GetConfirmationTokenByHash(
 	db *sql.DB,
 	tokenHash string,
-) (*models.ConfirmationTokenRecord, error) {
+) (*ConfirmationTokenRecord, error) {
 	return getConfirmationTokenByHash(db, tokenHash)
 }
 
 func GetConfirmationTokenByHashTx(
 	tx *sql.Tx,
 	tokenHash string,
-) (*models.ConfirmationTokenRecord, error) {
+) (*ConfirmationTokenRecord, error) {
 	return getConfirmationTokenByHash(tx, tokenHash)
 }
 
 func getConfirmationTokenByHash(
 	exec confirmationTokenExecutor,
 	tokenHash string,
-) (*models.ConfirmationTokenRecord, error) {
+) (*ConfirmationTokenRecord, error) {
 	query := `
 	SELECT
 		user_id,
@@ -85,7 +83,7 @@ func getConfirmationTokenByHash(
 	WHERE token_hash = $1;
 	`
 
-	token := &models.ConfirmationTokenRecord{}
+	token := &ConfirmationTokenRecord{}
 
 	err := exec.QueryRow(query, tokenHash).Scan(
 		&token.UserID,

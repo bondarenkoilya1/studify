@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"strconv"
 	"studify/internal/config"
-	"studify/internal/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func (s *Service) generateAccessToken(userID models.UserID) (string, error) {
+func (s *Service) generateAccessToken(userID UserID) (string, error) {
 	now := time.Now()
 
 	claims := jwt.RegisteredClaims{
@@ -30,7 +29,7 @@ func (s *Service) generateAccessToken(userID models.UserID) (string, error) {
 	return ss, nil
 }
 
-func (s *Service) ParseAccessToken(tokenString string) (models.UserID, error) {
+func (s *Service) ParseAccessToken(tokenString string) (UserID, error) {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -57,10 +56,10 @@ func (s *Service) ParseAccessToken(tokenString string) (models.UserID, error) {
 		return 0, fmt.Errorf("invalid access token subject: %w", err)
 	}
 
-	return models.UserID(userID), nil
+	return UserID(userID), nil
 }
 
-func (s *Service) SetAccessTokenCookies(userID models.UserID, w http.ResponseWriter) error {
+func (s *Service) SetAccessTokenCookies(userID UserID, w http.ResponseWriter) error {
 	accessToken, err := s.generateAccessToken(userID)
 	if err != nil {
 		return fmt.Errorf("generate access token: %w", err)

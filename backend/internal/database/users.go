@@ -100,8 +100,7 @@ func InsertUser(db *sql.DB, email, password string) (*models.User, error) {
 		&user.IsEmailVerified,
 	)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
 			return nil, ErrUserAlreadyExists
 		}
 
@@ -177,7 +176,7 @@ func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
 	return nil
 }
 
-// Admin routes
+/* Admin routes
 func GetUsers(db *sql.DB) ([]models.User, error) {
 	query := `
 		SELECT
@@ -238,3 +237,5 @@ func DeleteUser(db *sql.DB, email string) error {
 
 	return nil
 }
+
+*/

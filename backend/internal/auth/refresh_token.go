@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strconv"
 	"studify/internal/config"
-	"studify/internal/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -26,18 +25,18 @@ func GenerateTokenID() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
-func HashRefreshToken(token models.RefreshToken) models.TokenHash {
+func HashRefreshToken(token RefreshToken) TokenHash {
 	sum := sha256.Sum256([]byte(token))
-	return models.TokenHash(hex.EncodeToString(sum[:]))
+	return TokenHash(hex.EncodeToString(sum[:]))
 }
 
-func CompareTokenHash(token models.RefreshToken, expectedHash models.TokenHash) bool {
+func CompareTokenHash(token RefreshToken, expectedHash TokenHash) bool {
 	tokenHash := HashRefreshToken(token)
 
 	return subtle.ConstantTimeCompare([]byte(tokenHash), []byte(expectedHash)) == 1
 }
 
-func (s *Service) GenerateRefreshToken(userID models.UserID) (models.RefreshToken, models.TokenID, error) {
+func (s *Service) GenerateRefreshToken(userID UserID) (RefreshToken, TokenID, error) {
 	now := time.Now()
 
 	tokenID, err := GenerateTokenID()
@@ -59,12 +58,12 @@ func (s *Service) GenerateRefreshToken(userID models.UserID) (models.RefreshToke
 		return "", "", fmt.Errorf("failed to generate signed string: %w", err)
 	}
 
-	return models.RefreshToken(ss), models.TokenID(tokenID), nil
+	return RefreshToken(ss), TokenID(tokenID), nil
 }
 
 // ParseRefreshToken reads data from the tokenString and make basic validation.
 // It returns userID, tokenID and error
-func (s *Service) ParseRefreshToken(tokenString string) (models.UserID, models.TokenID, error) {
+func (s *Service) ParseRefreshToken(tokenString string) (UserID, TokenID, error) {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -95,10 +94,10 @@ func (s *Service) ParseRefreshToken(tokenString string) (models.UserID, models.T
 		return 0, "", fmt.Errorf("invalid refresh token subject: %w", err)
 	}
 
-	return models.UserID(userID), models.TokenID(claims.ID), nil
+	return UserID(userID), TokenID(claims.ID), nil
 }
 
-func (s *Service) SetRefreshTokenCookies(token models.RefreshToken, w http.ResponseWriter) error {
+func (s *Service) SetRefreshTokenCookies(token RefreshToken, w http.ResponseWriter) error {
 	cookie := http.Cookie{
 		Name:     "refresh_token",
 		Value:    string(token),

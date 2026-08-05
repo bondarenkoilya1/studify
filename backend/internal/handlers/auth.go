@@ -12,7 +12,6 @@ import (
 	"studify/internal/database"
 	"studify/internal/database/tokens"
 	"studify/internal/models"
-	"studify/internal/services"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -54,13 +53,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Access and Refresh token service
-	if err = h.Auth.SetAccessTokenCookies(models.UserID(newUser.ID), w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(auth.UserID(newUser.ID), w); err != nil {
 		log.Printf("failed to set access token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(models.UserID(newUser.ID))
+	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(auth.UserID(newUser.ID))
 	if err != nil {
 		log.Printf("failed to generate refresh token: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -84,7 +83,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	//
 
 	// Send Confirmation Email
-	if err := h.EmailService.SendConfirmationEmail(newUser.Email, models.UserID(newUser.ID)); err != nil {
+	if err := h.EmailService.SendConfirmationEmail(newUser.Email, auth.UserID(newUser.ID)); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -128,14 +127,14 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Auth.SetAccessTokenCookies(models.UserID(user.ID), w); err != nil {
+	if err = h.Auth.SetAccessTokenCookies(auth.UserID(user.ID), w); err != nil {
 		log.Printf("failed to set access token cookie: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	// Refresh Token Service
-	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(models.UserID(user.ID))
+	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(auth.UserID(user.ID))
 	if err != nil {
 		log.Printf("failed to generate refresh token: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -244,14 +243,17 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isValid := auth.CompareTokenHash(models.RefreshToken(refreshTokenCookie.Value), refreshToken.TokenHash)
+	isValid := auth.CompareTokenHash(
+		auth.RefreshToken(refreshTokenCookie.Value),
+		auth.TokenHash(refreshToken.TokenHash),
+	)
 	if !isValid {
 		log.Printf("refresh token hash mismatch for token ID %q", refreshTokenID)
 		h.rejectRefresh(w)
 		return
 	}
 
-	if refreshToken.UserID != userID {
+	if auth.UserID(refreshToken.UserID) != userID {
 		log.Printf(
 			"refresh token user ID mismatch: db user ID %d, jwt user ID %d",
 			refreshToken.UserID,
@@ -262,7 +264,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if refreshToken.TokenID != refreshTokenID {
+	if auth.TokenID(refreshToken.TokenID) != refreshTokenID {
 		log.Printf(
 			"refresh token ID mismatch: db token ID %q, jwt token ID %q",
 			refreshToken.TokenID,
@@ -362,20 +364,20 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRecord, err := services.ValidateConfirmationToken(h.DB, token)
+	tokenRecord, err := auth.ValidateConfirmationToken(h.DB, token)
 	if err != nil {
 		log.Printf("failed to validate confirmation token: %v", err)
 		http.Error(w, "invalid confirmation token", http.StatusBadRequest)
 		return
 	}
 
-	if err := database.VerifyUserEmail(h.DB, int64(tokenRecord.UserID)); err != nil {
+	if err := database.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
 		log.Printf("failed to verify user email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := tokens.DeleteConfirmationToken(h.DB, int64(tokenRecord.UserID)); err != nil {
+	if err := tokens.DeleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
 		log.Printf("failed to delete confirmation token from db: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -396,7 +398,7 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(user.Email, models.UserID(user.ID)); err != nil {
+	if err := h.EmailService.SendConfirmationEmail(user.Email, auth.UserID(user.ID)); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

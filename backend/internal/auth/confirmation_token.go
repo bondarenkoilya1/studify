@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"crypto/rand"
@@ -6,26 +6,13 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
-	"fmt"
-	"studify/internal/config"
 	"studify/internal/database/tokens"
-	"studify/internal/mail"
-	"studify/internal/models"
 	"time"
 )
 
-type EmailService struct {
-	DB     *sql.DB
-	Mailer *mail.Mailer
-	Config *config.Config
-}
-
-var ErrTokenExpired = errors.New("confirmation token has expired")
-
 // CreateConfirmationToken generates a confirmation token, stores its hash in the database,
 // and returns the confirmation token.
-func CreateConfirmationToken(db *sql.DB, userID models.UserID) (string, error) {
+func CreateConfirmationToken(db *sql.DB, userID UserID) (string, error) {
 	tokenBytes := make([]byte, 32)
 	_, err := rand.Read(tokenBytes)
 	if err != nil {
@@ -51,7 +38,7 @@ func CreateConfirmationToken(db *sql.DB, userID models.UserID) (string, error) {
 func ValidateConfirmationToken(
 	db *sql.DB,
 	token string,
-) (*models.ConfirmationTokenRecord, error) {
+) (*tokens.ConfirmationTokenRecord, error) {
 	tokenHash := sha256.Sum256([]byte(token))
 
 	confirmationToken, err := tokens.GetConfirmationTokenByHash(
@@ -63,27 +50,8 @@ func ValidateConfirmationToken(
 	}
 
 	if time.Now().After(confirmationToken.ExpiresAt) {
-		return nil, ErrTokenExpired
+		return nil, ErrConfirmationTokenExpired
 	}
 
 	return confirmationToken, nil
-}
-
-func (e *EmailService) SendConfirmationEmail(email string, userID models.UserID) error {
-	token, err := CreateConfirmationToken(e.DB, userID)
-	if err != nil {
-		return fmt.Errorf("create confirmation link: %w", err)
-	}
-
-	link := fmt.Sprintf(
-		"%s/confirm/%s",
-		e.Config.AppURL,
-		token,
-	)
-
-	if err := e.Mailer.SendConfirmationEmail("noreply@studify.com", email, link); err != nil {
-		return fmt.Errorf("send confirmation email: %w", err)
-	}
-
-	return nil
 }
