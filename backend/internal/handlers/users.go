@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"studify/internal/auth"
 	"studify/internal/database"
 	"studify/internal/models"
 	"studify/internal/utils"
@@ -114,7 +115,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := utils.IsValidPassword(request.NewPassword, models.AuthActionRegister); err != nil {
+	if err := auth.ValidatePassword(request.NewPassword, models.AuthActionRegister); err != nil {
 		log.Printf("failed to validate new password: %v", err)
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
@@ -204,7 +205,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 //		return
 //	}
 //
-//	if err := utils.ValidateCredentials(body, models.AuthActionRegister); err != nil {
+//	if err := auth.ValidateCredentials(body, models.AuthActionRegister); err != nil {
 //		http.Error(w, err.Error(), http.StatusBadRequest)
 //		return
 //	}

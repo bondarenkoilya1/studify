@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"studify/internal/auth"
 	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/database/tokens"
@@ -28,7 +29,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := utils.ValidateCredentials(body, models.AuthActionRegister); err != nil {
+	if err := auth.ValidateCredentials(body, models.AuthActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -105,7 +106,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := utils.ValidateCredentials(body, models.AuthActionLogin); err != nil {
+	if err := auth.ValidateCredentials(body, models.AuthActionLogin); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
