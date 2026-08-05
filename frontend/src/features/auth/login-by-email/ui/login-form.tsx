@@ -53,7 +53,7 @@ export function LoginForm() {
             <Input
               id="password"
               type="password"
-              placeholder="Ваш пароль"
+              placeholder="Не менее 8 символов"
               autoComplete="current-password"
               controlSize="large"
               aria-describedby={errors.password ? "password-error" : undefined}
