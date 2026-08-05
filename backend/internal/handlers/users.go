@@ -154,7 +154,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newPasswordHash, err := utils.HashPassword(request.NewPassword)
+	newPasswordHash, err := auth.HashPassword(request.NewPassword)
 	if err != nil {
 		log.Printf("failed to hash new password: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -210,7 +210,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 //		return
 //	}
 //
-//	passwordHash, err := utils.HashPassword(body.Password)
+//	passwordHash, err := auth.HashPassword(body.Password)
 //	if err != nil {
 //		log.Printf("failed to hash password: %v", err)
 //		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -298,7 +298,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 //			return
 //		}
 //
-//		passwordHash, err := utils.HashPassword(*req.Password)
+//		passwordHash, err := auth.HashPassword(*req.Password)
 //		if err != nil {
 //			log.Printf("failed to hash password: %v", err)
 //			http.Error(w, "internal server error", http.StatusInternalServerError)

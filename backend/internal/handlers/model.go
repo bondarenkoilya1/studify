@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"database/sql"
+	"studify/internal/auth"
 	"studify/internal/config"
 	"studify/internal/services"
-	"studify/internal/utils"
 )
 
 type Handler struct {
 	DB           *sql.DB
-	Auth         *utils.AuthService
+	Auth         *auth.Service
 	Config       *config.Config
 	EmailService *services.EmailService
 }

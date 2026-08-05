@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"net/mail"
 	"studify/internal/models"
@@ -12,14 +11,6 @@ const (
 	maxEmailLength    = 254
 	maxPasswordLength = 72
 	minPasswordLength = 8
-)
-
-var (
-	ErrEmptyEmail      = errors.New("email is empty")
-	ErrEmptyPassword   = errors.New("password is empty")
-	ErrInvalidEmail    = errors.New("invalid email")
-	ErrPasswordTooLong = errors.New("password is too long")
-	ErrEmailTooLong    = errors.New("email is too long")
 )
 
 func ValidateCredentials(email, password string, action models.AuthAction) error {

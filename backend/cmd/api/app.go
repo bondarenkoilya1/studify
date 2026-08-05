@@ -3,12 +3,12 @@ package main
 import (
 	"database/sql"
 	"net/http"
+	"studify/internal/auth"
 	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/handlers"
 	"studify/internal/mail"
 	"studify/internal/services"
-	"studify/internal/utils"
 )
 
 type application struct {
@@ -30,7 +30,7 @@ func newApplication() (*application, error) {
 
 	mailer := mail.NewMailer("mailpit:1025")
 
-	auth := utils.NewAuthService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction())
+	authService := auth.NewService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction())
 
 	emailService := &services.EmailService{
 		DB:     db,
@@ -38,7 +38,7 @@ func newApplication() (*application, error) {
 		Config: cfg,
 	}
 
-	h := &handlers.Handler{DB: db, Auth: auth, Config: cfg, EmailService: emailService}
+	h := &handlers.Handler{DB: db, Auth: authService, Config: cfg, EmailService: emailService}
 
 	return &application{
 		addr:   cfg.ServerAddr,

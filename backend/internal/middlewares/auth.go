@@ -5,11 +5,11 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"studify/internal/auth"
 	"studify/internal/models"
-	"studify/internal/utils"
 )
 
-func ValidateAuth(auth *utils.AuthService) func(http.Handler) http.Handler {
+func ValidateAuth(auth *auth.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			accessTokenCookie, err := r.Cookie("access_token")

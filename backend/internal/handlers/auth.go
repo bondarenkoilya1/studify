@@ -13,7 +13,6 @@ import (
 	"studify/internal/database/tokens"
 	"studify/internal/models"
 	"studify/internal/services"
-	"studify/internal/utils"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -29,12 +28,12 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidateCredentials(body, models.AuthActionRegister); err != nil {
+	if err := auth.ValidateCredentials(body.Email, body.Password, models.AuthActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	passwordHash, err := utils.HashPassword(body.Password)
+	passwordHash, err := auth.HashPassword(body.Password)
 	if err != nil {
 		log.Printf("failed to hash password: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -68,7 +67,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshTokenHash := utils.HashRefreshToken(refreshToken)
+	refreshTokenHash := auth.HashRefreshToken(refreshToken)
 
 	_, err = tokens.InsertRefreshToken(h.DB, newUser.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
 	if err != nil {
@@ -106,7 +105,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidateCredentials(body, models.AuthActionLogin); err != nil {
+	if err := auth.ValidateCredentials(body.Email, body.Password, models.AuthActionLogin); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -143,7 +142,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	refreshTokenHash := utils.HashRefreshToken(refreshToken)
+	refreshTokenHash := auth.HashRefreshToken(refreshToken)
 
 	_, err = tokens.InsertRefreshToken(h.DB, user.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
 	if err != nil {
@@ -245,7 +244,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isValid := utils.CompareTokenHash(models.RefreshToken(refreshTokenCookie.Value), refreshToken.TokenHash)
+	isValid := auth.CompareTokenHash(models.RefreshToken(refreshTokenCookie.Value), refreshToken.TokenHash)
 	if !isValid {
 		log.Printf("refresh token hash mismatch for token ID %q", refreshTokenID)
 		h.rejectRefresh(w)
@@ -295,7 +294,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newRefreshTokenHash := utils.HashRefreshToken(newRefreshToken)
+	newRefreshTokenHash := auth.HashRefreshToken(newRefreshToken)
 
 	_, err = tokens.InsertRefreshTokenTx(
 		tx,
