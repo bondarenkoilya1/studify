@@ -7,7 +7,7 @@ export function ChangePasswordSection() {
     useChangePasswordForm();
 
   return (
-    <section>
+    <section className="rounded-xl border p-5">
       <div>
         <h3 className="font-medium">Password</h3>
 
