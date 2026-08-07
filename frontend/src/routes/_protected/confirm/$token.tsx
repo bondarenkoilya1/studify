@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   confirmEmail,
   ConfirmEmailSection,
-} from "@/features/auth/confirm-email";
+} from "@/features/profile/confirm-email";
 import { queryClient } from "@/shared/api";
 
 export const Route = createFileRoute("/_protected/confirm/$token")({
