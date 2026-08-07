@@ -22,6 +22,7 @@ export function Header() {
           {import.meta.env.DEV && (
             <DevelopmentServices
               isEmailVerified={user?.isEmailVerified ?? false}
+              isTotpEnabled={user?.isTotpEnabled ?? false}
             />
           )}
         </div>
