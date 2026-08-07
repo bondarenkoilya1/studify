@@ -3,6 +3,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { router } from "@/router";
 import { queryClient } from "@/shared/api";
 import { Bounce, ToastContainer } from "react-toastify";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 export function Providers() {
   return (
@@ -21,6 +22,7 @@ export function Providers() {
         transition={Bounce}
       />
       <RouterProvider router={router} />
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
