@@ -6,6 +6,7 @@ type User struct {
 	Email           string `json:"email"`
 	Password        string `json:"-"`
 	IsEmailVerified bool   `json:"is_email_verified"`
+	TotpEncrypted   string `json:"totp_encrypted"` // todo: dangerous
 }
 
 type UserRequest struct {

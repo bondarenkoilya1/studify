@@ -51,3 +51,7 @@ Accept: application/json
   "email": "",
   "password": ""
 }
+
+### Get newly generated TOTP code
+GET {{baseUrl}}/api/auth/totp
+Accept: application/json

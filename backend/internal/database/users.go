@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// Todo: Different DTO, where I don't return totp secret for web-users
 func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 	query := `
 		SELECT
@@ -43,7 +44,8 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 		SELECT
 			id,
 			email,
-			is_email_verified
+			is_email_verified,
+			totp_encrypted -- // todo: do not send! dangerous 
 		FROM users
 		WHERE id = $1;
 	`
@@ -53,6 +55,7 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 		&user.ID,
 		&user.Email,
 		&user.IsEmailVerified,
+		&user.TotpEncrypted,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -162,6 +165,56 @@ func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
 	result, err := db.Exec(query, newPassword, id)
 	if err != nil {
 		return fmt.Errorf("update user password: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func UpdateUserTOTPSecret(db *sql.DB, id int64, secret string) error {
+	query := `
+		UPDATE users
+		SET
+		    totp_encrypted = $1
+		WHERE id = $2;
+	`
+
+	result, err := db.Exec(query, secret, id)
+	if err != nil {
+		return fmt.Errorf("update user totp secret: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func UpdateUserTOTPStatus(db *sql.DB, id int64, enabld bool) error {
+	query := `
+		UPDATE users
+		SET
+		    is_totp_enabled = $1
+		WHERE id = $2;
+	`
+
+	result, err := db.Exec(query, enabld, id)
+	if err != nil {
+		return fmt.Errorf("update user totp enabled status: %w", err)
 	}
 
 	rows, err := result.RowsAffected()

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,8 +16,17 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type QRCode struct {
+	QRCode string `json:"qr_code"`
+}
+
+type Passcode struct {
+	Passcode string `json:"passcode"`
+}
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	// Get and validate data, hash password
@@ -400,6 +410,87 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 
 	if err := h.EmailService.SendConfirmationEmail(user.Email, auth.UserID(user.ID)); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
+	user, err := h.currentUser(r)
+	if err != nil {
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to get current user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	key, err := auth.GenerateTOTPKey(user.Email, h.Config.AppName)
+	if err != nil {
+		log.Printf("failed to generate TOTP key: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	qr, err := auth.GenerateTOTPQRCode(key)
+	if err != nil {
+		log.Printf("failed to generate TOTP QR-code: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response := QRCode{
+		QRCode: base64.StdEncoding.EncodeToString(qr),
+	}
+
+	secret := key.Secret()
+	// todo: encrypt
+	if err := database.UpdateUserTOTPSecret(h.DB, user.ID, secret); err != nil {
+		log.Printf("failed to set totp secret at users table: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("failed to encode response")
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
+	user, err := h.currentUser(r)
+	if err != nil {
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to get current user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	body := Passcode{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		log.Printf("failed to decode request body: %v", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	valid := totp.Validate(body.Passcode, user.TotpEncrypted)
+	if !valid {
+		log.Printf("failed to validate totp")
+		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+		return
+	}
+
+	if err := database.UpdateUserTOTPStatus(h.DB, user.ID, true); err != nil {
+		log.Printf("failed to update user totp enabled status: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

@@ -7,26 +7,38 @@ import (
 )
 
 type Config struct {
-	JWTAccessSecret  string
-	JWTRefreshSecret string
-	Issuer           string
-	DatabaseURL      string
-	ServerAddr       string
-	AppURL           string
-	Env              string
-	CORSOrigins      []string
+	AppName           string
+	Issuer            string
+	JWTAccessSecret   string
+	JWTRefreshSecret  string
+	TOTPEncryptionKey string
+	DatabaseURL       string
+	ServerAddr        string
+	AppURL            string
+	Env               string
+	CORSOrigins       []string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		JWTAccessSecret:  os.Getenv("JWT_ACCESS_SECRET"),
-		JWTRefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
-		Issuer:           os.Getenv("ISSUER"),
-		DatabaseURL:      os.Getenv("DATABASE_URL"),
-		ServerAddr:       os.Getenv("SERVER_ADDR"),
-		AppURL:           os.Getenv("APP_URL"),
-		Env:              os.Getenv("ENV"),
-		CORSOrigins:      splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
+		AppName:           os.Getenv("APP_NAME"),
+		AppURL:            os.Getenv("APP_URL"),
+		DatabaseURL:       os.Getenv("DATABASE_URL"),
+		Env:               os.Getenv("ENV"),
+		Issuer:            os.Getenv("ISSUER"),
+		JWTAccessSecret:   os.Getenv("JWT_ACCESS_SECRET"),
+		JWTRefreshSecret:  os.Getenv("JWT_REFRESH_SECRET"),
+		TOTPEncryptionKey: os.Getenv("TOTP_ENCRYPTION_KEY"),
+		ServerAddr:        os.Getenv("SERVER_ADDR"),
+		CORSOrigins:       splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
+	}
+
+	if cfg.AppName == "" {
+		return nil, errors.New("APP_NAME is empty")
+	}
+
+	if cfg.Issuer == "" {
+		return nil, errors.New("ISSUER is empty")
 	}
 
 	if cfg.JWTAccessSecret == "" {
@@ -37,8 +49,8 @@ func Load() (*Config, error) {
 		return nil, errors.New("JWT_REFRESH_SECRET is empty")
 	}
 
-	if cfg.Issuer == "" {
-		return nil, errors.New("ISSUER is empty")
+	if cfg.TOTPEncryptionKey == "" {
+		return nil, errors.New("TOTP_ENCRYPTION_KEY is empty")
 	}
 
 	if cfg.DatabaseURL == "" {
