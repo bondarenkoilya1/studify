@@ -482,7 +482,14 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	valid := totp.Validate(body.Passcode, user.TotpEncrypted)
+	userTOTPKeyEncrypted, err := database.GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
+	if err != nil {
+		log.Printf("failed to get user TOTP key: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	valid := totp.Validate(body.Passcode, userTOTPKeyEncrypted)
 	if !valid {
 		log.Printf("failed to validate totp")
 		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)

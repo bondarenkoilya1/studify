@@ -6,7 +6,7 @@ type User struct {
 	Email           string `json:"email"`
 	Password        string `json:"-"`
 	IsEmailVerified bool   `json:"is_email_verified"`
-	TotpEncrypted   string `json:"totp_encrypted"` // todo: dangerous
+	IsTOTPEnabled   bool   `json:"is_totp_enabled"`
 }
 
 type UserRequest struct {
@@ -24,7 +24,8 @@ type UpdateUserRequest struct {
 type SafeUser struct {
 	ID              int64  `json:"id"`
 	Email           string `json:"email"`
-	IsEmailVerified string `json:"is_email_verified"`
+	IsEmailVerified bool   `json:"is_email_verified"`
+	IsTOTPEnabled   bool   `json:"is_totp_enabled"`
 }
 
 type EmailRequest struct {

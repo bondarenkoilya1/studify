@@ -45,7 +45,7 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 			id,
 			email,
 			is_email_verified,
-			totp_encrypted -- // todo: do not send! dangerous 
+			is_totp_enabled
 		FROM users
 		WHERE id = $1;
 	`
@@ -55,7 +55,7 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 		&user.ID,
 		&user.Email,
 		&user.IsEmailVerified,
-		&user.TotpEncrypted,
+		&user.IsTOTPEnabled,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -87,6 +87,27 @@ func GetUserPasswordHashByID(db *sql.DB, id int64) (string, error) {
 	}
 
 	return passwordHash, nil
+}
+
+func GetUserTOTPKeyEncryptedByID(db *sql.DB, id int64) (string, error) {
+	query := `
+		SELECT totp_encrypted
+		FROM users
+		WHERE id = $1;
+	`
+
+	var totpKey string
+
+	err := db.QueryRow(query, id).Scan(&totpKey)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrUserNotFound
+		}
+
+		return "", fmt.Errorf("get user totp key by id: %w", err)
+	}
+
+	return totpKey, nil
 }
 
 func InsertUser(db *sql.DB, email, password string) (*models.User, error) {
