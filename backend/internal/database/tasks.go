@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"studify/internal/models"
-	"studify/internal/utils"
 	"time"
 )
 
@@ -30,7 +29,7 @@ func GetTaskByID(db *sql.DB, id, userID int64) (*models.Task, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task by id: %w", err)
 	}
-	t.Deadline = utils.NullTimePtr(deadline)
+	t.Deadline = nullTimePtr(deadline)
 
 	return t, nil
 }
@@ -49,7 +48,7 @@ func GetTasksByUserID(db *sql.DB, userID int64) ([]models.Task, error) {
 	WHERE s.user_id = $1;
 `
 
-	tasks, err := utils.ScanTasks(db, query, userID)
+	tasks, err := scanTasks(db, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks: %w", err)
 	}

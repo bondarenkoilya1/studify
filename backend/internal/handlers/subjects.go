@@ -13,20 +13,19 @@ import (
 	"os"
 	"studify/internal/database"
 	"studify/internal/models"
-	"studify/internal/utils"
 
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"
 )
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -52,7 +51,7 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetSubjects(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -73,7 +72,7 @@ func (h *Handler) GetSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -115,13 +114,13 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -158,7 +157,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -175,7 +174,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -224,7 +223,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteSubjects(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -240,13 +239,13 @@ func (h *Handler) DeleteSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -306,7 +305,7 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dir := "./data/lecturer-avatars/"
-	if err = utils.EnsureDir(dir); err != nil {
+	if err = ensureDir(dir); err != nil {
 		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
 		return
 	}
@@ -337,4 +336,29 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// Helpers
+
+func ensureDir(path string) error {
+	if err := os.MkdirAll(path, 0o755); err != nil {
+		return fmt.Errorf("prepare storage directory %q: %w", path, err)
+	}
+
+	file, err := os.CreateTemp(path, ".check-*")
+	if err != nil {
+		return fmt.Errorf("storage directory %q is not writable: %w", path, err)
+	}
+
+	name := file.Name()
+
+	if err = file.Close(); err != nil {
+		return fmt.Errorf("close check file %q: %w", name, err)
+	}
+
+	if err = os.Remove(name); err != nil {
+		return fmt.Errorf("remove check file %q: %w", name, err)
+	}
+
+	return nil
 }

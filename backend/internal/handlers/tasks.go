@@ -9,17 +9,16 @@ import (
 	"net/http"
 	"studify/internal/database"
 	"studify/internal/models"
-	"studify/internal/utils"
 )
 
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -45,7 +44,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -65,7 +64,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -109,13 +108,13 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -146,7 +145,7 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -163,7 +162,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -221,7 +220,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteTasks(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
@@ -237,13 +236,13 @@ func (h *Handler) DeleteTasks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := utils.GetID(r)
+	id, err := getID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

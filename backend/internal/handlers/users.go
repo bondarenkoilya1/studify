@@ -10,7 +10,6 @@ import (
 	"studify/internal/auth"
 	"studify/internal/database"
 	"studify/internal/models"
-	"studify/internal/utils"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -121,7 +120,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		log.Printf("failed to get user id: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -355,7 +354,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 // Helpers
 
 func (h *Handler) currentUser(r *http.Request) (*models.User, error) {
-	userID, err := utils.GetUserID(r)
+	userID, err := getUserID(r)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"studify/internal/models"
-	"studify/internal/utils"
 )
 
 // GetSubjectsCount returns the number of subjects.
@@ -123,7 +122,7 @@ func GetOverdueTasks(db *sql.DB, userID int64) ([]models.Task, error) {
 	ORDER BY t.deadline DESC;
 `
 
-	tasks, err := utils.ScanTasks(db, query, userID)
+	tasks, err := scanTasks(db, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get overdue tasks: %w", err)
 	}
@@ -164,7 +163,7 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*models.Task, error) {
 
 		return nil, fmt.Errorf("failed to get nearest deadline task: %w", err)
 	}
-	task.Deadline = utils.NullTimePtr(deadline)
+	task.Deadline = nullTimePtr(deadline)
 
 	return &task, nil
 }
