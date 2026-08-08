@@ -3,10 +3,8 @@ import { Input } from "@/shared/ui/input";
 import { useValidateTotpForm } from "../model/useValidateTotpForm";
 
 export function TotpVerificationForm() {
-  const { register, watch, handleSubmit, errors, handleValidate, isPending } =
+  const { register, handleSubmit, errors, handleValidate, isPending } =
     useValidateTotpForm();
-
-  const passcode = watch("passcode") ?? "";
 
   return (
     <form
@@ -27,11 +25,7 @@ export function TotpVerificationForm() {
         )}
       </div>
 
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={passcode.length !== 6 || isPending}
-      >
+      <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? "Verifying..." : "Confirm"}
       </Button>
     </form>

@@ -8,7 +8,6 @@ import { queryClient } from "@/shared/api";
 export function useValidateTotpForm() {
   const {
     register,
-    watch,
     handleSubmit,
     formState: { errors },
   } = useForm<TotpFormData>({
@@ -34,7 +33,6 @@ export function useValidateTotpForm() {
 
   return {
     register,
-    watch,
     handleSubmit,
     errors,
     handleValidate,

@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Copy, Check, ShieldCheck, Smartphone } from "lucide-react";
+
 import { Button } from "@/shared/ui/button";
 import { useCurrentUser } from "@/entities/user";
 import { useGenerateTotp } from "../model/useGenerateTotp";
@@ -6,7 +9,7 @@ import { TotpVerificationForm } from "./totp-verification-form";
 import { TotpEmailVerificationRequired } from "./totp-email-verification-required";
 
 export function TotpSection() {
-  const { handleGenerate, qrCode } = useGenerateTotp();
+  const { handleGenerate, qrCode, textKey } = useGenerateTotp();
   const { data } = useCurrentUser();
 
   if (!data?.isEmailVerified) {
@@ -18,30 +21,143 @@ export function TotpSection() {
   }
 
   return (
-    <section className="rounded-xl border p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="font-semibold">Two-factor authentication</h3>
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <div className="relative overflow-hidden border-b px-5 py-5">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-violet-500/10" />
 
-          <p className="mt-1 text-sm text-muted-foreground">
-            Protect your account with an authenticator app.
-          </p>
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ShieldCheck className="size-5" />
+            </div>
+
+            <div>
+              <h3 className="font-semibold">Two-factor authentication</h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add an extra layer of security to your account.
+              </p>
+            </div>
+          </div>
+
+          {!qrCode && !textKey && (
+            <Button onClick={handleGenerate}>
+              <Smartphone className="mr-2 size-4" />
+              Set up authenticator
+            </Button>
+          )}
         </div>
-
-        {!qrCode && <Button onClick={handleGenerate}>Generate QR Code</Button>}
       </div>
 
-      {qrCode && (
-        <div className="mt-6 space-y-4">
-          <img
-            alt="TOTP QR Code"
-            src={`data:image/png;base64,${qrCode}`}
-            className="mx-auto size-48 rounded-lg border p-2"
-          />
+      {(qrCode || textKey) && (
+        <div className="space-y-7 p-5">
+          <div>
+            <h4 className="font-medium">Connect your authenticator</h4>
 
-          <TotpVerificationForm />
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Use an authenticator app such as Google Authenticator or Authy.
+              Add your account using one of the methods below.
+            </p>
+          </div>
+
+          {qrCode && (
+            <div className="overflow-hidden rounded-xl border bg-gradient-to-br from-muted/60 via-background to-primary/5">
+              <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center">
+                <div className="shrink-0 rounded-xl border bg-white p-3 shadow-sm">
+                  <img
+                    src={`data:image/png;base64,${qrCode}`}
+                    alt="TOTP QR Code"
+                    className="size-44"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      1
+                    </span>
+
+                    <p className="font-medium">Scan the QR code</p>
+                  </div>
+
+                  <p className="max-w-md text-sm leading-6 text-muted-foreground">
+                    Open your authenticator app and scan this QR code to add
+                    your Studify account.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {textKey && (
+            <div className="space-y-3">
+              <div>
+                <p className="font-medium">Can't scan the QR code?</p>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Enter this secret key manually in your authenticator app.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2">
+                <code className="min-w-0 flex-1 break-all px-2 py-1 text-sm font-medium tracking-wider">
+                  {textKey}
+                </code>
+
+                <CopyButton value={textKey} />
+              </div>
+            </div>
+          )}
+
+          <div className="border-t pt-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  2
+                </span>
+
+                <h4 className="font-medium">Confirm setup</h4>
+              </div>
+
+              <p className="mt-2 text-sm text-muted-foreground">
+                Enter the six-digit code generated by your authenticator app.
+              </p>
+            </div>
+
+            <TotpVerificationForm />
+          </div>
         </div>
       )}
     </section>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value);
+
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      aria-label={copied ? "Copied" : "Copy secret key"}
+      title={copied ? "Copied" : "Copy"}
+      className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+    >
+      {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+    </button>
   );
 }

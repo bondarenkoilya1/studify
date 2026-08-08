@@ -20,10 +20,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type QRCode struct {
-	QRCode string `json:"qr_code"`
-}
-
 type Passcode struct {
 	Passcode string `json:"passcode"`
 }
@@ -387,16 +383,20 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := QRCode{
-		QRCode: base64.StdEncoding.EncodeToString(qr),
-	}
-
 	secret := key.Secret()
 	// todo: encrypt
 	if err := database.UpdateUserTOTPSecret(h.DB, user.ID, secret); err != nil {
 		log.Printf("failed to set totp secret at users table: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	response := struct {
+		QRCode  string `json:"qr_code"`
+		TextKey string `json:"text_key"`
+	}{
+		QRCode:  base64.StdEncoding.EncodeToString(qr),
+		TextKey: key.Secret(),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -2,6 +2,7 @@ import { httpClient } from "@/shared/api";
 
 interface Response {
   qrCode: string;
+  textKey: string;
 }
 
 export function generateTotp() {
