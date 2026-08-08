@@ -30,31 +30,36 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	totalSubjects, err := database.GetSubjectsCount(h.DB, userID)
 	if err != nil {
-		http.Error(w, "Failed to get subjects count", http.StatusInternalServerError)
+		log.Printf("failed to get dashboard subjects count for user %d: %v", userID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalTasks, err := database.GetTasksCount(h.DB, userID)
 	if err != nil {
-		http.Error(w, "Failed to get tasks count", http.StatusInternalServerError)
+		log.Printf("failed to get dashboard tasks count for user %d: %v", userID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalCompletedTasks, err := database.GetCompletedTasksCount(h.DB, userID)
 	if err != nil {
-		http.Error(w, "Failed to get completed tasks count", http.StatusInternalServerError)
+		log.Printf("failed to get dashboard completed tasks count for user %d: %v", userID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalOngoingTasks, err := database.GetOngoingTasksCount(h.DB, userID)
 	if err != nil {
-		http.Error(w, "Failed to get completed tasks count", http.StatusInternalServerError)
+		log.Printf("failed to get dashboard ongoing tasks count for user %d: %v", userID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalNotCompletedTasks, err := database.GetNotCompletedTasksCount(h.DB, userID)
 	if err != nil {
-		http.Error(w, "Failed to get not completed tasks count", http.StatusInternalServerError)
+		log.Printf("failed to get dashboard not completed tasks count for user %d: %v", userID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -68,13 +73,15 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	nearestDeadlineTask, err := database.GetNearestDeadlineTask(h.DB, userID)
 	if err != nil {
-		http.Error(w, "Failed to get nearest deadline task", http.StatusInternalServerError)
+		log.Printf("failed to get nearest deadline task for user %d: %v", userID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	overdueTasks, err := database.GetOverdueTasks(h.DB, userID)
 	if err != nil {
-		http.Error(w, "Failed to get overdue tasks", http.StatusInternalServerError)
+		log.Printf("failed to get overdue tasks for user %d: %v", userID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -90,7 +97,10 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Failed to encode response as JSON: %v", err)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("failed to encode dashboard response for user %d: %v", userID, err)
 	}
 }
+
+// Todo: Gather some sql request into a single one
