@@ -49,7 +49,6 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create user
 	newUser, err := database.InsertUser(h.DB, body.Email, passwordHash)
 	if err != nil {
 		if errors.Is(err, database.ErrUserAlreadyExists) {
@@ -62,37 +61,12 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Access and Refresh token service
-	if err = h.Auth.SetAccessTokenCookies(auth.UserID(newUser.ID), w); err != nil {
-		log.Printf("failed to set access token cookie: %v", err)
+	if err := h.Auth.IssueTokens(auth.UserID(newUser.ID), w); err != nil {
+		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(auth.UserID(newUser.ID))
-	if err != nil {
-		log.Printf("failed to generate refresh token: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	refreshTokenHash := auth.HashRefreshToken(refreshToken)
-
-	_, err = tokens.InsertRefreshToken(h.DB, newUser.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
-	if err != nil {
-		log.Printf("failed to set insert refresh token: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err = h.Auth.SetRefreshTokenCookies(refreshToken, w); err != nil {
-		log.Printf("failed to set refresh token cookie: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	//
-
-	// Send Confirmation Email
 	if err := h.EmailService.SendConfirmationEmail(newUser.Email, auth.UserID(newUser.ID)); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -137,35 +111,11 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Auth.SetAccessTokenCookies(auth.UserID(user.ID), w); err != nil {
-		log.Printf("failed to set access token cookie: %v", err)
+	if err := h.Auth.IssueTokens(auth.UserID(user.ID), w); err != nil {
+		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
-
-	// Refresh Token Service
-	refreshToken, refreshTokenID, err := h.Auth.GenerateRefreshToken(auth.UserID(user.ID))
-	if err != nil {
-		log.Printf("failed to generate refresh token: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	refreshTokenHash := auth.HashRefreshToken(refreshToken)
-
-	_, err = tokens.InsertRefreshToken(h.DB, user.ID, string(refreshTokenID), string(refreshTokenHash), time.Now().Add(config.RefreshTokenTTL))
-	if err != nil {
-		log.Printf("failed to set insert refresh token: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err = h.Auth.SetRefreshTokenCookies(refreshToken, w); err != nil {
-		log.Printf("failed to set refresh token cookie: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	//
 
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(user); err != nil {
@@ -177,15 +127,13 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	refreshTokenCookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			h.Auth.ClearAccessToken(w)
-			h.Auth.ClearRefreshToken(w)
+			h.Auth.ClearAuthCookies(w)
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
 		log.Printf("failed to get refresh token cookie: %v", err)
-		h.Auth.ClearAccessToken(w)
-		h.Auth.ClearRefreshToken(w)
+		h.Auth.ClearAuthCookies(w)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -194,16 +142,14 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("failed to parse refresh token: %v", err)
 
-		h.Auth.ClearAccessToken(w)
-		h.Auth.ClearRefreshToken(w)
+		h.Auth.ClearAuthCookies(w)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	if err = tokens.RevokeRefreshToken(h.DB, string(refreshTokenID)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			h.Auth.ClearAccessToken(w)
-			h.Auth.ClearRefreshToken(w)
+			h.Auth.ClearAuthCookies(w)
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -213,8 +159,7 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.Auth.ClearAccessToken(w)
-	h.Auth.ClearRefreshToken(w)
+	h.Auth.ClearAuthCookies(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -355,8 +300,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) rejectRefresh(w http.ResponseWriter) {
-	h.Auth.ClearAccessToken(w)
-	h.Auth.ClearRefreshToken(w)
+	h.Auth.ClearAuthCookies(w)
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
 }
 
@@ -506,9 +450,7 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // TODO:
-// - Extract issueTokens(userID) (access + refresh token flow)
 // - Extract writeJSON(status, data)
-// - Extract clearAuthCookies()
 // - Extract getRefreshTokenFromRequest()
 // - Extract internalError(loggerMsg, err)
 // - Add rate limiting for ResendConfirmationMail()

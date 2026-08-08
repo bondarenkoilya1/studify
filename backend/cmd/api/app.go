@@ -30,7 +30,7 @@ func newApplication() (*application, error) {
 
 	mailer := mail.NewMailer("mailpit:1025")
 
-	authService := auth.NewService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction())
+	authService := auth.NewService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction(), db)
 
 	emailService := &email.Service{
 		DB:     db,
