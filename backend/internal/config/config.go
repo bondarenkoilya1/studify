@@ -1,7 +1,9 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -11,7 +13,7 @@ type Config struct {
 	Issuer            string
 	JWTAccessSecret   string
 	JWTRefreshSecret  string
-	TOTPEncryptionKey string
+	TOTPEncryptionKey []byte
 	DatabaseURL       string
 	ServerAddr        string
 	AppURL            string
@@ -21,16 +23,15 @@ type Config struct {
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		AppName:           os.Getenv("APP_NAME"),
-		AppURL:            os.Getenv("APP_URL"),
-		DatabaseURL:       os.Getenv("DATABASE_URL"),
-		Env:               os.Getenv("ENV"),
-		Issuer:            os.Getenv("ISSUER"),
-		JWTAccessSecret:   os.Getenv("JWT_ACCESS_SECRET"),
-		JWTRefreshSecret:  os.Getenv("JWT_REFRESH_SECRET"),
-		TOTPEncryptionKey: os.Getenv("TOTP_ENCRYPTION_KEY"),
-		ServerAddr:        os.Getenv("SERVER_ADDR"),
-		CORSOrigins:       splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
+		AppName:          os.Getenv("APP_NAME"),
+		AppURL:           os.Getenv("APP_URL"),
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		Env:              os.Getenv("ENV"),
+		Issuer:           os.Getenv("ISSUER"),
+		JWTAccessSecret:  os.Getenv("JWT_ACCESS_SECRET"),
+		JWTRefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
+		ServerAddr:       os.Getenv("SERVER_ADDR"),
+		CORSOrigins:      splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
 	}
 
 	if cfg.AppName == "" {
@@ -49,9 +50,24 @@ func Load() (*Config, error) {
 		return nil, errors.New("JWT_REFRESH_SECRET is empty")
 	}
 
-	if cfg.TOTPEncryptionKey == "" {
+	totpEncryptionKey := os.Getenv("TOTP_ENCRYPTION_KEY")
+	if totpEncryptionKey == "" {
 		return nil, errors.New("TOTP_ENCRYPTION_KEY is empty")
 	}
+
+	decodedKey, err := base64.StdEncoding.DecodeString(totpEncryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("decode TOTP_ENCRYPTION_KEY: %w", err)
+	}
+
+	if len(decodedKey) != 32 {
+		return nil, fmt.Errorf(
+			"TOTP_ENCRYPTION_KEY must decode to 32 bytes, got %d",
+			len(decodedKey),
+		)
+	}
+
+	cfg.TOTPEncryptionKey = decodedKey
 
 	if cfg.DatabaseURL == "" {
 		return nil, errors.New("DATABASE_URL is empty")
@@ -81,6 +97,7 @@ func Load() (*Config, error) {
 
 func (c *Config) IsProduction() bool {
 	env := strings.ToLower(c.Env)
+
 	return env == "prod" || env == "production"
 }
 
@@ -94,6 +111,7 @@ func splitEnvList(value string) []string {
 
 	for _, part := range parts {
 		item := strings.TrimSpace(part)
+
 		if item != "" {
 			items = append(items, item)
 		}

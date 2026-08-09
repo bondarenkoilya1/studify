@@ -24,6 +24,11 @@ type Passcode struct {
 	Passcode string `json:"passcode"`
 }
 
+type TOTPResponse struct {
+	QRCode  string `json:"qr_code"`
+	TextKey string `json:"text_key"`
+}
+
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	// Get and validate data, hash password
 	body := models.UserRequest{}
@@ -383,26 +388,28 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secret := key.Secret()
-	// todo: encrypt
-	if err := database.UpdateUserTOTPSecret(h.DB, user.ID, secret); err != nil {
+	secret := key.Secret() // For sending to the user so he can manually input this to auth app
+	response := TOTPResponse{
+		QRCode:  base64.StdEncoding.EncodeToString(qr),
+		TextKey: secret,
+	}
+
+	encryptedSecret, err := auth.EncryptTOTPKey(secret, []byte(h.Config.TOTPEncryptionKey)) // For sending to the DB to be more secure
+	if err != nil {
+		log.Printf("failed to encrypt TOTP key: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = database.UpdateUserTOTPSecret(h.DB, user.ID, encryptedSecret); err != nil {
 		log.Printf("failed to set totp secret at users table: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	response := struct {
-		QRCode  string `json:"qr_code"`
-		TextKey string `json:"text_key"`
-	}{
-		QRCode:  base64.StdEncoding.EncodeToString(qr),
-		TextKey: key.Secret(),
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err = json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("failed to encode response")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 }
@@ -426,14 +433,21 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userTOTPKeyEncrypted, err := database.GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
+	encryptedSecret, err := database.GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
 	if err != nil {
 		log.Printf("failed to get user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	valid := totp.Validate(body.Passcode, userTOTPKeyEncrypted)
+	decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, []byte(h.Config.TOTPEncryptionKey))
+	if err != nil {
+		log.Printf("failed to decrypt user TOTP key: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	valid := totp.Validate(body.Passcode, decryptedSecret)
 	if !valid {
 		log.Printf("failed to validate totp")
 		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
