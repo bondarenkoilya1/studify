@@ -6,5 +6,5 @@ interface Response {
 }
 
 export function generateTotp() {
-  return httpClient.get<Response>("/api/auth/totp");
+  return httpClient.post<Response>("/api/auth/totp");
 }

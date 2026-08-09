@@ -53,5 +53,5 @@ Accept: application/json
 }
 
 ### Get newly generated TOTP code
-GET {{baseUrl}}/api/auth/totp
+POST {{baseUrl}}/api/auth/totp
 Accept: application/json

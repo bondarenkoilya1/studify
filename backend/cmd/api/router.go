@@ -51,8 +51,8 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 
 		r.Route("/totp", func(r chi.Router) {
 			r.Use(middlewares.ValidateAuth(h.Auth))
-			r.Get("/", h.GenerateTOTP)
-			r.With(middlewares.RequireJSON).Post("/", h.ValidateTOTP)
+			r.Post("/", h.GenerateTOTP)
+			r.With(middlewares.RequireJSON).Post("/verify", h.ValidateTOTP)
 		})
 
 		r.Route("/confirm", func(r chi.Router) {
