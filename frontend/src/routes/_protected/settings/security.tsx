@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ChangePasswordSection } from "@/features/profile/change-password";
-import { TotpSection } from "@/features/profile/manage-totp";
+import { TotpProvider, TotpSection } from "@/features/profile/manage-totp";
 
 export const Route = createFileRoute("/_protected/settings/security")({
   component: RouteComponent,
@@ -22,7 +22,9 @@ function RouteComponent() {
 
         <div className="space-y-6">
           <ChangePasswordSection />
-          <TotpSection />
+          <TotpProvider>
+            <TotpSection />
+          </TotpProvider>
         </div>
       </div>
     </div>

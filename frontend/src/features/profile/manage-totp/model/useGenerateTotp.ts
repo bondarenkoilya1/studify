@@ -1,13 +1,12 @@
-import { useState } from "react";
 import { generateTotp } from "../api/generate-totp";
+import { useTotp } from "@/features/profile/manage-totp";
 
 export function useGenerateTotp() {
-  // Don't need a React-query for such rare state
-  const [qrCode, setQrCode] = useState<string | null>(null);
-  const [textKey, setTextKey] = useState<string | null>(null);
+  const { qrCode, textKey, setTextKey, setQrCode } = useTotp();
 
   const handleGenerate = async () => {
     const response = await generateTotp();
+
     setQrCode(response.qrCode);
     setTextKey(response.textKey);
   };
