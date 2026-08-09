@@ -1,9 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { deleteSubject } from "../api/delete-subject";
+import { queryClient } from "@/shared/api";
 
 export function useDeleteSubject() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: deleteSubject,
 

@@ -250,6 +250,32 @@ func UpdateUserTOTPStatus(db *sql.DB, id int64, enabld bool) error {
 	return nil
 }
 
+func DisableUserTOTP(db *sql.DB, id int64) error {
+	query := `
+		UPDATE users
+		SET
+		    totp_encrypted = '',
+		    is_totp_enabled = FALSE
+		WHERE id = $1;
+	`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("disable user TOTP: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
 /* Admin routes
 func GetUsers(db *sql.DB) ([]models.User, error) {
 	query := `

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ChangePasswordSection } from "@/features/profile/change-password";
-import { TotpSection } from "@/features/profile/setup-totp";
+import { TotpSection } from "@/features/profile/manage-totp";
 
 export const Route = createFileRoute("/_protected/settings/security")({
   component: RouteComponent,

@@ -32,8 +32,7 @@ export function TotpSection() {
             </div>
 
             <div>
-              <h3 className="font-semibold">Two-factor authentication</h3>
-
+              <h3 className="font-semibold">Two-factor authentication</h3>чет
               <p className="mt-1 text-sm text-muted-foreground">
                 Add an extra layer of security to your account.
               </p>

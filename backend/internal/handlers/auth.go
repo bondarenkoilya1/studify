@@ -305,6 +305,8 @@ func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
 }
 
+// email
+
 func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	log.Printf(
 		"confirm request: method=%s ua=%q",
@@ -361,6 +363,8 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// totp
 
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 	user, err := h.currentUser(r)
@@ -456,6 +460,27 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := database.UpdateUserTOTPStatus(h.DB, user.ID, true); err != nil {
 		log.Printf("failed to update user totp enabled status: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
+	user, err := h.currentUser(r)
+	if err != nil {
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to get current user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := database.DisableUserTOTP(h.DB, user.ID); err != nil {
+		log.Printf("failed to disable user TOTP: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
