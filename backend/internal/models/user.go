@@ -13,6 +13,7 @@ type UserRequest struct {
 	Email           string `json:"email"`
 	Password        string `json:"password"`
 	IsEmailVerified bool   `json:"is_email_verified"`
+	TOTPCode        string `json:"totp_code"` // temp!
 }
 
 type UpdateUserRequest struct {

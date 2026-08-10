@@ -112,6 +112,35 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if user.IsTOTPEnabled {
+		if body.TOTPCode == "" {
+			log.Printf("TOTP code is required for user %d", user.ID)
+			http.Error(w, "TOTP code is required", http.StatusBadRequest)
+			return
+		}
+
+		encryptedSecret, err := database.GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
+		if err != nil {
+			log.Printf("failed to get user totp encrypted key: %v", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
+		if err != nil {
+			log.Printf("failed to decrypt user TOTP key: %v", err)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		valid := totp.Validate(body.TOTPCode, decryptedSecret)
+		if !valid {
+			log.Printf("failed to validate totp")
+			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+			return
+		}
+	}
+
 	if err := h.Auth.IssueTokens(auth.UserID(user.ID), w); err != nil {
 		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

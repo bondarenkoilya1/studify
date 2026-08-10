@@ -9,14 +9,14 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// Todo: Different DTO, where I don't return totp secret for web-users
 func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 	query := `
 		SELECT
 			id,
 			email,
 			password,
-			is_email_verified
+			is_email_verified,
+			is_totp_enabled
 		FROM users
 		WHERE email = $1;
 	`
@@ -27,6 +27,7 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 		&user.Email,
 		&user.Password,
 		&user.IsEmailVerified,
+		&user.IsTOTPEnabled,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

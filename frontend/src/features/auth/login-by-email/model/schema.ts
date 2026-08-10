@@ -11,6 +11,9 @@ const passwordSchema = z.string().min(1, "Password is required");
 export const LoginByEmailSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
+  totpCode: z.string().refine((value) => value === "" || value.length === 6, {
+    message: "TOTP code must be 6 characters",
+  }),
 });
 
 export type LoginByEmailFormData = z.infer<typeof LoginByEmailSchema>;

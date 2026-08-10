@@ -24,7 +24,7 @@ export function LoginForm() {
         onSubmit={onSubmit}
       >
         {errors.root?.message && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
             {errors.root.message}
           </div>
         )}
@@ -68,8 +68,30 @@ export function LoginForm() {
             )}
           </FormField>
 
+          {/* TODO: временно всегда показываем поле TOTP, для тестирования.
+              Бэкенд сам проверяет код только если у юзера включена 2FA. */}
+          <FormField htmlFor="totpCode" label="Код 2FA (если включена)">
+            <Input
+              id="totpCode"
+              type="text"
+              placeholder="123456"
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              controlSize="large"
+              aria-describedby={errors.totpCode ? "totp-error" : undefined}
+              aria-invalid={Boolean(errors.totpCode)}
+              {...registerField("totpCode")}
+            />
+
+            {errors.totpCode?.message && (
+              <p className="mt-2 text-sm text-red-500" id="totp-error">
+                {errors.totpCode.message}
+              </p>
+            )}
+          </FormField>
+
           <Button
-            className="w-full bg-studify-primary text-white hover:bg-studify-hover active:bg-studify-active transition-colors duration-200"
+            className="w-full bg-studify-primary text-white transition-colors duration-200 hover:bg-studify-hover active:bg-studify-active"
             controlSize="large"
             disabled={isSubmitting}
             type="submit"
