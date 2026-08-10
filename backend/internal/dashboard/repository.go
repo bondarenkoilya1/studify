@@ -1,10 +1,11 @@
-package database
+package dashboard
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"studify/internal/models"
+	"studify/internal/task"
+	"studify/internal/util"
 )
 
 // GetSubjectsCount returns the number of subjects.
@@ -103,7 +104,7 @@ func GetNotCompletedTasksCount(db *sql.DB, userID int64) (int64, error) {
 
 // GetOverdueTasks returns overdue tasks.
 // If there is no task, it returns an empty slice and nil
-func GetOverdueTasks(db *sql.DB, userID int64) ([]models.Task, error) {
+func GetOverdueTasks(db *sql.DB, userID int64) ([]task.Task, error) {
 	query := `
 		SELECT
 			t.id,
@@ -122,7 +123,7 @@ func GetOverdueTasks(db *sql.DB, userID int64) ([]models.Task, error) {
 	ORDER BY t.deadline DESC;
 `
 
-	tasks, err := scanTasks(db, query, userID)
+	tasks, err := task.ScanTasks(db, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get overdue tasks: %w", err)
 	}
@@ -132,7 +133,7 @@ func GetOverdueTasks(db *sql.DB, userID int64) ([]models.Task, error) {
 
 // GetNearestDeadlineTask returns closest unfinished task.
 // If there is no task, it returns nil, nil
-func GetNearestDeadlineTask(db *sql.DB, userID int64) (*models.Task, error) {
+func GetNearestDeadlineTask(db *sql.DB, userID int64) (*task.Task, error) {
 	query := `
 		SELECT
 			t.id,
@@ -152,7 +153,7 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*models.Task, error) {
 	LIMIT 1;
 `
 
-	var task models.Task
+	var task task.Task
 	var deadline sql.NullTime
 
 	err := db.QueryRow(query, userID).Scan(&task.ID, &task.Name, &task.Description, &deadline, &task.Status, &task.SubjectID)
@@ -163,7 +164,7 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*models.Task, error) {
 
 		return nil, fmt.Errorf("failed to get nearest deadline task: %w", err)
 	}
-	task.Deadline = NullTimePtr(deadline)
+	task.Deadline = util.NullTimePtr(deadline)
 
 	return &task, nil
 }

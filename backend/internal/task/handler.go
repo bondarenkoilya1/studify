@@ -1,4 +1,4 @@
-package handlers
+package task
 
 import (
 	"database/sql"
@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"studify/internal/database"
 	"studify/internal/httpx"
-	"studify/internal/models"
 )
 
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +23,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := database.GetTaskByID(h.DB, id, userID)
+	task, err := GetTaskByID(h.DB, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Task was not found", http.StatusNotFound)
@@ -51,7 +49,7 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasks, err := database.GetTasksByUserID(h.DB, userID)
+	tasks, err := GetTasksByUserID(h.DB, userID)
 	if err != nil {
 		log.Printf("failed to get tasks: %v", err)
 		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
@@ -71,7 +69,7 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newTasks []models.Task
+	var newTasks []Task
 
 	if err := json.NewDecoder(r.Body).Decode(&newTasks); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -83,9 +81,9 @@ func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdSubjects := make([]models.Task, 0, len(newTasks))
+	createdSubjects := make([]Task, 0, len(newTasks))
 	for _, t := range newTasks {
-		task, err := database.InsertTask(h.DB, userID, t.Name, t.Description, t.Deadline, t.Status, t.SubjectID)
+		task, err := InsertTask(h.DB, userID, t.Name, t.Description, t.Deadline, t.Status, t.SubjectID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, "Subject not found", http.StatusNotFound)
@@ -121,13 +119,13 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newTask models.Task
+	var newTask Task
 	if err = json.NewDecoder(r.Body).Decode(&newTask); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	task, err := database.UpdateTask(h.DB, userID, id, newTask.Name, newTask.Description, newTask.Deadline, newTask.Status, newTask.SubjectID)
+	task, err := UpdateTask(h.DB, userID, id, newTask.Name, newTask.Description, newTask.Deadline, newTask.Status, newTask.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
@@ -152,7 +150,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req *models.UpdateTaskRequest
+	var req *UpdateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -169,7 +167,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := database.GetTaskByID(h.DB, id, userID)
+	task, err := GetTaskByID(h.DB, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Task not found", http.StatusNotFound)
@@ -201,7 +199,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		task.Deadline = req.Deadline
 	}
 
-	updatedTask, err := database.UpdateTask(h.DB, userID, id, task.Name, task.Description, task.Deadline, task.Status, task.SubjectID)
+	updatedTask, err := UpdateTask(h.DB, userID, id, task.Name, task.Description, task.Deadline, task.Status, task.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Task not found", http.StatusNotFound)
@@ -227,7 +225,7 @@ func (h *Handler) DeleteTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = database.DeleteTasksByUserID(h.DB, userID)
+	err = DeleteTasksByUserID(h.DB, userID)
 	if err != nil {
 		log.Printf("failed to delete tasks: %v", err)
 		http.Error(w, "Failed to delete tasks", http.StatusInternalServerError)
@@ -249,7 +247,7 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = database.DeleteTaskByID(h.DB, userID, id)
+	err = DeleteTaskByID(h.DB, userID, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)

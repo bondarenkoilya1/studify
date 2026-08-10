@@ -1,13 +1,39 @@
-package database
+package task
 
 import (
 	"database/sql"
 	"fmt"
-	"studify/internal/models"
+	"studify/internal/util"
 	"time"
 )
 
-func GetTaskByID(db *sql.DB, id, userID int64) (*models.Task, error) {
+func ScanTasks(db *sql.DB, query string, args ...any) ([]Task, error) {
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query tasks: %w", err)
+	}
+	defer rows.Close()
+
+	tasks := make([]Task, 0)
+	for rows.Next() {
+		t := &Task{}
+		var deadline sql.NullTime
+		err = rows.Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.Status, &t.SubjectID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan task: %w", err)
+		}
+		t.Deadline = util.NullTimePtr(deadline)
+		tasks = append(tasks, *t)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read tasks rows: %w", err)
+	}
+
+	return tasks, nil
+}
+
+func GetTaskByID(db *sql.DB, id, userID int64) (*Task, error) {
 	query := `
 		SELECT
 			t.id,
@@ -22,19 +48,19 @@ func GetTaskByID(db *sql.DB, id, userID int64) (*models.Task, error) {
 `
 
 	row := db.QueryRow(query, id, userID)
-	t := &models.Task{}
+	t := &Task{}
 	var deadline sql.NullTime
 
 	err := row.Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.Status, &t.SubjectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task by id: %w", err)
 	}
-	t.Deadline = NullTimePtr(deadline)
+	t.Deadline = util.NullTimePtr(deadline)
 
 	return t, nil
 }
 
-func GetTasksByUserID(db *sql.DB, userID int64) ([]models.Task, error) {
+func GetTasksByUserID(db *sql.DB, userID int64) ([]Task, error) {
 	query := `
 		SELECT
 			t.id,
@@ -48,7 +74,7 @@ func GetTasksByUserID(db *sql.DB, userID int64) ([]models.Task, error) {
 	WHERE s.user_id = $1;
 `
 
-	tasks, err := scanTasks(db, query, userID)
+	tasks, err := ScanTasks(db, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks: %w", err)
 	}
@@ -56,7 +82,7 @@ func GetTasksByUserID(db *sql.DB, userID int64) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func InsertTask(db *sql.DB, userID int64, name, description string, deadline *time.Time, status string, subjectID int64) (*models.Task, error) {
+func InsertTask(db *sql.DB, userID int64, name, description string, deadline *time.Time, status string, subjectID int64) (*Task, error) {
 	query := `
 	INSERT INTO tasks (
 		name,
@@ -79,7 +105,7 @@ func InsertTask(db *sql.DB, userID int64, name, description string, deadline *ti
 		return nil, fmt.Errorf("failed to insert task: %w", err)
 	}
 
-	return &models.Task{
+	return &Task{
 		ID:          id,
 		Name:        name,
 		Description: description,
@@ -89,7 +115,7 @@ func InsertTask(db *sql.DB, userID int64, name, description string, deadline *ti
 	}, nil
 }
 
-func UpdateTask(db *sql.DB, userID, id int64, name, description string, deadline *time.Time, status string, subjectID int64) (*models.Task, error) {
+func UpdateTask(db *sql.DB, userID, id int64, name, description string, deadline *time.Time, status string, subjectID int64) (*Task, error) {
 	query := `
 	UPDATE tasks t
 	SET
@@ -121,7 +147,7 @@ func UpdateTask(db *sql.DB, userID, id int64, name, description string, deadline
 		return nil, sql.ErrNoRows
 	}
 
-	return &models.Task{
+	return &Task{
 		ID:          id,
 		Name:        name,
 		Description: description,

@@ -1,6 +1,13 @@
-package models
+package task
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
+
+type Handler struct {
+	DB *sql.DB
+}
 
 type Task struct {
 	ID          int64      `json:"id"`

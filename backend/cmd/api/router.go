@@ -2,9 +2,11 @@ package main
 
 import (
 	"net/http"
+	"studify/internal/dashboard"
 	"studify/internal/handlers"
 	"studify/internal/middlewares"
 	"studify/internal/subject"
+	"studify/internal/task"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -30,10 +32,10 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 			r.Use(middlewares.ValidateAuth(h.Auth))
 
 			registerSubjectRoutes(r, h.Subject)
-			registerTaskRoutes(r, h)
+			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h)
+			registerDashboardRoutes(r, h.Dashboard)
 
-			r.Get("/dashboard", h.GetDashboardStatus)
 		})
 	})
 
@@ -81,7 +83,7 @@ func registerSubjectRoutes(r chi.Router, h *subject.Handler) {
 	})
 }
 
-func registerTaskRoutes(r chi.Router, h *handlers.Handler) {
+func registerTaskRoutes(r chi.Router, h *task.Handler) {
 	r.Route("/tasks", func(r chi.Router) {
 		r.Get("/", h.GetTasks)
 		r.With(middlewares.RequireJSON).Post("/", h.AddTasks)
@@ -105,6 +107,10 @@ func registerUserRoutes(r chi.Router, h *handlers.Handler) {
 		//r.Get("/", h.GetUsers) // Todo: It should be AdminRoute
 		//r.Delete("/{id}", h.DeleteUser) // Todo: It should be AdminRoute
 	})
+}
+
+func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
+	r.Get("/dashboard", h.GetDashboardStatus)
 }
 
 //func registerStaticRoutes(r chi.Router) {

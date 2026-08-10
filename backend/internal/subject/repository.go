@@ -3,7 +3,7 @@ package subject
 import (
 	"database/sql"
 	"fmt"
-	"studify/internal/database"
+	"studify/internal/util"
 	"time"
 )
 
@@ -28,7 +28,7 @@ func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
-	s.ExamDate = database.NullTimePtr(examDate)
+	s.ExamDate = util.NullTimePtr(examDate)
 
 	return s, nil
 }
@@ -62,7 +62,7 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan subject: %w", err)
 		}
-		s.ExamDate = database.NullTimePtr(examDate)
+		s.ExamDate = util.NullTimePtr(examDate)
 
 		subjects = append(subjects, s)
 	}
