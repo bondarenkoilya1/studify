@@ -47,6 +47,7 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 
 		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
 		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
+		r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
 		r.Post("/refresh", h.RefreshTokens)
 
 		r.Route("/totp", func(r chi.Router) {

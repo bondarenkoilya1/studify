@@ -29,6 +29,10 @@ type TOTPResponse struct {
 	TextKey string `json:"text_key"`
 }
 
+type ChallengeTokenResponse struct {
+	ChallengeToken string `json:"challenge_token"`
+}
+
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	// Get and validate data, hash password
 	body := models.UserRequest{}
@@ -113,32 +117,31 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.IsTOTPEnabled {
-		if body.TOTPCode == "" {
-			log.Printf("TOTP code is required for user %d", user.ID)
-			http.Error(w, "TOTP code is required", http.StatusBadRequest)
-			return
-		}
-
-		encryptedSecret, err := database.GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
+		ch, err := auth.GenerateChallengeToken()
 		if err != nil {
-			log.Printf("failed to get user totp encrypted key: %v", err)
+			log.Printf("failed to generate challenge token: %v", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
+		hash := auth.HashChallengeToken(auth.ChallengeToken(ch))
+
+		_, err = tokens.InsertAuthChallenge(h.DB, user.ID, string(hash), time.Now().Add(config.ChallengeTokenTTL))
 		if err != nil {
-			log.Printf("failed to decrypt user TOTP key: %v", err)
+			log.Printf("failed to insert auth challenge: %v", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		valid := totp.Validate(body.TOTPCode, decryptedSecret)
-		if !valid {
-			log.Printf("failed to validate totp")
-			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+		response := ChallengeTokenResponse{ChallengeToken: ch}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err = json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("failed to encode response")
 			return
 		}
+
+		return
 	}
 
 	if err := h.Auth.IssueTokens(auth.UserID(user.ID), w); err != nil {
@@ -147,6 +150,92 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+	if err = json.NewEncoder(w).Encode(user); err != nil {
+		log.Printf("failed to encode user to JSON: %v", err)
+	}
+}
+
+func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
+	body := models.TOTPRequest{}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if body.ChallengeToken == "" {
+		log.Printf("Challenge token is required")
+		http.Error(w, "Challenge token is required", http.StatusBadRequest)
+		return
+	}
+
+	if body.Code == "" {
+		log.Printf("TOTP code is required")
+		http.Error(w, "TOTP code is required", http.StatusBadRequest)
+		return
+	}
+
+	hash := auth.HashChallengeToken(auth.ChallengeToken(body.ChallengeToken))
+	ch, err := tokens.GetAuthChallengeByTokenHash(h.DB, string(hash))
+	if err != nil {
+		if errors.Is(err, tokens.ErrAuthChallengeNotFound) {
+			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
+			return
+		}
+		log.Printf("failed to get auth challenge: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if time.Now().After(ch.ExpiresAt) {
+		http.Error(w, "challenge token expired", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := database.GetUserByID(h.DB, ch.UserID)
+	if err != nil {
+		if errors.Is(err, database.ErrUserNotFound) {
+			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
+			return
+		}
+		log.Printf("failed to get user for totp login: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	encryptedSecret, err := database.GetUserTOTPKeyEncryptedByID(h.DB, ch.UserID)
+	if err != nil {
+		log.Printf("failed to get user TOTP key: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
+	if err != nil {
+		log.Printf("failed to decrypt user TOTP key: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !totp.Validate(body.Code, decryptedSecret) {
+		http.Error(w, "invalid TOTP passcode", http.StatusBadRequest)
+		return
+	}
+
+	if err := tokens.DeleteAuthChallenge(h.DB, ch.ID); err != nil {
+		log.Printf("failed to delete auth challenge: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.Auth.IssueTokens(auth.UserID(ch.UserID), w); err != nil {
+		log.Printf("failed to issue tokens: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(user); err != nil {
 		log.Printf("failed to encode user to JSON: %v", err)
@@ -427,7 +516,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		TextKey: secret,
 	}
 
-	encryptedSecret, err := auth.EncryptTOTPKey(secret, []byte(h.Config.TOTPEncryptionKey)) // For sending to the DB to be more secure
+	encryptedSecret, err := auth.EncryptTOTPKey(secret, h.Config.TOTPEncryptionKey) // For sending to the DB to be more secure
 	if err != nil {
 		log.Printf("failed to encrypt TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -473,7 +562,7 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, []byte(h.Config.TOTPEncryptionKey))
+	decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
 	if err != nil {
 		log.Printf("failed to decrypt user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

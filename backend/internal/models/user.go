@@ -38,6 +38,11 @@ type PasswordRequest struct {
 	NewPassword     string `json:"new_password"`
 }
 
+type TOTPRequest struct {
+	ChallengeToken string `json:"challenge_token"`
+	Code           string `json:"code"`
+}
+
 type AuthAction string
 
 const (
