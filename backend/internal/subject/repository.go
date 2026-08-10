@@ -1,13 +1,13 @@
-package database
+package subject
 
 import (
 	"database/sql"
 	"fmt"
-	"studify/internal/models"
+	"studify/internal/database"
 	"time"
 )
 
-func GetSubjectByID(db *sql.DB, id, userID int64) (*models.Subject, error) {
+func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 	query := `
 	SELECT
 			id,
@@ -21,19 +21,19 @@ func GetSubjectByID(db *sql.DB, id, userID int64) (*models.Subject, error) {
 `
 
 	row := db.QueryRow(query, id, userID)
-	s := &models.Subject{}
+	s := &Subject{}
 	var examDate sql.NullTime
 
 	err := row.Scan(&s.ID, &s.UserID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
-	s.ExamDate = nullTimePtr(examDate)
+	s.ExamDate = database.NullTimePtr(examDate)
 
 	return s, nil
 }
 
-func GetSubjectsByUserID(db *sql.DB, userID int64) ([]models.Subject, error) {
+func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 	query := `
 	SELECT
 			id,
@@ -52,17 +52,17 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]models.Subject, error) {
 	}
 	defer rows.Close()
 
-	subjects := make([]models.Subject, 0)
+	subjects := make([]Subject, 0)
 
 	for rows.Next() {
-		var s models.Subject
+		var s Subject
 		var examDate sql.NullTime
 
 		err = rows.Scan(&s.ID, &s.UserID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan subject: %w", err)
 		}
-		s.ExamDate = nullTimePtr(examDate)
+		s.ExamDate = database.NullTimePtr(examDate)
 
 		subjects = append(subjects, s)
 	}
@@ -74,20 +74,19 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]models.Subject, error) {
 	return subjects, nil
 }
 
-func InsertSubject(db *sql.DB, userID int64, name, lecturer, lecturerAvatarURL string, examDate *time.Time) (*models.Subject, error) {
+func InsertSubject(db *sql.DB, userID int64, name, lecturer, lecturerAvatarURL string, examDate *time.Time) (*Subject, error) {
 	query := `
 	INSERT INTO subjects (user_id, name, lecturer, lecturer_avatar_url, exam_date) 
 	VALUES ($1, $2, $3, $4, $5)
-	RETURNING id
-;
-`
+	RETURNING id;
+	`
 
 	var id int64
 	if err := db.QueryRow(query, userID, name, lecturer, lecturerAvatarURL, examDate).Scan(&id); err != nil {
 		return nil, fmt.Errorf("failed to insert subject: %w", err)
 	}
 
-	return &models.Subject{
+	return &Subject{
 		ID:                id,
 		UserID:            userID,
 		Name:              name,

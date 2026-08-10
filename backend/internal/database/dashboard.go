@@ -163,7 +163,7 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*models.Task, error) {
 
 		return nil, fmt.Errorf("failed to get nearest deadline task: %w", err)
 	}
-	task.Deadline = nullTimePtr(deadline)
+	task.Deadline = NullTimePtr(deadline)
 
 	return &task, nil
 }

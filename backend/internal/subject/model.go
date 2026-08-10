@@ -1,6 +1,13 @@
-package models
+package subject
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
+
+type Handler struct {
+	DB *sql.DB
+}
 
 type Subject struct {
 	ID                int64      `json:"id"`

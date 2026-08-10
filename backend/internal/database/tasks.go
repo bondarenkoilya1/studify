@@ -29,7 +29,7 @@ func GetTaskByID(db *sql.DB, id, userID int64) (*models.Task, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task by id: %w", err)
 	}
-	t.Deadline = nullTimePtr(deadline)
+	t.Deadline = NullTimePtr(deadline)
 
 	return t, nil
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"studify/internal/handlers"
 	"studify/internal/middlewares"
+	"studify/internal/subject"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -28,7 +29,7 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.ValidateAuth(h.Auth))
 
-			registerSubjectRoutes(r, h)
+			registerSubjectRoutes(r, h.Subject)
 			registerTaskRoutes(r, h)
 			registerUserRoutes(r, h)
 
@@ -65,7 +66,7 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 	})
 }
 
-func registerSubjectRoutes(r chi.Router, h *handlers.Handler) {
+func registerSubjectRoutes(r chi.Router, h *subject.Handler) {
 	r.Route("/subjects", func(r chi.Router) {
 		r.Get("/", h.GetSubjects)
 		r.With(middlewares.RequireJSON).Post("/", h.AddSubject)

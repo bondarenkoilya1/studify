@@ -51,7 +51,6 @@ func (m *Mailer) SendPasswordResetEmail(sender, recipient, link string) error {
 	if err != nil {
 		return err
 	}
-
 	defer c.Quit()
 
 	if err = c.Mail(sender); err != nil {

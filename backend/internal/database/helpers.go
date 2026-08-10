@@ -22,7 +22,7 @@ func scanTasks(db *sql.DB, query string, args ...any) ([]models.Task, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan task: %w", err)
 		}
-		t.Deadline = nullTimePtr(deadline)
+		t.Deadline = NullTimePtr(deadline)
 		tasks = append(tasks, *t)
 	}
 
@@ -33,7 +33,7 @@ func scanTasks(db *sql.DB, query string, args ...any) ([]models.Task, error) {
 	return tasks, nil
 }
 
-func nullTimePtr(value sql.NullTime) *time.Time {
+func NullTimePtr(value sql.NullTime) *time.Time {
 	if !value.Valid {
 		return nil
 	}

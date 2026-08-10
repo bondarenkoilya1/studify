@@ -1,4 +1,4 @@
-package handlers
+package subject
 
 import (
 	"database/sql"
@@ -11,27 +11,26 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"studify/internal/database"
-	"studify/internal/models"
+	"studify/internal/httpx"
 
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"
 )
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := getID(r)
+	id, err := httpx.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	subject, err := database.GetSubjectByID(h.DB, id, userID)
+	subject, err := GetSubjectByID(h.DB, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject was not found", http.StatusNotFound)
@@ -51,13 +50,13 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetSubjects(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	subjects, err := database.GetSubjectsByUserID(h.DB, userID)
+	subjects, err := GetSubjectsByUserID(h.DB, userID)
 	if err != nil {
 		log.Printf("failed to get subjects: %v", err)
 		http.Error(w, "Failed to get subjects", http.StatusInternalServerError)
@@ -72,13 +71,13 @@ func (h *Handler) GetSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var subject models.Subject
+	var subject Subject
 
 	err = json.NewDecoder(r.Body).Decode(&subject)
 	if err != nil {
@@ -91,7 +90,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createdSubject, err := database.InsertSubject(
+	createdSubject, err := InsertSubject(
 		h.DB,
 		userID,
 		subject.Name,
@@ -114,19 +113,19 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := getID(r)
+	id, err := httpx.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var newSubject models.Subject
+	var newSubject Subject
 	if err = json.NewDecoder(r.Body).Decode(&newSubject); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -137,7 +136,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = database.UpdateSubject(h.DB, userID, id, newSubject.Name, newSubject.Lecturer, newSubject.ExamDate); err != nil {
+	if err = UpdateSubject(h.DB, userID, id, newSubject.Name, newSubject.Lecturer, newSubject.ExamDate); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 			return
@@ -157,13 +156,13 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var req *models.UpdateSubjectRequest
+	var req *UpdateSubjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -174,13 +173,13 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := getID(r)
+	id, err := httpx.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	subject, err := database.GetSubjectByID(h.DB, id, userID)
+	subject, err := GetSubjectByID(h.DB, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject not found", http.StatusNotFound)
@@ -204,7 +203,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.ExamDate = req.ExamDate
 	}
 
-	if err = database.UpdateSubject(h.DB, userID, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {
+	if err = UpdateSubject(h.DB, userID, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject not found", http.StatusNotFound)
 			return
@@ -223,13 +222,13 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteSubjects(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	err = database.DeleteSubjectsByUserID(h.DB, userID)
+	err = DeleteSubjectsByUserID(h.DB, userID)
 	if err != nil {
 		log.Printf("failed to delete subjects: %v", err)
 		http.Error(w, "Failed to delete subjects", http.StatusInternalServerError)
@@ -239,19 +238,19 @@ func (h *Handler) DeleteSubjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	id, err := getID(r)
+	id, err := httpx.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err = database.DeleteSubjectByID(h.DB, userID, id); err != nil {
+	if err = DeleteSubjectByID(h.DB, userID, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "No such element with this ID", http.StatusNotFound)
 			return

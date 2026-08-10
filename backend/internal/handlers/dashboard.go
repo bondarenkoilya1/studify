@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"studify/internal/database"
+	"studify/internal/httpx"
 	"studify/internal/models"
 )
 
@@ -21,7 +22,7 @@ type DashboardStatus struct {
 }
 
 func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
-	userID, err := getUserID(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
