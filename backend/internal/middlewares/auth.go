@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 	"studify/internal/auth"
-	"studify/internal/models"
+	"studify/internal/httpx"
 )
 
 func ValidateAuth(auth *auth.Service) func(http.Handler) http.Handler {
@@ -30,7 +30,7 @@ func ValidateAuth(auth *auth.Service) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), models.UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), httpx.UserIDKey, userID)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

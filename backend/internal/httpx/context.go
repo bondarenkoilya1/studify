@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"studify/internal/auth"
-	"studify/internal/models"
 )
 
+type ContextKey string
+
+const UserIDKey ContextKey = "userID"
+
 func GetUserID(r *http.Request) (int64, error) {
-	userID := r.Context().Value(models.UserIDKey)
+	userID := r.Context().Value(UserIDKey)
 	switch id := userID.(type) {
 	case auth.UserID:
 		return int64(id), nil
