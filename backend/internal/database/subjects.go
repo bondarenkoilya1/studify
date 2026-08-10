@@ -52,7 +52,7 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]models.Subject, error) {
 	}
 	defer rows.Close()
 
-	var subjects []models.Subject
+	subjects := make([]models.Subject, 0)
 
 	for rows.Next() {
 		var s models.Subject

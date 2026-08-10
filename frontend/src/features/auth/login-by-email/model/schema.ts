@@ -8,12 +8,18 @@ const emailSchema = z
 
 const passwordSchema = z.string().min(1, "Password is required");
 
-export const LoginByEmailSchema = z.object({
+export const LoginCredentialsSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  totpCode: z.string().refine((value) => value === "" || value.length === 6, {
-    message: "TOTP code must be 6 characters",
-  }),
 });
 
-export type LoginByEmailFormData = z.infer<typeof LoginByEmailSchema>;
+export const LoginTotpSchema = z.object({
+  totpCode: z
+    .string()
+    .length(6, "TOTP code must be 6 characters")
+    .regex(/^\d{6}$/, "TOTP code must contain only numbers"),
+});
+
+export type LoginCredentialsFormData = z.infer<typeof LoginCredentialsSchema>;
+
+export type LoginTotpFormData = z.infer<typeof LoginTotpSchema>;

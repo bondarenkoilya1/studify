@@ -14,7 +14,7 @@ func scanTasks(db *sql.DB, query string, args ...any) ([]models.Task, error) {
 	}
 	defer rows.Close()
 
-	var tasks []models.Task
+	tasks := make([]models.Task, 0)
 	for rows.Next() {
 		t := &models.Task{}
 		var deadline sql.NullTime
