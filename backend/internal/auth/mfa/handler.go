@@ -7,23 +7,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	rc "studify/internal/auth/recovery_codes"
 	"studify/internal/httpx"
 	"studify/internal/user"
 
 	"github.com/pquerna/otp/totp"
 )
 
-type Passcode struct {
-	Passcode string `json:"passcode"`
-}
-
-type TOTPResponse struct {
-	QRCode  string `json:"qr_code"`
-	TextKey string `json:"text_key"`
-}
-
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
-	user, err := h.currentUser(r)
+	currentUser, err := h.currentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -34,7 +26,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key, err := GenerateTOTPKey(user.Email, h.Config.AppName)
+	key, err := GenerateTOTPKey(currentUser.Email, h.Config.AppName)
 	if err != nil {
 		log.Printf("failed to generate TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -61,7 +53,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = UpdateUserTOTPSecret(h.DB, user.ID, encryptedSecret); err != nil {
+	if err = UpdateUserTOTPSecret(h.DB, currentUser.ID, encryptedSecret); err != nil {
 		log.Printf("failed to set totp secret at users table: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -75,7 +67,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
-	user, err := h.currentUser(r)
+	currentUser, err := h.currentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -87,13 +79,13 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body := Passcode{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&body); err != nil {
 		log.Printf("failed to decode request body: %v", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
+	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(h.DB, currentUser.ID)
 	if err != nil {
 		log.Printf("failed to get user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -114,17 +106,31 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := UpdateUserTOTPStatus(h.DB, user.ID, true); err != nil {
+	if err = UpdateUserTOTPStatus(h.DB, currentUser.ID, true); err != nil {
 		log.Printf("failed to update user totp enabled status: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	// todo: should be added to db!!!!!
+	codes, err := rc.Generate()
+	if err != nil {
+		log.Printf("failed to generate recovery codes: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response := RecoveryCodesResponse{Codes: codes}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("failed to encode response")
+		return
+	}
 }
 
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
-	user, err := h.currentUser(r)
+	currentUser, err := h.currentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -135,7 +141,7 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := DisableUserTOTP(h.DB, user.ID); err != nil {
+	if err := DisableUserTOTP(h.DB, currentUser.ID); err != nil {
 		log.Printf("failed to disable user TOTP: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

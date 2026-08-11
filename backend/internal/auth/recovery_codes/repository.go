@@ -1,4 +1,4 @@
-package recovery_codes
+package rc
 
 import (
 	"database/sql"

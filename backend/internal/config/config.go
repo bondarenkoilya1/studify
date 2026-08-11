@@ -8,19 +8,6 @@ import (
 	"strings"
 )
 
-type Config struct {
-	AppName           string
-	Issuer            string
-	JWTAccessSecret   string
-	JWTRefreshSecret  string
-	TOTPEncryptionKey []byte
-	DatabaseURL       string
-	ServerAddr        string
-	AppURL            string
-	Env               string
-	CORSOrigins       []string
-}
-
 func Load() (*Config, error) {
 	cfg := &Config{
 		AppName:          os.Getenv("APP_NAME"),
