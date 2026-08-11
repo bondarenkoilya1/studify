@@ -112,10 +112,15 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// todo: should be added to db!!!!!
 	codes, err := rc.Generate()
 	if err != nil {
 		log.Printf("failed to generate recovery codes: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = rc.SaveRecoveryCodes(h.DB, currentUser.ID, codes); err != nil {
+		log.Printf("failed to save recovery codes: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

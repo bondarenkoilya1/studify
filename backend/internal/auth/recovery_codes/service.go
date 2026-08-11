@@ -2,6 +2,7 @@ package rc
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"math/big"
 )
@@ -45,4 +46,25 @@ func generateCode() (string, error) {
 		code[4:8],
 		code[8:],
 	), nil
+}
+
+func SaveRecoveryCodes(db *sql.DB, userID int64, codes []string) (err error) {
+	//todo: hash codes
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	for _, code := range codes {
+		if err = InsertRecoveryCode(tx, userID, code); err != nil {
+			return fmt.Errorf("insert recovery code: %w", err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
 }

@@ -3,27 +3,21 @@ package rc
 import (
 	"database/sql"
 	"fmt"
-	"time"
 )
 
-type RecoveryCodeRecord struct {
-	ID        int64
-	UserID    int64
-	CodeHash  string
-	ExpiresAt time.Time
-	CreatedAt time.Time
+type execer interface {
+	Exec(query string, args ...any) (sql.Result, error)
 }
 
 func GetRecoveryCodesByUserID(
 	db *sql.DB,
 	userID int64,
-) ([]RecoveryCodeRecord, error) {
+) ([]Record, error) {
 	query := `
 	SELECT
 		id,
 		user_id,
 		code_hash,
-		expires_at,
 		created_at
 	FROM recovery_codes
 	WHERE user_id = $1
@@ -36,16 +30,15 @@ func GetRecoveryCodesByUserID(
 	}
 	defer rows.Close()
 
-	var codes []RecoveryCodeRecord
+	var codes []Record
 
 	for rows.Next() {
-		var code RecoveryCodeRecord
+		var code Record
 
 		err := rows.Scan(
 			&code.ID,
 			&code.UserID,
 			&code.CodeHash,
-			&code.ExpiresAt,
 			&code.CreatedAt,
 		)
 		if err != nil {
@@ -66,21 +59,19 @@ func GetRecoveryCodeByHash(
 	db *sql.DB,
 	userID int64,
 	codeHash string,
-) (*RecoveryCodeRecord, error) {
+) (*Record, error) {
 	query := `
 	SELECT
 		id,
 		user_id,
 		code_hash,
-		expires_at,
 		created_at
 	FROM recovery_codes
 	WHERE user_id = $1
-	  AND code_hash = $2
-	  AND expires_at > now();
+	  AND code_hash = $2;
 	`
 
-	code := &RecoveryCodeRecord{}
+	code := &Record{}
 
 	err := db.QueryRow(
 		query,
@@ -102,25 +93,22 @@ func GetRecoveryCodeByHash(
 }
 
 func InsertRecoveryCode(
-	db *sql.DB,
+	db execer,
 	userID int64,
 	codeHash string,
-	expiresAt time.Time,
 ) error {
 	query := `
 	INSERT INTO recovery_codes (
 		user_id,
-		code_hash,
-		expires_at
+		code_hash
 	)
-	VALUES ($1, $2, $3);
+	VALUES ($1, $2);
 	`
 
 	_, err := db.Exec(
 		query,
 		userID,
 		codeHash,
-		expiresAt,
 	)
 
 	if err != nil {
