@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"studify/internal/database"
 	"studify/internal/httpx"
-	"studify/internal/models"
+	"studify/internal/user"
 
 	"github.com/pquerna/otp/totp"
 )
@@ -146,13 +145,13 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // Todo: i place it here to avoid current conflict, but later it will have a single place
-func (h *Handler) currentUser(r *http.Request) (*models.User, error) {
+func (h *Handler) currentUser(r *http.Request) (*user.User, error) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := database.GetUserByID(h.DB, userID)
+	currentUser, err := user.GetUserByID(h.DB, userID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return nil, ErrUserNotFound
@@ -160,5 +159,5 @@ func (h *Handler) currentUser(r *http.Request) (*models.User, error) {
 		return nil, fmt.Errorf("get current user: %w", err)
 	}
 
-	return user, nil
+	return currentUser, nil
 }

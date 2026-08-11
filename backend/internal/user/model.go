@@ -1,0 +1,28 @@
+package user
+
+import (
+	"database/sql"
+	"studify/internal/email"
+)
+
+type Handler struct {
+	DB           *sql.DB
+	EmailService *email.Service
+}
+
+type User struct {
+	ID              int64  `json:"id"`
+	Email           string `json:"email"`
+	Password        string `json:"-"`
+	IsEmailVerified bool   `json:"is_email_verified"`
+	IsTOTPEnabled   bool   `json:"is_totp_enabled"`
+}
+
+type EmailRequest struct {
+	NewEmail string `json:"new_email"`
+}
+
+type PasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}

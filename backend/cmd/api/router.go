@@ -8,6 +8,7 @@ import (
 	"studify/internal/middlewares"
 	"studify/internal/subject"
 	"studify/internal/task"
+	"studify/internal/user"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -34,7 +35,7 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 
 			registerSubjectRoutes(r, h.Subject)
 			registerTaskRoutes(r, h.Task)
-			registerUserRoutes(r, h)
+			registerUserRoutes(r, h.User)
 			registerDashboardRoutes(r, h.Dashboard)
 		})
 	})
@@ -91,16 +92,13 @@ func registerTaskRoutes(r chi.Router, h *task.Handler) {
 	})
 }
 
-func registerUserRoutes(r chi.Router, h *handlers.Handler) {
+func registerUserRoutes(r chi.Router, h *user.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Route("/me", func(r chi.Router) {
 			r.Get("/", h.GetUser)
 			r.With(middlewares.RequireJSON).Patch("/email", h.UpdateUserEmail)
 			r.With(middlewares.RequireJSON).Patch("/password", h.UpdateUserPassword)
 		})
-
-		//r.Get("/", h.GetUsers) // Todo: It should be AdminRoute
-		//r.Delete("/{id}", h.DeleteUser) // Todo: It should be AdminRoute
 	})
 }
 

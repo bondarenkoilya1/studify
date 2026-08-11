@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"studify/internal/auth"
-	"studify/internal/database"
 	"studify/internal/database/tokens"
+	"studify/internal/httpx"
+	"studify/internal/user"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -32,7 +34,7 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
+	if err := user.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
 		log.Printf("failed to verify user email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -48,22 +50,44 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
-	user, err := h.currentUser(r)
+	currentUser, err := h.currentUser(r)
 	if err != nil {
-		if errors.Is(err, database.ErrUserNotFound) {
+		if errors.Is(err, user.ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
+
 		log.Printf("failed to get current user: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(user.Email, auth.UserID(user.ID)); err != nil {
+	if err := h.EmailService.SendConfirmationEmail(
+		currentUser.Email,
+		auth.UserID(currentUser.ID),
+	); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) currentUser(r *http.Request) (*user.User, error) {
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		return nil, err
+	}
+
+	currentUser, err := user.GetUserByID(h.DB, userID)
+	if err != nil {
+		if errors.Is(err, user.ErrUserNotFound) {
+			return nil, user.ErrUserNotFound
+		}
+
+		return nil, fmt.Errorf("get current user: %w", err)
+	}
+
+	return currentUser, nil
 }

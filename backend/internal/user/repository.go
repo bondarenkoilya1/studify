@@ -1,15 +1,19 @@
-package database
+package user
 
 import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"studify/internal/models"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
+var (
+	ErrUserAlreadyExists = errors.New("user already exists")
+	ErrUserNotFound      = errors.New("user not found")
+)
+
+func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 	query := `
 		SELECT
 			id,
@@ -21,7 +25,7 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 		WHERE email = $1;
 	`
 
-	var user models.User
+	var user User
 	err := db.QueryRow(query, email).Scan(
 		&user.ID,
 		&user.Email,
@@ -40,7 +44,7 @@ func GetUserByEmail(db *sql.DB, email string) (*models.User, error) {
 	return &user, nil
 }
 
-func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
+func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	query := `
 		SELECT
 			id,
@@ -51,7 +55,7 @@ func GetUserByID(db *sql.DB, id int64) (*models.User, error) {
 		WHERE id = $1;
 	`
 
-	var user models.User
+	var user User
 	err := db.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Email,
@@ -90,14 +94,14 @@ func GetUserPasswordHashByID(db *sql.DB, id int64) (string, error) {
 	return passwordHash, nil
 }
 
-func InsertUser(db *sql.DB, email, password string) (*models.User, error) {
+func InsertUser(db *sql.DB, email, password string) (*User, error) {
 	query := `
 		INSERT INTO users (email, password)
 		VALUES ($1, $2)
 		RETURNING id, email, is_email_verified;
 	`
 
-	var user models.User
+	var user User
 	err := db.QueryRow(query, email, password).Scan(
 		&user.ID,
 		&user.Email,
@@ -138,7 +142,7 @@ func VerifyUserEmail(db *sql.DB, id int64) error {
 	return nil
 }
 
-func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*models.User, error) {
+func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*User, error) {
 	query := `
 		UPDATE users
 		SET
@@ -147,7 +151,7 @@ func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*models.User, error
 		RETURNING id, email, is_email_verified;
 	`
 
-	var user models.User
+	var user User
 	if err := db.QueryRow(query, newEmail, id).Scan(&user.ID, &user.Email, &user.IsEmailVerified); err != nil {
 		return nil, fmt.Errorf("update user email: %w", err)
 	}
@@ -179,67 +183,3 @@ func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
 
 	return nil
 }
-
-/* Admin routes
-func GetUsers(db *sql.DB) ([]models.User, error) {
-	query := `
-		SELECT
-			id,
-			email,
-			is_email_verified
-		FROM users;
-	`
-
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("get users: %w", err)
-	}
-	defer rows.Close()
-
-	var users []models.User
-
-	for rows.Next() {
-		var user models.User
-
-		if err := rows.Scan(
-			&user.ID,
-			&user.Email,
-			&user.IsEmailVerified,
-		); err != nil {
-			return nil, fmt.Errorf("scan user: %w", err)
-		}
-
-		users = append(users, user)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("read users rows: %w", err)
-	}
-
-	return users, nil
-}
-
-func DeleteUser(db *sql.DB, email string) error {
-	query := `
-		DELETE FROM users
-		WHERE email = $1;
-	`
-
-	result, err := db.Exec(query, email)
-	if err != nil {
-		return fmt.Errorf("delete user: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("get deleted users count: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return ErrUserNotFound
-	}
-
-	return nil
-}
-
-*/

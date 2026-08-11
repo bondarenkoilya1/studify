@@ -13,7 +13,10 @@ import (
 	"studify/internal/mail"
 	"studify/internal/subject"
 	"studify/internal/task"
+	"studify/internal/user"
 	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type application struct {
@@ -55,6 +58,11 @@ func newApplication() (*application, error) {
 		Auth:   authService,
 	}
 
+	userHandler := &user.Handler{
+		DB:           db,
+		EmailService: emailService,
+	}
+
 	h := &handlers.Handler{
 		DB:           db,
 		Auth:         authService,
@@ -64,6 +72,7 @@ func newApplication() (*application, error) {
 		Task:         taskHandler,
 		Dashboard:    dashboardHandler,
 		Mfa:          mfaHandler,
+		User:         userHandler,
 	}
 
 	return &application{

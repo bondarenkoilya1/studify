@@ -10,9 +10,8 @@ import (
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
 	"studify/internal/config"
-	"studify/internal/database"
 	"studify/internal/database/tokens"
-	"studify/internal/models"
+	"studify/internal/user"
 	"time"
 
 	"github.com/pquerna/otp/totp"
@@ -23,16 +22,27 @@ type ChallengeTokenResponse struct {
 	ChallengeToken string `json:"challenge_token"`
 }
 
+type UserRequest struct {
+	Email           string `json:"email"`
+	Password        string `json:"password"`
+	IsEmailVerified bool   `json:"is_email_verified"`
+	TOTPCode        string `json:"totp_code"` // temp!
+}
+
+type TOTPRequest struct {
+	ChallengeToken string `json:"challenge_token"`
+	Code           string `json:"code"`
+}
+
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
-	// Get and validate data, hash password
-	body := models.UserRequest{}
+	body := UserRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to read data: %v", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	if err := auth.ValidateCredentials(body.Email, body.Password, models.AuthActionRegister); err != nil {
+	if err := auth.ValidateCredentials(body.Email, body.Password, auth.AuthActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -44,9 +54,9 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUser, err := database.InsertUser(h.DB, body.Email, passwordHash)
+	newUser, err := user.InsertUser(h.DB, body.Email, passwordHash)
 	if err != nil {
-		if errors.Is(err, database.ErrUserAlreadyExists) {
+		if errors.Is(err, user.ErrUserAlreadyExists) {
 			http.Error(w, "user with such email already exists", http.StatusConflict)
 			return
 		}
@@ -62,7 +72,10 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(newUser.Email, auth.UserID(newUser.ID)); err != nil {
+	if err := h.EmailService.SendConfirmationEmail(
+		newUser.Email,
+		auth.UserID(newUser.ID),
+	); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -70,27 +83,28 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err = json.NewEncoder(w).Encode(newUser); err != nil {
+
+	if err := json.NewEncoder(w).Encode(newUser); err != nil {
 		log.Printf("failed to encode user to JSON: %v", err)
 	}
 }
 
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
-	body := models.UserRequest{}
+	body := UserRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	if err := auth.ValidateCredentials(body.Email, body.Password, models.AuthActionLogin); err != nil {
+	if err := auth.ValidateCredentials(body.Email, body.Password, auth.AuthActionLogin); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	user, err := database.GetUserByEmail(h.DB, body.Email)
+	currentUser, err := user.GetUserByEmail(h.DB, body.Email)
 	if err != nil {
-		if !errors.Is(err, database.ErrUserNotFound) {
+		if !errors.Is(err, user.ErrUserNotFound) {
 			log.Printf("failed to get user for login: %v", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
@@ -100,54 +114,65 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password))
-	if err != nil {
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(currentUser.Password),
+		[]byte(body.Password),
+	); err != nil {
 		http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
-	if user.IsTOTPEnabled {
-		ch, err := auth.GenerateChallengeToken()
+	if currentUser.IsTOTPEnabled {
+		challengeToken, err := auth.GenerateChallengeToken()
 		if err != nil {
 			log.Printf("failed to generate challenge token: %v", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		hash := auth.HashChallengeToken(auth.ChallengeToken(ch))
+		hash := auth.HashChallengeToken(auth.ChallengeToken(challengeToken))
 
-		_, err = tokens.InsertAuthChallenge(h.DB, user.ID, string(hash), time.Now().Add(config.ChallengeTokenTTL))
+		_, err = tokens.InsertAuthChallenge(
+			h.DB,
+			currentUser.ID,
+			string(hash),
+			time.Now().Add(config.ChallengeTokenTTL),
+		)
 		if err != nil {
 			log.Printf("failed to insert auth challenge: %v", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		response := ChallengeTokenResponse{ChallengeToken: ch}
+		response := ChallengeTokenResponse{
+			ChallengeToken: challengeToken,
+		}
 
 		w.Header().Set("Content-Type", "application/json")
-		if err = json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("failed to encode response")
-			return
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			log.Printf("failed to encode response: %v", err)
 		}
 
 		return
 	}
 
-	if err := h.Auth.IssueTokens(auth.UserID(user.ID), w); err != nil {
+	if err := h.Auth.IssueTokens(auth.UserID(currentUser.ID), w); err != nil {
 		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err = json.NewEncoder(w).Encode(user); err != nil {
+
+	if err := json.NewEncoder(w).Encode(currentUser); err != nil {
 		log.Printf("failed to encode user to JSON: %v", err)
 	}
 }
 
 func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
-	body := models.TOTPRequest{}
+	body := TOTPRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
@@ -155,8 +180,8 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if body.ChallengeToken == "" {
-		log.Printf("Challenge token is required")
-		http.Error(w, "Challenge token is required", http.StatusBadRequest)
+		log.Printf("challenge token is required")
+		http.Error(w, "challenge token is required", http.StatusBadRequest)
 		return
 	}
 
@@ -166,42 +191,53 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash := auth.HashChallengeToken(auth.ChallengeToken(body.ChallengeToken))
-	ch, err := tokens.GetAuthChallengeByTokenHash(h.DB, string(hash))
+	hash := auth.HashChallengeToken(
+		auth.ChallengeToken(body.ChallengeToken),
+	)
+
+	challenge, err := tokens.GetAuthChallengeByTokenHash(h.DB, string(hash))
 	if err != nil {
 		if errors.Is(err, tokens.ErrAuthChallengeNotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
 			return
 		}
+
 		log.Printf("failed to get auth challenge: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if time.Now().After(ch.ExpiresAt) {
+	if time.Now().After(challenge.ExpiresAt) {
 		http.Error(w, "challenge token expired", http.StatusUnauthorized)
 		return
 	}
 
-	user, err := database.GetUserByID(h.DB, ch.UserID)
+	currentUser, err := user.GetUserByID(h.DB, challenge.UserID)
 	if err != nil {
-		if errors.Is(err, database.ErrUserNotFound) {
+		if errors.Is(err, user.ErrUserNotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
 			return
 		}
-		log.Printf("failed to get user for totp login: %v", err)
+
+		log.Printf("failed to get user for TOTP login: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	encryptedSecret, err := mfa.GetUserTOTPKeyEncryptedByID(h.DB, ch.UserID)
+	encryptedSecret, err := mfa.GetUserTOTPKeyEncryptedByID(
+		h.DB,
+		challenge.UserID,
+	)
 	if err != nil {
 		log.Printf("failed to get user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	decryptedSecret, err := mfa.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
+	decryptedSecret, err := mfa.DecryptTOTPKey(
+		encryptedSecret,
+		h.Config.TOTPEncryptionKey,
+	)
 	if err != nil {
 		log.Printf("failed to decrypt user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -213,13 +249,13 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tokens.DeleteAuthChallenge(h.DB, ch.ID); err != nil {
+	if err := tokens.DeleteAuthChallenge(h.DB, challenge.ID); err != nil {
 		log.Printf("failed to delete auth challenge: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.Auth.IssueTokens(auth.UserID(ch.UserID), w); err != nil {
+	if err := h.Auth.IssueTokens(auth.UserID(challenge.UserID), w); err != nil {
 		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -227,7 +263,8 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err = json.NewEncoder(w).Encode(user); err != nil {
+
+	if err := json.NewEncoder(w).Encode(currentUser); err != nil {
 		log.Printf("failed to encode user to JSON: %v", err)
 	}
 }
@@ -300,7 +337,10 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
-	refreshToken, err := tokens.GetRefreshTokenByTokenIDTx(tx, string(refreshTokenID))
+	refreshToken, err := tokens.GetRefreshTokenByTokenIDTx(
+		tx,
+		string(refreshTokenID),
+	)
 	if err != nil {
 		log.Printf("failed to get refresh token by token ID: %v", err)
 		h.rejectRefresh(w)
@@ -311,6 +351,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		auth.RefreshToken(refreshTokenCookie.Value),
 		auth.TokenHash(refreshToken.TokenHash),
 	)
+
 	if !isValid {
 		log.Printf("refresh token hash mismatch for token ID %q", refreshTokenID)
 		h.rejectRefresh(w)
@@ -341,14 +382,12 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 
 	if refreshToken.RevokedAt != nil {
 		log.Printf("refresh token is revoked: token ID %q", refreshTokenID)
-
 		h.rejectRefresh(w)
 		return
 	}
 
 	if !refreshToken.ExpiresAt.After(time.Now()) {
 		log.Printf("refresh token is expired: token ID %q", refreshTokenID)
-
 		h.rejectRefresh(w)
 		return
 	}
@@ -375,7 +414,11 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = tokens.ReplaceRefreshTokenTx(tx, string(refreshTokenID), string(newRefreshTokenID)); err != nil {
+	if err = tokens.ReplaceRefreshTokenTx(
+		tx,
+		string(refreshTokenID),
+		string(newRefreshTokenID),
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("refresh token was already revoked: token ID %q", refreshTokenID)
 			h.rejectRefresh(w)
@@ -412,10 +455,3 @@ func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 	h.Auth.ClearAuthCookies(w)
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
 }
-
-// TODO:
-// - Extract writeJSON(status, data)
-// - Extract getRefreshTokenFromRequest()
-// - Extract internalError(loggerMsg, err)
-// - Add rate limiting for ResendConfirmationMail()
-// - Prevent resending confirmation for verified users

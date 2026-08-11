@@ -3,7 +3,6 @@ package auth
 import (
 	"fmt"
 	"net/mail"
-	"studify/internal/models"
 	"unicode/utf8"
 )
 
@@ -13,7 +12,14 @@ const (
 	minPasswordLength = 8
 )
 
-func ValidateCredentials(email, password string, action models.AuthAction) error {
+type AuthAction string
+
+const (
+	AuthActionRegister AuthAction = "register"
+	AuthActionLogin    AuthAction = "login"
+)
+
+func ValidateCredentials(email, password string, action AuthAction) error {
 	if err := ValidateEmail(email); err != nil {
 		return err
 	}
@@ -45,7 +51,7 @@ Password validation intentionally avoids composition rules such as requiring
 uppercase letters, digits, symbols, or banning spaces. Those rules often lead
 to predictable passwords.
 */
-func ValidatePassword(password string, action models.AuthAction) error {
+func ValidatePassword(password string, action AuthAction) error {
 	if password == "" {
 		return ErrEmptyPassword
 	}
@@ -55,7 +61,7 @@ func ValidatePassword(password string, action models.AuthAction) error {
 		return ErrPasswordTooLong
 	}
 
-	if action != models.AuthActionRegister {
+	if action != AuthActionRegister {
 		return nil
 	}
 

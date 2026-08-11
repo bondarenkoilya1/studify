@@ -9,6 +9,7 @@ import (
 	"studify/internal/email"
 	"studify/internal/subject"
 	"studify/internal/task"
+	"studify/internal/user"
 )
 
 type Handler struct {
@@ -20,4 +21,5 @@ type Handler struct {
 	Task         *task.Handler
 	Dashboard    *dashboard.Handler
 	Mfa          *mfa.Handler
+	User         *user.Handler
 }
