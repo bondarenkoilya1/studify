@@ -11,6 +11,17 @@ type refreshTokenExecutor interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
+type RefreshTokenRecord struct {
+	ID                int64
+	UserID            int64
+	TokenID           string
+	TokenHash         string
+	ExpiresAt         time.Time
+	CreatedAt         time.Time
+	RevokedAt         *time.Time
+	ReplacedByTokenID *string
+}
+
 const refreshTokenColumns = `
 	id,
 	user_id,

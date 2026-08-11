@@ -6,27 +6,15 @@ import (
 	"time"
 )
 
-type confirmationTokenExecutor interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	QueryRow(query string, args ...any) *sql.Row
+type ConfirmationTokenRecord struct {
+	UserID    int64
+	TokenHash string
+	ExpiresAt time.Time
+	CreatedAt time.Time
 }
 
 func GetConfirmationTokenByUserID(
 	db *sql.DB,
-	userID int64,
-) (*ConfirmationTokenRecord, error) {
-	return getConfirmationTokenByUserID(db, userID)
-}
-
-func GetConfirmationTokenByUserIDTx(
-	tx *sql.Tx,
-	userID int64,
-) (*ConfirmationTokenRecord, error) {
-	return getConfirmationTokenByUserID(tx, userID)
-}
-
-func getConfirmationTokenByUserID(
-	exec confirmationTokenExecutor,
 	userID int64,
 ) (*ConfirmationTokenRecord, error) {
 	query := `
@@ -41,7 +29,7 @@ func getConfirmationTokenByUserID(
 
 	token := &ConfirmationTokenRecord{}
 
-	err := exec.QueryRow(query, userID).Scan(
+	err := db.QueryRow(query, userID).Scan(
 		&token.UserID,
 		&token.TokenHash,
 		&token.ExpiresAt,
@@ -59,20 +47,6 @@ func GetConfirmationTokenByHash(
 	db *sql.DB,
 	tokenHash string,
 ) (*ConfirmationTokenRecord, error) {
-	return getConfirmationTokenByHash(db, tokenHash)
-}
-
-func GetConfirmationTokenByHashTx(
-	tx *sql.Tx,
-	tokenHash string,
-) (*ConfirmationTokenRecord, error) {
-	return getConfirmationTokenByHash(tx, tokenHash)
-}
-
-func getConfirmationTokenByHash(
-	exec confirmationTokenExecutor,
-	tokenHash string,
-) (*ConfirmationTokenRecord, error) {
 	query := `
 	SELECT
 		user_id,
@@ -85,7 +59,7 @@ func getConfirmationTokenByHash(
 
 	token := &ConfirmationTokenRecord{}
 
-	err := exec.QueryRow(query, tokenHash).Scan(
+	err := db.QueryRow(query, tokenHash).Scan(
 		&token.UserID,
 		&token.TokenHash,
 		&token.ExpiresAt,
@@ -105,34 +79,6 @@ func InsertConfirmationToken(
 	tokenHash string,
 	expiresAt time.Time,
 ) error {
-	return insertConfirmationToken(
-		db,
-		userID,
-		tokenHash,
-		expiresAt,
-	)
-}
-
-func InsertConfirmationTokenTx(
-	tx *sql.Tx,
-	userID int64,
-	tokenHash string,
-	expiresAt time.Time,
-) error {
-	return insertConfirmationToken(
-		tx,
-		userID,
-		tokenHash,
-		expiresAt,
-	)
-}
-
-func insertConfirmationToken(
-	exec confirmationTokenExecutor,
-	userID int64,
-	tokenHash string,
-	expiresAt time.Time,
-) error {
 	query := `
 	INSERT INTO confirmation_tokens (
 		user_id,
@@ -147,7 +93,7 @@ func insertConfirmationToken(
 		created_at = now();
 	`
 
-	_, err := exec.Exec(
+	_, err := db.Exec(
 		query,
 		userID,
 		tokenHash,
@@ -165,33 +111,17 @@ func DeleteConfirmationToken(
 	db *sql.DB,
 	userID int64,
 ) error {
-	return deleteConfirmationToken(db, userID)
-}
-
-func DeleteConfirmationTokenTx(
-	tx *sql.Tx,
-	userID int64,
-) error {
-	return deleteConfirmationToken(tx, userID)
-}
-
-func deleteConfirmationToken(
-	exec confirmationTokenExecutor,
-	userID int64,
-) error {
 	query := `
 	DELETE FROM confirmation_tokens
 	WHERE user_id = $1;
 	`
 
-	result, err := exec.Exec(query, userID)
-
+	result, err := db.Exec(query, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete confirmation token: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
-
 	if err != nil {
 		return fmt.Errorf("failed to get deleted confirmation token count: %w", err)
 	}

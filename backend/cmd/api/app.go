@@ -2,17 +2,18 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
 	"studify/internal/config"
 	"studify/internal/dashboard"
-	"studify/internal/database"
 	"studify/internal/email"
 	"studify/internal/handlers"
 	"studify/internal/mail"
 	"studify/internal/subject"
 	"studify/internal/task"
+	"time"
 )
 
 type application struct {
@@ -27,7 +28,7 @@ func newApplication() (*application, error) {
 		return nil, err
 	}
 
-	db, err := database.OpenDB(cfg.DatabaseURL)
+	db, err := openDB(cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -84,6 +85,25 @@ func run() error {
 	defer app.close()
 
 	return http.ListenAndServe(app.addr, app.router)
+}
+
+func openDB(databaseURL string) (*sql.DB, error) {
+	db, err := sql.Open("pgx", databaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	var pingErr error
+	for range 10 {
+		if pingErr = db.Ping(); pingErr == nil {
+			return db, nil
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	db.Close()
+	return nil, fmt.Errorf("connect to database: %w", pingErr)
 }
 
 // TODO: maybe I should make a single table "tokens" where I would differ theme by "type" column
