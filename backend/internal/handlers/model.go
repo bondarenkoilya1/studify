@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"studify/internal/auth"
+	"studify/internal/auth/mfa"
 	"studify/internal/config"
 	"studify/internal/dashboard"
 	"studify/internal/email"
@@ -18,4 +19,5 @@ type Handler struct {
 	Subject      *subject.Handler // It's the start on new Handler. Later this struct will have own handlers
 	Task         *task.Handler
 	Dashboard    *dashboard.Handler
+	Mfa          *mfa.Handler
 }

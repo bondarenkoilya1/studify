@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"studify/internal/auth/mfa"
 	"studify/internal/dashboard"
 	"studify/internal/handlers"
 	"studify/internal/middlewares"
@@ -35,7 +36,6 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h)
 			registerDashboardRoutes(r, h.Dashboard)
-
 		})
 	})
 
@@ -53,12 +53,7 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 		r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
 		r.Post("/refresh", h.RefreshTokens)
 
-		r.Route("/totp", func(r chi.Router) {
-			r.Use(middlewares.ValidateAuth(h.Auth))
-			r.Post("/", h.GenerateTOTP)
-			r.With(middlewares.RequireJSON).Post("/verify", h.ValidateTOTP)
-			r.Delete("/", h.DisableTOTP)
-		})
+		registerMfaRoutes(r, h.Mfa)
 
 		r.Route("/confirm", func(r chi.Router) {
 			r.Use(middlewares.ValidateAuth(h.Auth))
@@ -111,6 +106,15 @@ func registerUserRoutes(r chi.Router, h *handlers.Handler) {
 
 func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
 	r.Get("/dashboard", h.GetDashboardStatus)
+}
+
+func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
+	r.Route("/totp", func(r chi.Router) {
+		r.Use(middlewares.ValidateAuth(h.Auth))
+		r.Post("/", h.GenerateTOTP)
+		r.With(middlewares.RequireJSON).Post("/verify", h.ValidateTOTP)
+		r.Delete("/", h.DisableTOTP)
+	})
 }
 
 //func registerStaticRoutes(r chi.Router) {

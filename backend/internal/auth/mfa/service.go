@@ -1,4 +1,4 @@
-package auth
+package mfa
 
 import (
 	"bytes"
@@ -6,19 +6,12 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"image/png"
 	"io"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
-)
-
-var (
-	ErrFailedToGenerate   = errors.New("failed to generate TOTP key")
-	ErrFailedToGenerateQR = errors.New("failed to generate qr code from key")
-	ErrFailedToEncodeQR   = errors.New("failed to encode key to QR-code")
 )
 
 func GenerateTOTPKey(email, issuer string) (*otp.Key, error) {

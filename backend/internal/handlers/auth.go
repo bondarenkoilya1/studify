@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"studify/internal/auth"
+	"studify/internal/auth/mfa"
 	"studify/internal/config"
 	"studify/internal/database"
 	"studify/internal/database/tokens"
@@ -193,14 +194,14 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encryptedSecret, err := database.GetUserTOTPKeyEncryptedByID(h.DB, ch.UserID)
+	encryptedSecret, err := mfa.GetUserTOTPKeyEncryptedByID(h.DB, ch.UserID)
 	if err != nil {
 		log.Printf("failed to get user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
+	decryptedSecret, err := mfa.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
 	if err != nil {
 		log.Printf("failed to decrypt user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

@@ -4,11 +4,15 @@ import (
 	"database/sql"
 	"net/http"
 	"studify/internal/auth"
+	"studify/internal/auth/mfa"
 	"studify/internal/config"
+	"studify/internal/dashboard"
 	"studify/internal/database"
 	"studify/internal/email"
 	"studify/internal/handlers"
 	"studify/internal/mail"
+	"studify/internal/subject"
+	"studify/internal/task"
 )
 
 type application struct {
@@ -38,7 +42,28 @@ func newApplication() (*application, error) {
 		Config: cfg,
 	}
 
-	h := &handlers.Handler{DB: db, Auth: authService, Config: cfg, EmailService: emailService}
+	subjectHandler := &subject.Handler{DB: db}
+
+	taskHandler := &task.Handler{DB: db}
+
+	dashboardHandler := &dashboard.Handler{DB: db}
+
+	mfaHandler := &mfa.Handler{
+		DB:     db,
+		Config: cfg,
+		Auth:   authService,
+	}
+
+	h := &handlers.Handler{
+		DB:           db,
+		Auth:         authService,
+		Config:       cfg,
+		EmailService: emailService,
+		Subject:      subjectHandler,
+		Task:         taskHandler,
+		Dashboard:    dashboardHandler,
+		Mfa:          mfaHandler,
+	}
 
 	return &application{
 		addr:   cfg.ServerAddr,

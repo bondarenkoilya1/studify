@@ -1,13 +1,15 @@
-package handlers
+package mfa
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
-	"studify/internal/auth"
 	"studify/internal/database"
+	"studify/internal/httpx"
+	"studify/internal/models"
 
 	"github.com/pquerna/otp/totp"
 )
@@ -24,7 +26,7 @@ type TOTPResponse struct {
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 	user, err := h.currentUser(r)
 	if err != nil {
-		if errors.Is(err, database.ErrUserNotFound) {
+		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
@@ -33,14 +35,14 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key, err := auth.GenerateTOTPKey(user.Email, h.Config.AppName)
+	key, err := GenerateTOTPKey(user.Email, h.Config.AppName)
 	if err != nil {
 		log.Printf("failed to generate TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	qr, err := auth.GenerateTOTPQRCode(key)
+	qr, err := GenerateTOTPQRCode(key)
 	if err != nil {
 		log.Printf("failed to generate TOTP QR-code: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -53,14 +55,14 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		TextKey: secret,
 	}
 
-	encryptedSecret, err := auth.EncryptTOTPKey(secret, h.Config.TOTPEncryptionKey) // For sending to the DB to be more secure
+	encryptedSecret, err := EncryptTOTPKey(secret, h.Config.TOTPEncryptionKey) // For sending to the DB to be more secure
 	if err != nil {
 		log.Printf("failed to encrypt TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err = database.UpdateUserTOTPSecret(h.DB, user.ID, encryptedSecret); err != nil {
+	if err = UpdateUserTOTPSecret(h.DB, user.ID, encryptedSecret); err != nil {
 		log.Printf("failed to set totp secret at users table: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -76,7 +78,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 	user, err := h.currentUser(r)
 	if err != nil {
-		if errors.Is(err, database.ErrUserNotFound) {
+		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
@@ -92,14 +94,14 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encryptedSecret, err := database.GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
+	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(h.DB, user.ID)
 	if err != nil {
 		log.Printf("failed to get user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	decryptedSecret, err := auth.DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
+	decryptedSecret, err := DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
 	if err != nil {
 		log.Printf("failed to decrypt user TOTP key: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -113,7 +115,7 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.UpdateUserTOTPStatus(h.DB, user.ID, true); err != nil {
+	if err := UpdateUserTOTPStatus(h.DB, user.ID, true); err != nil {
 		log.Printf("failed to update user totp enabled status: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -125,7 +127,7 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 	user, err := h.currentUser(r)
 	if err != nil {
-		if errors.Is(err, database.ErrUserNotFound) {
+		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
@@ -134,11 +136,29 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := database.DisableUserTOTP(h.DB, user.ID); err != nil {
+	if err := DisableUserTOTP(h.DB, user.ID); err != nil {
 		log.Printf("failed to disable user TOTP: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// Todo: i place it here to avoid current conflict, but later it will have a single place
+func (h *Handler) currentUser(r *http.Request) (*models.User, error) {
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := database.GetUserByID(h.DB, userID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("get current user: %w", err)
+	}
+
+	return user, nil
 }
