@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	rc "studify/internal/auth/recovery_codes"
+	"studify/internal/auth"
 	"studify/internal/httpx"
 	"studify/internal/user"
-
-	"github.com/pquerna/otp/totp"
 )
 
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +64,54 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
+	currentUser, err := h.currentUser(r)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to get current user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	body := Passcode{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		log.Printf("failed to decode request body: %v", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if err = validateTOTP(h.DB, auth.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+		if errors.Is(err, ErrInvalidCode) {
+			log.Printf("failed to validate TOTP: %v", err)
+			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("failed to validate TOTP: %v", err)
+		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+		return
+	}
+
+	codes, err := enableTOTP(h.DB, auth.UserID(currentUser.ID))
+	if err != nil {
+		log.Printf("failed to enable TOTP: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	response := RecoveryCodesResponse{Codes: codes}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("failed to encode response")
+		return
+	}
+}
+
+func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 	currentUser, err := h.currentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
@@ -85,53 +130,19 @@ func (h *Handler) ValidateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(h.DB, currentUser.ID)
-	if err != nil {
-		log.Printf("failed to get user TOTP key: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
+	if err = validateTOTP(h.DB, auth.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+		if errors.Is(err, ErrInvalidCode) {
+			log.Printf("failed to validate TOTP: %v", err)
+			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+			return
+		}
 
-	decryptedSecret, err := DecryptTOTPKey(encryptedSecret, h.Config.TOTPEncryptionKey)
-	if err != nil {
-		log.Printf("failed to decrypt user TOTP key: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	valid := totp.Validate(body.Passcode, decryptedSecret)
-	if !valid {
-		log.Printf("failed to validate totp")
+		log.Printf("failed to validate TOTP: %v", err)
 		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
 		return
 	}
 
-	if err = UpdateUserTOTPStatus(h.DB, currentUser.ID, true); err != nil {
-		log.Printf("failed to update user totp enabled status: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	codes, err := rc.Generate()
-	if err != nil {
-		log.Printf("failed to generate recovery codes: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err = rc.SaveRecoveryCodes(h.DB, currentUser.ID, codes); err != nil {
-		log.Printf("failed to save recovery codes: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	response := RecoveryCodesResponse{Codes: codes}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("failed to encode response")
-		return
-	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
@@ -146,7 +157,7 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := DisableUserTOTP(h.DB, currentUser.ID); err != nil {
+	if err = DisableUserTOTP(h.DB, currentUser.ID); err != nil {
 		log.Printf("failed to disable user TOTP: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

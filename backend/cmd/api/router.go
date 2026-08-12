@@ -109,9 +109,13 @@ func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
 func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 	r.Route("/totp", func(r chi.Router) {
 		r.Use(middlewares.ValidateAuth(h.Auth))
-		r.Post("/", h.GenerateTOTP)
-		r.With(middlewares.RequireJSON).Post("/verify", h.ValidateTOTP)
-		// here we prob make 2 handlers: one for setup. which will send rc; the other one is verifier without sending rc
+
+		r.Route("/setup", func(r chi.Router) {
+			r.Post("/", h.GenerateTOTP)
+			r.With(middlewares.RequireJSON).Post("/confirm", h.ConfirmTOTPSetup)
+		})
+
+		r.With(middlewares.RequireJSON).Post("/verify", h.VerifyTOTP)
 		r.Delete("/", h.DisableTOTP)
 	})
 }
