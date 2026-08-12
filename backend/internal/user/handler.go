@@ -67,7 +67,7 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(newUser.Email, auth.UserID(newUser.ID)); err != nil {
+	if err = h.EmailService.SendConfirmationEmail(newUser.Email, auth.UserID(newUser.ID)); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

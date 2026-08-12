@@ -4,6 +4,7 @@ import { type TotpFormData, totpSchema } from "./schema";
 import { useMutation } from "@tanstack/react-query";
 import { validateTotp } from "../api/validate-totp";
 import { queryClient } from "@/shared/api";
+import { useState } from "react";
 
 export function useValidateTotpForm() {
   const {
@@ -12,18 +13,17 @@ export function useValidateTotpForm() {
     formState: { errors },
   } = useForm<TotpFormData>({
     resolver: zodResolver(totpSchema),
-    defaultValues: {
-      passcode: "",
-    },
+    defaultValues: { passcode: "" },
   });
+
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const validateTotpMutation = useMutation({
     mutationFn: validateTotp,
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user"],
-      });
+    onSuccess: (data) => {
+      setRecoveryCodes(data.codes);
+      setDialogOpen(true);
     },
   });
 
@@ -31,14 +31,20 @@ export function useValidateTotpForm() {
     validateTotpMutation.mutate(data.passcode);
   };
 
+  const closeRecoveryCodes = () => {
+    setDialogOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+  };
+
   return {
     register,
-    handleSubmit,
     errors,
-    handleValidate,
+    recoveryCodes,
+    onSubmit: handleSubmit(handleValidate),
     isPending: validateTotpMutation.isPending,
-    isSuccess: validateTotpMutation.isSuccess,
+    isSuccess: dialogOpen,
     isError: validateTotpMutation.isError,
     error: validateTotpMutation.error,
+    closeRecoveryCodes,
   };
 }

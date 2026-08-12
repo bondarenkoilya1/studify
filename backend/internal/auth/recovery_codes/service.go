@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	codeLength = 10
+	codeLength = 12
 	codeCount  = 10
 	alphabet   = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 )

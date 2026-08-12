@@ -111,6 +111,7 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 		r.Use(middlewares.ValidateAuth(h.Auth))
 		r.Post("/", h.GenerateTOTP)
 		r.With(middlewares.RequireJSON).Post("/verify", h.ValidateTOTP)
+		// here we prob make 2 handlers: one for setup. which will send rc; the other one is verifier without sending rc
 		r.Delete("/", h.DisableTOTP)
 	})
 }
