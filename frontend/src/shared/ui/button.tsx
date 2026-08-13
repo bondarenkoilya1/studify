@@ -4,8 +4,12 @@ import type { ComponentProps } from "react";
 const variants = {
   primary:
     "bg-studify-primary text-white shadow-sm hover:bg-studify-hover active:bg-studify-active disabled:bg-studify-primary/15 disabled:text-studify-primary/50 disabled:shadow-none",
+
   secondary:
     "border border-studify-border bg-studify-surface text-studify-text shadow-sm hover:bg-studify-field disabled:border-studify-border/50 disabled:bg-studify-surface/60 disabled:text-studify-muted disabled:shadow-none",
+
+  ghost:
+    "bg-transparent text-studify-muted hover:bg-transparent hover:text-studify-primary active:bg-transparent disabled:bg-transparent disabled:text-studify-muted/50",
 } as const;
 
 const sizes = {

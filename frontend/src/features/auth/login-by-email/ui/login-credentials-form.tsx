@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/shared/ui/button";
@@ -6,6 +8,8 @@ import { Input } from "@/shared/ui/input";
 
 import { LoginFormError } from "./login-form-error";
 import { LoginFormHeader } from "./login-form-header";
+import { ForgotPasswordButton } from "@/features/auth/login-by-email/ui/forgot-password-button";
+import { ForgotPasswordDialog } from "@/features/auth/login-by-email/ui/forgot-password-dialog";
 
 type LoginCredentialsFormProps = {
   credentials: {
@@ -19,6 +23,8 @@ type LoginCredentialsFormProps = {
 export function LoginCredentialsForm({
   credentials,
 }: LoginCredentialsFormProps) {
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+
   return (
     <div className="w-full max-w-md text-studify-text">
       <LoginFormHeader
@@ -27,12 +33,12 @@ export function LoginCredentialsForm({
       />
 
       <form
-        className="rounded-2xl border border-studify-border bg-studify-surface p-5 shadow-xl shadow-studify-shadow/10 sm:p-8"
+        className="rounded-[20px] border border-studify-border/70 bg-studify-surface p-6 shadow-sm sm:p-10"
         onSubmit={credentials.onSubmit}
       >
         <LoginFormError message={credentials.errors.root?.message} />
 
-        <div className="space-y-5 sm:space-y-6">
+        <div className="space-y-6 sm:space-y-7">
           <FormField htmlFor="email" label="Эл. почта">
             <Input
               id="email"
@@ -48,7 +54,10 @@ export function LoginCredentialsForm({
             />
 
             {credentials.errors.email?.message && (
-              <p className="mt-2 text-sm text-red-500" id="email-error">
+              <p
+                className="mt-1.5 text-[13px] leading-snug text-red-500"
+                id="email-error"
+              >
                 {credentials.errors.email.message}
               </p>
             )}
@@ -69,14 +78,23 @@ export function LoginCredentialsForm({
             />
 
             {credentials.errors.password?.message && (
-              <p className="mt-2 text-sm text-red-500" id="password-error">
+              <p
+                className="mt-1.5 text-[13px] leading-snug text-red-500"
+                id="password-error"
+              >
                 {credentials.errors.password.message}
               </p>
             )}
+
+            <div className="mt-2 flex justify-end">
+              <ForgotPasswordButton
+                onClick={() => setIsForgotPasswordOpen(true)}
+              />
+            </div>
           </FormField>
 
           <Button
-            className="w-full bg-studify-primary text-white transition-colors duration-200 hover:bg-studify-hover active:bg-studify-active"
+            className="h-12 w-full rounded-xl bg-studify-primary text-[15px] font-medium text-white transition-colors duration-200 hover:bg-studify-hover active:bg-studify-active"
             controlSize="large"
             disabled={credentials.isSubmitting}
             type="submit"
@@ -85,17 +103,22 @@ export function LoginCredentialsForm({
           </Button>
         </div>
 
-        <div className="mt-6 text-center text-sm">
+        <div className="mt-8 text-center text-[13px]">
           <span className="text-studify-muted">Нет аккаунта? </span>
 
           <Link
             to="/register"
-            className="font-medium text-studify-primary transition-colors hover:text-studify-hover hover:underline"
+            className="font-medium text-studify-primary transition-colors hover:text-studify-hover"
           >
             Создать аккаунт
           </Link>
         </div>
       </form>
+
+      <ForgotPasswordDialog
+        open={isForgotPasswordOpen}
+        onOpenChange={setIsForgotPasswordOpen}
+      />
     </div>
   );
 }
