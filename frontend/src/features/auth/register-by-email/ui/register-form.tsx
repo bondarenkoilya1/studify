@@ -36,7 +36,7 @@ export function RegisterForm() {
               type="text"
               placeholder="octocat@gmail.com"
               autoComplete="email"
-              controlSize="large"
+              size="lg"
               aria-describedby={errors.email ? "email-error" : undefined}
               aria-invalid={Boolean(errors.email)}
               {...registerField("email")}
@@ -55,7 +55,7 @@ export function RegisterForm() {
               type="password"
               placeholder="Не менее 8 символов"
               autoComplete="new-password"
-              controlSize="large"
+              size="lg"
               aria-describedby={errors.password ? "password-error" : undefined}
               aria-invalid={Boolean(errors.password)}
               {...registerField("password")}
@@ -70,7 +70,7 @@ export function RegisterForm() {
 
           <Button
             className="w-full bg-studify-primary text-white hover:bg-studify-hover active:bg-studify-active transition-colors duration-200"
-            controlSize="large"
+            size="lg"
             disabled={isSubmitting}
             type="submit"
           >

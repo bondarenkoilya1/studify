@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useGetSubjects } from "@/entities/subject/model/useGetSubjects";
 import { Button } from "@/shared/ui/button";
 import { SubjectList } from "@/widgets/subjects-list";
+import { CreateSubjectDialog } from "@/features/subjects/create-subject/ui/create-subject-dialog";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_protected/subjects/")({
   component: SubjectsPage,
@@ -9,6 +11,7 @@ export const Route = createFileRoute("/_protected/subjects/")({
 
 export function SubjectsPage() {
   const { data = [], isPending, error } = useGetSubjects();
+  const [isCreateSubjectOpen, setIsCreateSubjectOpen] = useState(false);
 
   if (isPending) {
     return (
@@ -35,10 +38,16 @@ export function SubjectsPage() {
           </p>
         </div>
 
-        <Button>Добавить предмет</Button>
+        <Button onClick={() => setIsCreateSubjectOpen(true)}>
+          Добавить предмет
+        </Button>
       </header>
 
       <SubjectList subjects={data} />
+      <CreateSubjectDialog
+        open={isCreateSubjectOpen}
+        onOpenChange={setIsCreateSubjectOpen}
+      />
     </section>
   );
 }

@@ -5,11 +5,7 @@ import { FormField } from "@/shared/ui/form-field";
 
 import { LoginFormError } from "./login-form-error";
 import { LoginFormHeader } from "./login-form-header";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/shd/components/ui/input-otp";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shared/ui/input-otp";
 
 type LoginTotpFormProps = {
   totp: {
@@ -72,7 +68,7 @@ export function LoginTotpForm({ totp, onBack }: LoginTotpFormProps) {
 
           <Button
             className="w-full bg-studify-primary text-white transition-colors duration-200 hover:bg-studify-hover active:bg-studify-active"
-            controlSize="large"
+            size="lg"
             disabled={totp.isSubmitting}
             type="submit"
           >

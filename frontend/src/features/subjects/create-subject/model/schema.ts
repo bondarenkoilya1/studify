@@ -15,7 +15,9 @@ export const createSubjectSchema = z.object({
 
   lecturerAvatarUrl: z.string().optional(),
 
-  examDate: z.string().min(1, "Укажите дату экзамена"),
+  examDate: z.date({
+    message: "Укажите дату экзамена",
+  }),
 });
 
 export type CreateSubjectFormValues = z.infer<typeof createSubjectSchema>;

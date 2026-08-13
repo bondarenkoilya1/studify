@@ -58,7 +58,7 @@ export function ForgotPasswordDialog({
               type="email"
               placeholder="octocat@gmail.com"
               autoComplete="email"
-              controlSize="large"
+              size="lg"
               aria-invalid={Boolean(errors.email)}
               aria-describedby={
                 errors.email ? "forgot-password-email-error" : undefined
@@ -78,7 +78,7 @@ export function ForgotPasswordDialog({
 
           <Button
             type="submit"
-            controlSize="large"
+            size="lg"
             disabled={isSubmitting}
             className="h-12 w-full rounded-xl bg-studify-primary text-[15px] font-medium text-white transition-colors duration-200 hover:bg-studify-hover active:bg-studify-active"
           >

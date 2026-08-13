@@ -45,7 +45,7 @@ export function LoginCredentialsForm({
               type="email"
               placeholder="octocat@gmail.com"
               autoComplete="email"
-              controlSize="large"
+              size="lg"
               aria-describedby={
                 credentials.errors.email ? "email-error" : undefined
               }
@@ -69,7 +69,7 @@ export function LoginCredentialsForm({
               type="password"
               placeholder="Не менее 8 символов"
               autoComplete="current-password"
-              controlSize="large"
+              size="lg"
               aria-describedby={
                 credentials.errors.password ? "password-error" : undefined
               }
@@ -95,7 +95,7 @@ export function LoginCredentialsForm({
 
           <Button
             className="h-12 w-full rounded-xl bg-studify-primary text-[15px] font-medium text-white transition-colors duration-200 hover:bg-studify-hover active:bg-studify-active"
-            controlSize="large"
+            size="lg"
             disabled={credentials.isSubmitting}
             type="submit"
           >
