@@ -2,11 +2,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type TotpFormData, totpSchema } from "./schema";
 import { useMutation } from "@tanstack/react-query";
-import { validateTotp } from "../api/validate-totp";
 import { queryClient } from "@/shared/api";
 import { useState } from "react";
+import { confirmTotpSetup } from "@/features/profile/manage-totp/api/confirm-totp-setup";
 
-export function useValidateTotpForm() {
+export function useConfirmTOTPSetupForm() {
   const {
     register,
     handleSubmit,
@@ -17,22 +17,22 @@ export function useValidateTotpForm() {
   });
 
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const validateTotpMutation = useMutation({
-    mutationFn: validateTotp,
+  const confirmTotpSetupMutation = useMutation({
+    mutationFn: confirmTotpSetup,
     onSuccess: (data) => {
       setRecoveryCodes(data.codes);
-      setDialogOpen(true);
+      setIsDialogOpen(true);
     },
   });
 
-  const handleValidate = (data: TotpFormData) => {
-    validateTotpMutation.mutate(data.passcode);
+  const handleConfirm = (data: TotpFormData) => {
+    confirmTotpSetupMutation.mutate(data.passcode);
   };
 
   const closeRecoveryCodes = () => {
-    setDialogOpen(false);
+    setIsDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ["user"] });
   };
 
@@ -40,11 +40,11 @@ export function useValidateTotpForm() {
     register,
     errors,
     recoveryCodes,
-    onSubmit: handleSubmit(handleValidate),
-    isPending: validateTotpMutation.isPending,
-    isSuccess: dialogOpen,
-    isError: validateTotpMutation.isError,
-    error: validateTotpMutation.error,
+    onSubmit: handleSubmit(handleConfirm),
+    isPending: confirmTotpSetupMutation.isPending,
+    isSuccess: isDialogOpen,
+    isError: confirmTotpSetupMutation.isError,
+    error: confirmTotpSetupMutation.error,
     closeRecoveryCodes,
   };
 }

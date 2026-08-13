@@ -115,7 +115,7 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 			r.With(middlewares.RequireJSON).Post("/confirm", h.ConfirmTOTPSetup)
 		})
 
-		r.With(middlewares.RequireJSON).Post("/verify", h.VerifyTOTP)
+		//r.With(middlewares.RequireJSON).Post("/verify", h.VerifyTOTP) // kinda useless, i made a mistake here; maybe in the future
 		r.Delete("/", h.DisableTOTP)
 	})
 }

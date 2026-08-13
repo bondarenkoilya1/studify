@@ -1,9 +1,9 @@
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { useValidateTotpForm } from "../model/useValidateTotpForm";
+import { useConfirmTOTPSetupForm } from "../model/useConfirmTotpSetupForm";
 import { RecoveryCodesDialog } from "./recovery-codes-dialog";
 
-export function TotpVerificationForm() {
+export function TotpSetupConfirmationForm() {
   const {
     register,
     onSubmit,
@@ -12,7 +12,7 @@ export function TotpVerificationForm() {
     isPending,
     isSuccess,
     closeRecoveryCodes,
-  } = useValidateTotpForm();
+  } = useConfirmTOTPSetupForm();
 
   return (
     <>

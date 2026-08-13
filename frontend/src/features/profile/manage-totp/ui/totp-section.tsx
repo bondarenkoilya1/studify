@@ -4,9 +4,9 @@ import { Button } from "@/shared/ui/button";
 import { useCurrentUser } from "@/entities/user";
 import { useGenerateTotp } from "../model/useGenerateTotp";
 import { TotpEnabled } from "./totp-enabled";
-import { TotpVerificationForm } from "./totp-verification-form";
 import { TotpEmailVerificationRequired } from "./totp-email-verification-required";
 import { CopyButton } from "@/shared/ui/copy-button";
+import { TotpSetupConfirmationForm } from "@/features/profile/manage-totp/ui/totp-setup-confirmation-form";
 
 export function TotpSection() {
   const { handleGenerate, qrCode, textKey } = useGenerateTotp();
@@ -117,7 +117,7 @@ export function TotpSection() {
             </p>
 
             <div className="mt-5">
-              <TotpVerificationForm />
+              <TotpSetupConfirmationForm />
             </div>
           </div>
         </div>
