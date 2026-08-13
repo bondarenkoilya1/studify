@@ -15,6 +15,7 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
+import { Route as GuestResetPasswordTokenRouteImport } from './routes/_guest/reset-password/$token'
 import { Route as ProtectedConfirmTokenRouteImport } from './routes/_protected/confirm/$token'
 import { Route as ProtectedSettingsProfileRouteImport } from './routes/_protected/settings/profile'
 import { Route as ProtectedSettingsSecurityRouteImport } from './routes/_protected/settings/security'
@@ -49,6 +50,11 @@ const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const GuestResetPasswordTokenRoute = GuestResetPasswordTokenRouteImport.update({
+  id: '/reset-password/$token',
+  path: '/reset-password/$token',
+  getParentRoute: () => GuestRoute,
+} as any)
 const ProtectedConfirmTokenRoute = ProtectedConfirmTokenRouteImport.update({
   id: '/confirm/$token',
   path: '/confirm/$token',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
+  '/reset-password/$token': typeof GuestResetPasswordTokenRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
+  '/reset-password/$token': typeof GuestResetPasswordTokenRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
   '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
+  '/_guest/reset-password/$token': typeof GuestResetPasswordTokenRoute
   '/_protected/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/_protected/settings/profile': typeof ProtectedSettingsProfileRoute
   '/_protected/settings/security': typeof ProtectedSettingsSecurityRoute
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/settings'
+    | '/reset-password/$token'
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/settings'
+    | '/reset-password/$token'
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/_guest/register'
     | '/_protected/settings'
+    | '/_guest/reset-password/$token'
     | '/_protected/confirm/$token'
     | '/_protected/settings/profile'
     | '/_protected/settings/security'
@@ -201,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedSettingsRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_guest/reset-password/$token': {
+      id: '/_guest/reset-password/$token'
+      path: '/reset-password/$token'
+      fullPath: '/reset-password/$token'
+      preLoaderRoute: typeof GuestResetPasswordTokenRouteImport
+      parentRoute: typeof GuestRoute
+    }
     '/_protected/confirm/$token': {
       id: '/_protected/confirm/$token'
       path: '/confirm/$token'
@@ -242,11 +261,13 @@ declare module '@tanstack/react-router' {
 interface GuestRouteChildren {
   GuestLoginRoute: typeof GuestLoginRoute
   GuestRegisterRoute: typeof GuestRegisterRoute
+  GuestResetPasswordTokenRoute: typeof GuestResetPasswordTokenRoute
 }
 
 const GuestRouteChildren: GuestRouteChildren = {
   GuestLoginRoute: GuestLoginRoute,
   GuestRegisterRoute: GuestRegisterRoute,
+  GuestResetPasswordTokenRoute: GuestResetPasswordTokenRoute,
 }
 
 const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
