@@ -1,4 +1,4 @@
-package auth
+package ct
 
 import (
 	"crypto/rand"
@@ -6,14 +6,14 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"studify/internal/auth"
 	"studify/internal/config"
-	"studify/internal/database/tokens"
 	"time"
 )
 
-// CreateConfirmationToken generates a confirmation token, stores its hash in the database,
+// createConfirmationToken generates a confirmation token, stores its hash in the database,
 // and returns the confirmation token.
-func CreateConfirmationToken(db *sql.DB, userID UserID) (string, error) {
+func createConfirmationToken(db *sql.DB, userID auth.UserID) (string, error) {
 	tokenBytes := make([]byte, 32)
 	_, err := rand.Read(tokenBytes)
 	if err != nil {
@@ -26,7 +26,7 @@ func CreateConfirmationToken(db *sql.DB, userID UserID) (string, error) {
 	hashString := hex.EncodeToString(tokenHash[:])
 	expiresAt := time.Now().Add(config.ConfirmationTokenTTL)
 
-	if err := tokens.InsertConfirmationToken(db, int64(userID), hashString, expiresAt); err != nil {
+	if err = insertConfirmationToken(db, int64(userID), hashString, expiresAt); err != nil {
 		return "", err
 	}
 
@@ -36,13 +36,13 @@ func CreateConfirmationToken(db *sql.DB, userID UserID) (string, error) {
 // ValidateConfirmationToken does not return the token itself,
 // but we can have UserID, TokenHash, ExpiresAt and CreatedAt —
 // everything from the type ConfirmationTokenRecord
-func ValidateConfirmationToken(
+func validateConfirmationToken(
 	db *sql.DB,
 	token string,
-) (*tokens.ConfirmationTokenRecord, error) {
+) (*record, error) {
 	tokenHash := sha256.Sum256([]byte(token))
 
-	confirmationToken, err := tokens.GetConfirmationTokenByHash(
+	confirmationToken, err := getConfirmationTokenByHash(
 		db,
 		hex.EncodeToString(tokenHash[:]),
 	)
@@ -51,7 +51,7 @@ func ValidateConfirmationToken(
 	}
 
 	if time.Now().After(confirmationToken.ExpiresAt) {
-		return nil, ErrConfirmationTokenExpired
+		return nil, auth.ErrConfirmationTokenExpired
 	}
 
 	return confirmationToken, nil

@@ -1,4 +1,4 @@
-package tokens
+package ct
 
 import (
 	"database/sql"
@@ -6,17 +6,10 @@ import (
 	"time"
 )
 
-type ConfirmationTokenRecord struct {
-	UserID    int64
-	TokenHash string
-	ExpiresAt time.Time
-	CreatedAt time.Time
-}
-
-func GetConfirmationTokenByUserID(
+func getConfirmationTokenByUserID(
 	db *sql.DB,
 	userID int64,
-) (*ConfirmationTokenRecord, error) {
+) (*record, error) {
 	query := `
 	SELECT
 		user_id,
@@ -27,7 +20,7 @@ func GetConfirmationTokenByUserID(
 	WHERE user_id = $1;
 	`
 
-	token := &ConfirmationTokenRecord{}
+	token := &record{}
 
 	err := db.QueryRow(query, userID).Scan(
 		&token.UserID,
@@ -43,10 +36,10 @@ func GetConfirmationTokenByUserID(
 	return token, nil
 }
 
-func GetConfirmationTokenByHash(
+func getConfirmationTokenByHash(
 	db *sql.DB,
 	tokenHash string,
-) (*ConfirmationTokenRecord, error) {
+) (*record, error) {
 	query := `
 	SELECT
 		user_id,
@@ -57,7 +50,7 @@ func GetConfirmationTokenByHash(
 	WHERE token_hash = $1;
 	`
 
-	token := &ConfirmationTokenRecord{}
+	token := &record{}
 
 	err := db.QueryRow(query, tokenHash).Scan(
 		&token.UserID,
@@ -73,7 +66,7 @@ func GetConfirmationTokenByHash(
 	return token, nil
 }
 
-func InsertConfirmationToken(
+func insertConfirmationToken(
 	db *sql.DB,
 	userID int64,
 	tokenHash string,
@@ -107,7 +100,7 @@ func InsertConfirmationToken(
 	return nil
 }
 
-func DeleteConfirmationToken(
+func deleteConfirmationToken(
 	db *sql.DB,
 	userID int64,
 ) error {

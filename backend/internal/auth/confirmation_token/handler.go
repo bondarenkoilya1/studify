@@ -1,11 +1,10 @@
-package handlers
+package ct
 
 import (
 	"errors"
 	"log"
 	"net/http"
 	"studify/internal/auth"
-	"studify/internal/database/tokens"
 	"studify/internal/user"
 
 	"github.com/go-chi/chi/v5"
@@ -19,20 +18,20 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRecord, err := auth.ValidateConfirmationToken(h.DB, token)
+	tokenRecord, err := validateConfirmationToken(h.DB, token)
 	if err != nil {
 		log.Printf("failed to validate confirmation token: %v", err)
 		http.Error(w, "invalid confirmation token", http.StatusBadRequest)
 		return
 	}
 
-	if err := user.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
+	if err = user.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
 		log.Printf("failed to verify user email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := tokens.DeleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
+	if err = deleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
 		log.Printf("failed to delete confirmation token from db: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	ct "studify/internal/auth/confirmation_token"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/reset_password"
 	"studify/internal/dashboard"
@@ -56,13 +57,7 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 		r.Post("/refresh", h.RefreshTokens)
 
 		registerMfaRoutes(r, h.Mfa)
-
-		r.Route("/confirm", func(r chi.Router) {
-			r.Use(middlewares.ValidateAuth(h.Auth))
-			r.Post("/resend", h.ResendConfirmationMail)
-			r.Post("/{token}", h.ConfirmEmail)
-		})
-
+		registerConfirmationMailRoutes(r, h.Confirmation)
 		registerPasswordResetRoutes(r, h.ResetPassword)
 	})
 }
@@ -127,6 +122,14 @@ func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
 	r.Route("/reset-password", func(r chi.Router) {
 		r.With(middlewares.RequireJSON).Post("/", h.SendResetPasswordEmail)
 		r.Post("/{token}", h.ResetPassword)
+	})
+}
+
+func registerConfirmationMailRoutes(r chi.Router, h *ct.Handler) {
+	r.Route("/confirm", func(r chi.Router) {
+		r.Use(middlewares.ValidateAuth(h.Auth))
+		r.Post("/resend", h.ResendConfirmationMail)
+		r.Post("/{token}", h.ConfirmEmail)
 	})
 }
 
