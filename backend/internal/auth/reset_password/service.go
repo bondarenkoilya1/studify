@@ -85,7 +85,7 @@ func (h *Handler) sendConfirmationEmail(email string) error {
 	}
 
 	link := fmt.Sprintf(
-		"%s/confirm/%s",
+		"%s/reset-password/%s",
 		h.Config.AppURL,
 		token,
 	)

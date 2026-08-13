@@ -78,6 +78,38 @@ func (m *Mailer) SendPasswordResetEmail(sender, recipient, link string) error {
 	return writer.Close()
 }
 
+func (m *Mailer) SendNewPasswordEmail(sender, recipient, password string) error {
+	c, err := smtp.Dial(m.addr)
+	if err != nil {
+		return err
+	}
+	defer c.Quit()
+
+	if err = c.Mail(sender); err != nil {
+		return err
+	}
+
+	if err = c.Rcpt(recipient); err != nil {
+		return err
+	}
+
+	writer, err := c.Data()
+	if err != nil {
+		return err
+	}
+
+	var letter strings.Builder
+	writeHeaders(&letter, sender, recipient, "Studify | Your new password")
+	writePasswordChangedBody(&letter, password)
+
+	_, err = writer.Write([]byte(letter.String()))
+	if err != nil {
+		return err
+	}
+
+	return writer.Close()
+}
+
 func writeHeaders(
 	b *strings.Builder,
 	sender,
@@ -137,6 +169,31 @@ func writePasswordResetBody(
 
 	b.WriteString("For your security, never share this link or your password with anyone. ")
 	b.WriteString("Studify will never ask you to send us your password.\r\n\r\n")
+
+	b.WriteString("Best,\r\n")
+	b.WriteString("The Studify Team\r\n")
+}
+
+func writePasswordChangedBody(
+	b *strings.Builder,
+	password string,
+) {
+	b.WriteString("\r\n")
+
+	b.WriteString("Hi,\r\n\r\n")
+
+	b.WriteString("Your Studify password has been changed.\r\n\r\n")
+
+	b.WriteString("Your new password is:\r\n\r\n")
+
+	b.WriteString(password)
+	b.WriteString("\r\n\r\n")
+
+	b.WriteString("You can use this password to sign in to your Studify account.\r\n\r\n")
+
+	b.WriteString("If you didn't make this change, please reset your password immediately and contact us if you need help.\r\n\r\n")
+
+	b.WriteString("For your security, don't share your password with anyone.\r\n\r\n")
 
 	b.WriteString("Best,\r\n")
 	b.WriteString("The Studify Team\r\n")

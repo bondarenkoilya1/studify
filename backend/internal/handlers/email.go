@@ -14,12 +14,6 @@ import (
 )
 
 func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
-	log.Printf(
-		"confirm request: method=%s ua=%q",
-		r.Method,
-		r.UserAgent(),
-	)
-
 	token := chi.URLParam(r, "token")
 	if token == "" {
 		log.Printf("failed to get token from url params")
