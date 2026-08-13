@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
+	"studify/internal/auth/reset_password"
 	"studify/internal/config"
 	"studify/internal/dashboard"
 	"studify/internal/email"
@@ -13,13 +14,14 @@ import (
 )
 
 type Handler struct {
-	DB           *sql.DB
-	Auth         *auth.Service
-	Config       *config.Config
-	EmailService *email.Service
-	Subject      *subject.Handler // It's the start on new Handler. Later this struct will have own handlers
-	Task         *task.Handler
-	Dashboard    *dashboard.Handler
-	Mfa          *mfa.Handler
-	User         *user.Handler
+	DB            *sql.DB
+	Auth          *auth.Service
+	Config        *config.Config
+	EmailService  *email.Service
+	Subject       *subject.Handler // It's the start on new Handler. Later this struct will have own handlers
+	Task          *task.Handler
+	Dashboard     *dashboard.Handler
+	Mfa           *mfa.Handler
+	User          *user.Handler
+	ResetPassword *reset_password.Handler
 }

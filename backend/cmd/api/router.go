@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"studify/internal/auth/mfa"
+	"studify/internal/auth/reset_password"
 	"studify/internal/dashboard"
 	"studify/internal/handlers"
 	"studify/internal/middlewares"
@@ -61,6 +62,8 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 			r.Post("/resend", h.ResendConfirmationMail)
 			r.Post("/{token}", h.ConfirmEmail)
 		})
+
+		registerPasswordResetRoutes(r, h.ResetPassword)
 	})
 }
 
@@ -117,6 +120,12 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 
 		//r.With(middlewares.RequireJSON).Post("/verify", h.VerifyTOTP) // kinda useless, i made a mistake here; maybe in the future
 		r.Delete("/", h.DisableTOTP)
+	})
+}
+
+func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
+	r.Route("/reset-password", func(r chi.Router) {
+		r.With(middlewares.RequireJSON).Post("/", h.SendResetPasswordEmail)
 	})
 }
 

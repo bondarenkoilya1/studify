@@ -1,4 +1,4 @@
-package password_reset
+package reset_password
 
 import (
 	"database/sql"
@@ -13,7 +13,7 @@ type Record struct {
 	CreatedAt time.Time
 }
 
-func GetPasswordResetTokenByHash(
+func GetResetPasswordTokenByHash(
 	db *sql.DB,
 	tokenHash string,
 ) (*Record, error) {
@@ -43,7 +43,7 @@ func GetPasswordResetTokenByHash(
 	return token, nil
 }
 
-func InsertPasswordResetToken(
+func InsertResetPasswordToken(
 	db *sql.DB,
 	userID int64,
 	tokenHash string,
@@ -77,7 +77,7 @@ func InsertPasswordResetToken(
 	return nil
 }
 
-func DeletePasswordResetToken(
+func DeleteResetPasswordToken(
 	db *sql.DB,
 	userID int64,
 ) error {

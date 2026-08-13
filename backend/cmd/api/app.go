@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
+	"studify/internal/auth/reset_password"
 	"studify/internal/config"
 	"studify/internal/dashboard"
 	"studify/internal/email"
@@ -63,16 +64,23 @@ func newApplication() (*application, error) {
 		EmailService: emailService,
 	}
 
+	resetPasswordHandler := &reset_password.Handler{
+		DB:     db,
+		Mailer: mailer,
+		Config: cfg,
+	}
+
 	h := &handlers.Handler{
-		DB:           db,
-		Auth:         authService,
-		Config:       cfg,
-		EmailService: emailService,
-		Subject:      subjectHandler,
-		Task:         taskHandler,
-		Dashboard:    dashboardHandler,
-		Mfa:          mfaHandler,
-		User:         userHandler,
+		DB:            db,
+		Auth:          authService,
+		Config:        cfg,
+		EmailService:  emailService,
+		Subject:       subjectHandler,
+		Task:          taskHandler,
+		Dashboard:     dashboardHandler,
+		Mfa:           mfaHandler,
+		User:          userHandler,
+		ResetPassword: resetPasswordHandler,
 	}
 
 	return &application{

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
+	"studify/internal/config"
 	"studify/internal/database/tokens"
 	"time"
 )
@@ -23,7 +24,7 @@ func CreateConfirmationToken(db *sql.DB, userID UserID) (string, error) {
 
 	tokenHash := sha256.Sum256([]byte(token))
 	hashString := hex.EncodeToString(tokenHash[:])
-	expiresAt := time.Now().Add(4 * time.Hour)
+	expiresAt := time.Now().Add(config.ConfirmationTokenTTL)
 
 	if err := tokens.InsertConfirmationToken(db, int64(userID), hashString, expiresAt); err != nil {
 		return "", err

@@ -16,8 +16,9 @@ type Config struct {
 }
 
 const (
-	AccessTokenTTL    = 15 * time.Minute
-	RefreshTokenTTL   = 30 * 24 * time.Hour
-	ChallengeTokenTTL = 2 * time.Minute
-	RecoveryCodeTTL
+	AccessTokenTTL        = 15 * time.Minute
+	RefreshTokenTTL       = 30 * 24 * time.Hour
+	ConfirmationTokenTTL  = 4 * time.Hour
+	ChallengeTokenTTL     = 2 * time.Minute
+	ResetPasswordTokenTTL = 30 * time.Minute
 )

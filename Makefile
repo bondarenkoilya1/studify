@@ -49,10 +49,10 @@ migrate-up:
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000006_email_verified_trigger.up.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000007_auth_challenges.up.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000008_recovery_codes.up.sql
-
-
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000009_password_reset_tokens.up.sql
 
 migrate-down:
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000009_password_reset_tokens.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000008_recovery_codes.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000007_auth_challenges.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000006_email_verified_trigger.down.sql
