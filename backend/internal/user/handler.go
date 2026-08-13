@@ -1,6 +1,7 @@
 package user
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 )
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	user, err := h.currentUser(r)
+	user, err := CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -44,7 +45,7 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.currentUser(r)
+	user, err := CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -160,19 +161,20 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 
 // Helpers
 
-func (h *Handler) currentUser(r *http.Request) (*User, error) {
+func CurrentUser(r *http.Request, db *sql.DB) (*User, error) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := GetUserByID(h.DB, userID)
+	currentUser, err := GetUserByID(db, userID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return nil, ErrUserNotFound
 		}
+
 		return nil, fmt.Errorf("get current user: %w", err)
 	}
 
-	return user, nil
+	return currentUser, nil
 }

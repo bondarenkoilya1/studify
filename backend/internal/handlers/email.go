@@ -2,12 +2,10 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"studify/internal/auth"
 	"studify/internal/database/tokens"
-	"studify/internal/httpx"
 	"studify/internal/user"
 
 	"github.com/go-chi/chi/v5"
@@ -44,7 +42,7 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.currentUser(r)
+	currentUser, err := user.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -56,7 +54,7 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(
+	if err = h.EmailService.SendConfirmationEmail(
 		currentUser.Email,
 		auth.UserID(currentUser.ID),
 	); err != nil {
@@ -66,22 +64,4 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *Handler) currentUser(r *http.Request) (*user.User, error) {
-	userID, err := httpx.GetUserID(r)
-	if err != nil {
-		return nil, err
-	}
-
-	currentUser, err := user.GetUserByID(h.DB, userID)
-	if err != nil {
-		if errors.Is(err, user.ErrUserNotFound) {
-			return nil, user.ErrUserNotFound
-		}
-
-		return nil, fmt.Errorf("get current user: %w", err)
-	}
-
-	return currentUser, nil
 }

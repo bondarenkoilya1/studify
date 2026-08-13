@@ -4,16 +4,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"studify/internal/auth"
-	"studify/internal/httpx"
 	"studify/internal/user"
 )
 
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.currentUser(r)
+	currentUser, err := user.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -65,7 +63,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.currentUser(r)
+	currentUser, err := user.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -112,7 +110,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.currentUser(r)
+	currentUser, err := user.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -146,7 +144,7 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.currentUser(r)
+	currentUser, err := user.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -164,22 +162,4 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// Todo: i place it here to avoid current conflict, but later it will have a single place
-func (h *Handler) currentUser(r *http.Request) (*user.User, error) {
-	userID, err := httpx.GetUserID(r)
-	if err != nil {
-		return nil, err
-	}
-
-	currentUser, err := user.GetUserByID(h.DB, userID)
-	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return nil, ErrUserNotFound
-		}
-		return nil, fmt.Errorf("get current user: %w", err)
-	}
-
-	return currentUser, nil
 }
