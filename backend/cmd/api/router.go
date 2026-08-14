@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	ct "studify/internal/auth/confirmation_token"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/reset_password"
 	"studify/internal/dashboard"
@@ -56,8 +55,13 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 		r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
 		r.Post("/refresh", h.RefreshTokens)
 
+		r.Route("/confirm", func(r chi.Router) {
+			r.Use(middlewares.ValidateAuth(h.Auth))
+			r.Post("/resend", h.ResendConfirmationMail)
+			r.Post("/{token}", h.ConfirmEmail)
+		})
+
 		registerMfaRoutes(r, h.Mfa)
-		registerConfirmationMailRoutes(r, h.Confirmation)
 		registerPasswordResetRoutes(r, h.ResetPassword)
 	})
 }
@@ -79,8 +83,8 @@ func registerSubjectRoutes(r chi.Router, h *subject.Handler) {
 
 func registerTaskRoutes(r chi.Router, h *task.Handler) {
 	r.Route("/tasks", func(r chi.Router) {
-		r.Get("/", h.GetTasks)
-		r.With(middlewares.RequireJSON).Post("/", h.AddTasks)
+		r.Get("/", h.GetUserTasks)
+		r.With(middlewares.RequireJSON).Post("/", h.AddTask)
 		r.Delete("/", h.DeleteTasks)
 
 		r.Get("/{id}", h.GetTask)
@@ -122,14 +126,6 @@ func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
 	r.Route("/reset-password", func(r chi.Router) {
 		r.With(middlewares.RequireJSON).Post("/", h.SendResetPasswordEmail)
 		r.Post("/{token}", h.ResetPassword)
-	})
-}
-
-func registerConfirmationMailRoutes(r chi.Router, h *ct.Handler) {
-	r.Route("/confirm", func(r chi.Router) {
-		r.Use(middlewares.ValidateAuth(h.Auth))
-		r.Post("/resend", h.ResendConfirmationMail)
-		r.Post("/{token}", h.ConfirmEmail)
 	})
 }
 

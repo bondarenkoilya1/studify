@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
 	"studify/internal/auth"
-	ct "studify/internal/auth/confirmation_token"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/reset_password"
 	"studify/internal/config"
@@ -25,5 +24,4 @@ type Handler struct {
 	Mfa           *mfa.Handler
 	User          *user.Handler
 	ResetPassword *reset_password.Handler
-	Confirmation  *ct.Handler
 }

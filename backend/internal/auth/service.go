@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"studify/internal"
 	"studify/internal/config"
 	"studify/internal/database/tokens"
 	"time"
@@ -27,7 +28,7 @@ func NewService(accessSecret, refreshSecret, issuer string, secureCookies bool, 
 	}
 }
 
-func (s *Service) IssueTokens(userID UserID, w http.ResponseWriter) error {
+func (s *Service) IssueTokens(userID internal.UserID, w http.ResponseWriter) error {
 	refreshToken, refreshTokenID, err := s.GenerateRefreshToken(userID)
 	if err != nil {
 		return fmt.Errorf("generate refresh token: %w", err)

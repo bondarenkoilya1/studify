@@ -1,4 +1,4 @@
-type TaskStatus = "not_completed" | "ongoing" | "completed";
+export type TaskStatus = "not_completed" | "ongoing" | "completed";
 
 export interface Task {
   id: number;

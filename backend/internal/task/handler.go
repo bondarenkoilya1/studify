@@ -10,6 +10,8 @@ import (
 	"studify/internal/httpx"
 )
 
+// todo: rename handlers
+
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
@@ -42,7 +44,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -62,47 +64,47 @@ func (h *Handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
+	log.Printf("started")
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var newTasks []Task
+	var newTask Task
 
-	if err := json.NewDecoder(r.Body).Decode(&newTasks); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&newTask); err != nil {
+		log.Printf("decode task body: %v", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	if len(newTasks) == 0 {
-		http.Error(w, "Tasks list cannot be empty", http.StatusBadRequest)
-		return
-	}
-
-	createdSubjects := make([]Task, 0, len(newTasks))
-	for _, t := range newTasks {
-		task, err := InsertTask(h.DB, userID, t.Name, t.Description, t.Deadline, t.Status, t.SubjectID)
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				http.Error(w, "Subject not found", http.StatusNotFound)
-				return
-			}
-
-			log.Printf("failed to insert task: %v", err)
-			http.Error(w, "Failed to insert tasks", http.StatusInternalServerError)
+	task, err := InsertTask(
+		h.DB,
+		userID,
+		newTask.Name,
+		newTask.Description,
+		newTask.Deadline,
+		newTask.Status,
+		newTask.SubjectID,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Subject not found", http.StatusNotFound)
 			return
 		}
 
-		createdSubjects = append(createdSubjects, *task)
+		log.Printf("failed to insert task: %v", err)
+		http.Error(w, "Failed to insert task", http.StatusInternalServerError)
+		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
-	if err := json.NewEncoder(w).Encode(createdSubjects); err != nil {
-		log.Println("Failed to encode response: ", err)
-		return
+	if err = json.NewEncoder(w).Encode(task); err != nil {
+		log.Printf("failed to encode response: %v", err)
 	}
 }
 

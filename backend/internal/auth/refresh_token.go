@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"studify/internal"
 	"studify/internal/config"
 	"time"
 
@@ -36,7 +37,7 @@ func CompareTokenHash(token RefreshToken, expectedHash TokenHash) bool {
 	return subtle.ConstantTimeCompare([]byte(tokenHash), []byte(expectedHash)) == 1
 }
 
-func (s *Service) GenerateRefreshToken(userID UserID) (RefreshToken, TokenID, error) {
+func (s *Service) GenerateRefreshToken(userID internal.UserID) (RefreshToken, TokenID, error) {
 	now := time.Now()
 
 	tokenID, err := GenerateTokenID()
@@ -63,7 +64,7 @@ func (s *Service) GenerateRefreshToken(userID UserID) (RefreshToken, TokenID, er
 
 // ParseRefreshToken reads data from the tokenString and make basic validation.
 // It returns userID, tokenID and error
-func (s *Service) ParseRefreshToken(tokenString string) (UserID, TokenID, error) {
+func (s *Service) ParseRefreshToken(tokenString string) (internal.UserID, TokenID, error) {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (any, error) {
@@ -94,7 +95,7 @@ func (s *Service) ParseRefreshToken(tokenString string) (UserID, TokenID, error)
 		return 0, "", fmt.Errorf("invalid refresh token subject: %w", err)
 	}
 
-	return UserID(userID), TokenID(claims.ID), nil
+	return internal.UserID(userID), TokenID(claims.ID), nil
 }
 
 func (s *Service) SetRefreshTokenCookies(token RefreshToken, w http.ResponseWriter) error {

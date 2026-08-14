@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"studify/internal/auth"
+	"studify/internal"
 	"studify/internal/config"
 	"studify/internal/user"
 	"time"
@@ -23,7 +23,7 @@ var ErrResetPasswordTokenExpired = errors.New(
 
 // createResetPasswordToken generates a password reset token, stores its hash
 // in the database, and returns the raw token.
-func createResetPasswordToken(db *sql.DB, userID auth.UserID) (string, error) {
+func createResetPasswordToken(db *sql.DB, userID internal.UserID) (string, error) {
 	tokenBytes := make([]byte, 32)
 
 	_, err := rand.Read(tokenBytes)
@@ -79,7 +79,7 @@ func (h *Handler) sendConfirmationEmail(email string) error {
 		return fmt.Errorf("get user by email: %w", err)
 	}
 
-	token, err := createResetPasswordToken(h.DB, auth.UserID(currentUser.ID))
+	token, err := createResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
 	if err != nil {
 		return fmt.Errorf("create password reset link: %w", err)
 	}

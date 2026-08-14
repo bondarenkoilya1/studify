@@ -7,14 +7,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"studify/internal"
 	"studify/internal/auth"
 	"studify/internal/auth/challenge"
+	ct "studify/internal/auth/confirmation_token"
 	"studify/internal/auth/mfa"
 	"studify/internal/config"
 	"studify/internal/database/tokens"
 	"studify/internal/user"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -67,7 +70,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Auth.IssueTokens(auth.UserID(newUser.ID), w); err != nil {
+	if err := h.Auth.IssueTokens(internal.UserID(newUser.ID), w); err != nil {
 		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -75,7 +78,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.EmailService.SendConfirmationEmail(
 		newUser.Email,
-		auth.UserID(newUser.ID),
+		internal.UserID(newUser.ID),
 	); err != nil {
 		log.Printf("failed to send confirmation email: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -158,7 +161,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Auth.IssueTokens(auth.UserID(currentUser.ID), w); err != nil {
+	if err := h.Auth.IssueTokens(internal.UserID(currentUser.ID), w); err != nil {
 		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -256,7 +259,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.Auth.IssueTokens(auth.UserID(ch.UserID), w); err != nil {
+	if err = h.Auth.IssueTokens(internal.UserID(ch.UserID), w); err != nil {
 		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -359,7 +362,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if auth.UserID(refreshToken.UserID) != userID {
+	if internal.UserID(refreshToken.UserID) != userID {
 		log.Printf(
 			"refresh token user ID mismatch: db user ID %d, jwt user ID %d",
 			refreshToken.UserID,
@@ -455,4 +458,59 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 	h.Auth.ClearAuthCookies(w)
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
+}
+
+func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		log.Printf("failed to get token from url params")
+		http.Error(w, "missing token", http.StatusBadRequest)
+		return
+	}
+
+	tokenRecord, err := ct.ValidateConfirmationToken(h.DB, token)
+	if err != nil {
+		log.Printf("failed to validate confirmation token: %v", err)
+		http.Error(w, "invalid confirmation token", http.StatusBadRequest)
+		return
+	}
+
+	if err = user.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
+		log.Printf("failed to verify user email: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = ct.DeleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
+		log.Printf("failed to delete confirmation token from db: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
+	currentUser, err := user.CurrentUser(r, h.DB)
+	if err != nil {
+		if errors.Is(err, user.ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+
+		log.Printf("failed to get current user: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.EmailService.SendConfirmationEmail(
+		currentUser.Email,
+		internal.UserID(currentUser.ID),
+	); err != nil {
+		log.Printf("failed to send confirmation email: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

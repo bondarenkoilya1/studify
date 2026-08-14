@@ -3,7 +3,8 @@ package email
 import (
 	"database/sql"
 	"fmt"
-	"studify/internal/auth"
+	"studify/internal"
+	ct "studify/internal/auth/confirmation_token"
 	"studify/internal/config"
 	"studify/internal/mail"
 )
@@ -14,8 +15,8 @@ type Service struct {
 	Config *config.Config
 }
 
-func (e *Service) SendConfirmationEmail(email string, userID auth.UserID) error {
-	token, err := auth.CreateConfirmationToken(e.DB, userID)
+func (e *Service) SendConfirmationEmail(email string, userID internal.UserID) error {
+	token, err := ct.CreateConfirmationToken(e.DB, userID)
 	if err != nil {
 		return fmt.Errorf("create confirmation link: %w", err)
 	}

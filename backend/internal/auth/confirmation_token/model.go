@@ -1,21 +1,15 @@
 package ct
 
 import (
-	"database/sql"
-	"studify/internal/auth"
-	"studify/internal/email"
+	"errors"
 	"time"
 )
 
-type Handler struct {
-	DB           *sql.DB
-	EmailService *email.Service
-	Auth         *auth.Service
-}
-
-type record struct {
+type Record struct {
 	UserID    int64
 	TokenHash string
 	ExpiresAt time.Time
 	CreatedAt time.Time
 }
+
+var errConfirmationTokenExpired = errors.New("confirmation token has expired")

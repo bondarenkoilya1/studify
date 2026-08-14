@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"studify/internal/auth"
-	ct "studify/internal/auth/confirmation_token"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/reset_password"
 	"studify/internal/config"
@@ -71,12 +70,6 @@ func newApplication() (*application, error) {
 		Config: cfg,
 	}
 
-	confirmationTokenHandler := &ct.Handler{
-		DB:           db,
-		EmailService: emailService,
-		Auth:         authService,
-	}
-
 	h := &handlers.Handler{
 		DB:            db,
 		Auth:          authService,
@@ -88,7 +81,6 @@ func newApplication() (*application, error) {
 		Mfa:           mfaHandler,
 		User:          userHandler,
 		ResetPassword: resetPasswordHandler,
-		Confirmation:  confirmationTokenHandler,
 	}
 
 	return &application{

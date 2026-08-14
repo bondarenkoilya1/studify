@@ -391,8 +391,8 @@ paths:
   /api/tasks/:
     get:
       tags: [Tasks]
-      summary: List tasks
-      operationId: listTasks
+      summary: List user tasks
+      operationId: listUserTasks
       security:
         - accessCookie: []
       responses:

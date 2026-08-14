@@ -6,7 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"studify/internal/auth"
+	"studify/internal"
 	"studify/internal/user"
 )
 
@@ -81,7 +81,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = validateTOTP(h.DB, auth.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+	if err = validateTOTP(h.DB, internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
 			log.Printf("failed to validate TOTP: %v", err)
 			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
@@ -93,7 +93,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	codes, err := enableTOTP(h.DB, auth.UserID(currentUser.ID))
+	codes, err := enableTOTP(h.DB, internal.UserID(currentUser.ID))
 	if err != nil {
 		log.Printf("failed to enable TOTP: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -128,7 +128,7 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = validateTOTP(h.DB, auth.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+	if err = validateTOTP(h.DB, internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
 			log.Printf("failed to validate TOTP: %v", err)
 			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)

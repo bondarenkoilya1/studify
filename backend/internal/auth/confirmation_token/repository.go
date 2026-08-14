@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-func getConfirmationTokenByUserID(
+func GetConfirmationTokenByUserID(
 	db *sql.DB,
 	userID int64,
-) (*record, error) {
+) (*Record, error) {
 	query := `
 	SELECT
 		user_id,
@@ -20,7 +20,7 @@ func getConfirmationTokenByUserID(
 	WHERE user_id = $1;
 	`
 
-	token := &record{}
+	token := &Record{}
 
 	err := db.QueryRow(query, userID).Scan(
 		&token.UserID,
@@ -36,10 +36,10 @@ func getConfirmationTokenByUserID(
 	return token, nil
 }
 
-func getConfirmationTokenByHash(
+func GetConfirmationTokenByHash(
 	db *sql.DB,
 	tokenHash string,
-) (*record, error) {
+) (*Record, error) {
 	query := `
 	SELECT
 		user_id,
@@ -50,7 +50,7 @@ func getConfirmationTokenByHash(
 	WHERE token_hash = $1;
 	`
 
-	token := &record{}
+	token := &Record{}
 
 	err := db.QueryRow(query, tokenHash).Scan(
 		&token.UserID,
@@ -66,7 +66,7 @@ func getConfirmationTokenByHash(
 	return token, nil
 }
 
-func insertConfirmationToken(
+func InsertConfirmationToken(
 	db *sql.DB,
 	userID int64,
 	tokenHash string,
@@ -100,7 +100,7 @@ func insertConfirmationToken(
 	return nil
 }
 
-func deleteConfirmationToken(
+func DeleteConfirmationToken(
 	db *sql.DB,
 	userID int64,
 ) error {

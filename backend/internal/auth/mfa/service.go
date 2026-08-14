@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"studify/internal/auth"
+	"studify/internal"
 	rc "studify/internal/auth/recovery_codes"
 
 	"github.com/pquerna/otp"
@@ -112,7 +112,7 @@ func DecryptTOTPKey(encrypted string, key []byte) (string, error) {
 	return string(secret), nil
 }
 
-func validateTOTP(db *sql.DB, userID auth.UserID, code string, encryptionKey []byte) error {
+func validateTOTP(db *sql.DB, userID internal.UserID, code string, encryptionKey []byte) error {
 	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(db, int64(userID))
 	if err != nil {
 		return fmt.Errorf("get user TOTP key: %w", err)
@@ -131,7 +131,7 @@ func validateTOTP(db *sql.DB, userID auth.UserID, code string, encryptionKey []b
 	return nil
 }
 
-func enableTOTP(db *sql.DB, userID auth.UserID) ([]string, error) {
+func enableTOTP(db *sql.DB, userID internal.UserID) ([]string, error) {
 	if err := UpdateUserTOTPStatus(db, int64(userID), true); err != nil {
 		return nil, fmt.Errorf("enable user is_totp_enabled status: %w", err)
 	}
