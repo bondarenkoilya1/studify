@@ -1,4 +1,4 @@
-package auth
+package challenge
 
 import (
 	"crypto/rand"
@@ -8,8 +8,8 @@ import (
 	"encoding/hex"
 )
 
-type ChallengeToken string
-type ChallengeTokenHash string
+type Token string
+type TokenHash string
 
 func GenerateChallengeToken() (string, error) {
 	bytes := make([]byte, 32)
@@ -21,12 +21,12 @@ func GenerateChallengeToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
-func HashChallengeToken(token ChallengeToken) ChallengeTokenHash {
+func HashChallengeToken(token Token) TokenHash {
 	sum := sha256.Sum256([]byte(token))
-	return ChallengeTokenHash(hex.EncodeToString(sum[:]))
+	return TokenHash(hex.EncodeToString(sum[:]))
 }
 
-func CompareChallengeTokenHash(token ChallengeToken, expectedHash ChallengeTokenHash) bool {
+func CompareChallengeTokenHash(token Token, expectedHash TokenHash) bool {
 	tokenHash := HashChallengeToken(token)
 	return subtle.ConstantTimeCompare([]byte(tokenHash), []byte(expectedHash)) == 1
 }

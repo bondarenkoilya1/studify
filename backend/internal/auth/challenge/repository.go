@@ -1,4 +1,4 @@
-package tokens
+package challenge
 
 import (
 	"database/sql"
@@ -7,23 +7,13 @@ import (
 	"time"
 )
 
-type AuthChallenge struct {
-	ID        int64
-	UserID    int64
-	TokenHash string
-	ExpiresAt time.Time
-	CreatedAt time.Time
-}
-
-var ErrAuthChallengeNotFound = errors.New("auth challenge not found")
-
-func InsertAuthChallenge(db *sql.DB, userID int64, tokenHash string, expiresAt time.Time) (*AuthChallenge, error) {
+func InsertAuthChallenge(db *sql.DB, userID int64, tokenHash string, expiresAt time.Time) (*record, error) {
 	query := `
 		INSERT INTO auth_challenges (user_id, token_hash, expires_at)
 		VALUES ($1, $2, $3)
 		RETURNING id, user_id, token_hash, expires_at, created_at;
 	`
-	var ch AuthChallenge
+	var ch record
 	err := db.QueryRow(query, userID, tokenHash, expiresAt).Scan(
 		&ch.ID,
 		&ch.UserID,
@@ -37,13 +27,13 @@ func InsertAuthChallenge(db *sql.DB, userID int64, tokenHash string, expiresAt t
 	return &ch, nil
 }
 
-func GetAuthChallengeByTokenHash(db *sql.DB, tokenHash string) (*AuthChallenge, error) {
+func GetAuthChallengeByTokenHash(db *sql.DB, tokenHash string) (*record, error) {
 	query := `
 		SELECT id, user_id, token_hash, expires_at, created_at
 		FROM auth_challenges
 		WHERE token_hash = $1;
 	`
-	var ch AuthChallenge
+	var ch record
 	err := db.QueryRow(query, tokenHash).Scan(
 		&ch.ID,
 		&ch.UserID,
@@ -53,7 +43,7 @@ func GetAuthChallengeByTokenHash(db *sql.DB, tokenHash string) (*AuthChallenge, 
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrAuthChallengeNotFound
+			return nil, NotFound
 		}
 		return nil, fmt.Errorf("get auth challenge by token hash: %w", err)
 	}
@@ -71,7 +61,7 @@ func DeleteAuthChallenge(db *sql.DB, id int64) error {
 		return fmt.Errorf("rows affected: %w", err)
 	}
 	if rows == 0 {
-		return ErrAuthChallengeNotFound
+		return NotFound
 	}
 	return nil
 }

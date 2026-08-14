@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"studify/internal/auth"
+	"studify/internal/auth/challenge"
 	"studify/internal/auth/mfa"
 	"studify/internal/config"
 	"studify/internal/database/tokens"
@@ -123,16 +124,16 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if currentUser.IsTOTPEnabled {
-		challengeToken, err := auth.GenerateChallengeToken()
+		challengeToken, err := challenge.GenerateChallengeToken()
 		if err != nil {
 			log.Printf("failed to generate challenge token: %v", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		hash := auth.HashChallengeToken(auth.ChallengeToken(challengeToken))
+		hash := challenge.HashChallengeToken(challenge.Token(challengeToken))
 
-		_, err = tokens.InsertAuthChallenge(
+		_, err = challenge.InsertAuthChallenge(
 			h.DB,
 			currentUser.ID,
 			string(hash),
@@ -191,13 +192,13 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash := auth.HashChallengeToken(
-		auth.ChallengeToken(body.ChallengeToken),
+	hash := challenge.HashChallengeToken(
+		challenge.Token(body.ChallengeToken),
 	)
 
-	challenge, err := tokens.GetAuthChallengeByTokenHash(h.DB, string(hash))
+	ch, err := challenge.GetAuthChallengeByTokenHash(h.DB, string(hash))
 	if err != nil {
-		if errors.Is(err, tokens.ErrAuthChallengeNotFound) {
+		if errors.Is(err, challenge.NotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
 			return
 		}
@@ -207,12 +208,12 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if time.Now().After(challenge.ExpiresAt) {
+	if time.Now().After(ch.ExpiresAt) {
 		http.Error(w, "challenge token expired", http.StatusUnauthorized)
 		return
 	}
 
-	currentUser, err := user.GetUserByID(h.DB, challenge.UserID)
+	currentUser, err := user.GetUserByID(h.DB, ch.UserID)
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
@@ -226,7 +227,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 
 	encryptedSecret, err := mfa.GetUserTOTPKeyEncryptedByID(
 		h.DB,
-		challenge.UserID,
+		ch.UserID,
 	)
 	if err != nil {
 		log.Printf("failed to get user TOTP key: %v", err)
@@ -249,13 +250,13 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := tokens.DeleteAuthChallenge(h.DB, challenge.ID); err != nil {
+	if err = challenge.DeleteAuthChallenge(h.DB, ch.ID); err != nil {
 		log.Printf("failed to delete auth challenge: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.Auth.IssueTokens(auth.UserID(challenge.UserID), w); err != nil {
+	if err = h.Auth.IssueTokens(auth.UserID(ch.UserID), w); err != nil {
 		log.Printf("failed to issue tokens: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -264,7 +265,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	if err := json.NewEncoder(w).Encode(currentUser); err != nil {
+	if err = json.NewEncoder(w).Encode(currentUser); err != nil {
 		log.Printf("failed to encode user to JSON: %v", err)
 	}
 }
