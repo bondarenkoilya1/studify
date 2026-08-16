@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-type record struct {
+type Record struct {
 	ID        int64
 	UserID    int64
-	TokenHash string
+	TokenHash []byte
 	ExpiresAt time.Time
 	CreatedAt time.Time
 }

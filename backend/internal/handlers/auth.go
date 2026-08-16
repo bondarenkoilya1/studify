@@ -127,19 +127,19 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if currentUser.IsTOTPEnabled {
-		challengeToken, err := challenge.GenerateChallengeToken()
+		challengeToken, err := auth.GenerateAuthToken()
 		if err != nil {
 			log.Printf("failed to generate challenge token: %v", err)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 
-		hash := challenge.HashChallengeToken(challenge.Token(challengeToken))
+		hash := auth.HashAuthToken(challengeToken)
 
 		_, err = challenge.InsertAuthChallenge(
 			h.DB,
 			currentUser.ID,
-			string(hash),
+			hash,
 			time.Now().Add(config.ChallengeTokenTTL),
 		)
 		if err != nil {
@@ -149,7 +149,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		}
 
 		response := ChallengeTokenResponse{
-			ChallengeToken: challengeToken,
+			ChallengeToken: string(challengeToken),
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -195,11 +195,9 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash := challenge.HashChallengeToken(
-		challenge.Token(body.ChallengeToken),
-	)
+	hash := auth.HashAuthToken(auth.Token(body.ChallengeToken))
 
-	ch, err := challenge.GetAuthChallengeByTokenHash(h.DB, string(hash))
+	ch, err := challenge.GetAuthChallengeByTokenHash(h.DB, hash)
 	if err != nil {
 		if errors.Is(err, challenge.NotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)

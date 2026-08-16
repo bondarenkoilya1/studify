@@ -7,14 +7,29 @@ import (
 	"time"
 )
 
-func InsertAuthChallenge(db *sql.DB, userID int64, tokenHash string, expiresAt time.Time) (*record, error) {
+const tokenType = "auth_challenge"
+
+func InsertAuthChallenge(
+	db *sql.DB,
+	userID int64,
+	tokenHash []byte,
+	expiresAt time.Time,
+) (*Record, error) {
 	query := `
-		INSERT INTO auth_challenges (user_id, token_hash, expires_at)
-		VALUES ($1, $2, $3)
+		INSERT INTO auth_tokens (user_id, token_hash, type, expires_at)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, user_id, token_hash, expires_at, created_at;
 	`
-	var ch record
-	err := db.QueryRow(query, userID, tokenHash, expiresAt).Scan(
+
+	var ch Record
+
+	err := db.QueryRow(
+		query,
+		userID,
+		tokenHash,
+		tokenType,
+		expiresAt,
+	).Scan(
 		&ch.ID,
 		&ch.UserID,
 		&ch.TokenHash,
@@ -24,17 +39,28 @@ func InsertAuthChallenge(db *sql.DB, userID int64, tokenHash string, expiresAt t
 	if err != nil {
 		return nil, fmt.Errorf("insert auth challenge: %w", err)
 	}
+
 	return &ch, nil
 }
 
-func GetAuthChallengeByTokenHash(db *sql.DB, tokenHash string) (*record, error) {
+func GetAuthChallengeByTokenHash(
+	db *sql.DB,
+	tokenHash []byte,
+) (*Record, error) {
 	query := `
 		SELECT id, user_id, token_hash, expires_at, created_at
-		FROM auth_challenges
-		WHERE token_hash = $1;
+		FROM auth_tokens
+		WHERE token_hash = $1
+		  AND type = $2;
 	`
-	var ch record
-	err := db.QueryRow(query, tokenHash).Scan(
+
+	var ch Record
+
+	err := db.QueryRow(
+		query,
+		tokenHash,
+		tokenType,
+	).Scan(
 		&ch.ID,
 		&ch.UserID,
 		&ch.TokenHash,
@@ -45,40 +71,62 @@ func GetAuthChallengeByTokenHash(db *sql.DB, tokenHash string) (*record, error) 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, NotFound
 		}
+
 		return nil, fmt.Errorf("get auth challenge by token hash: %w", err)
 	}
+
 	return &ch, nil
 }
 
 func DeleteAuthChallenge(db *sql.DB, id int64) error {
-	query := `DELETE FROM auth_challenges WHERE id = $1;`
-	result, err := db.Exec(query, id)
+	query := `
+		DELETE FROM auth_tokens
+		WHERE id = $1
+		  AND type = $2;
+	`
+
+	result, err := db.Exec(query, id, tokenType)
 	if err != nil {
 		return fmt.Errorf("delete auth challenge: %w", err)
 	}
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("rows affected: %w", err)
 	}
+
 	if rows == 0 {
 		return NotFound
 	}
+
 	return nil
 }
 
 func DeleteAuthChallengesByUserID(db *sql.DB, userID int64) error {
-	query := `DELETE FROM auth_challenges WHERE user_id = $1;`
-	if _, err := db.Exec(query, userID); err != nil {
+	query := `
+		DELETE FROM auth_tokens
+		WHERE user_id = $1
+		  AND type = $2;
+	`
+
+	if _, err := db.Exec(query, userID, tokenType); err != nil {
 		return fmt.Errorf("delete auth challenges by user id: %w", err)
 	}
+
 	return nil
 }
 
 func DeleteExpiredAuthChallenges(db *sql.DB) (int64, error) {
-	query := `DELETE FROM auth_challenges WHERE expires_at < now();`
-	result, err := db.Exec(query)
+	query := `
+		DELETE FROM auth_tokens
+		WHERE type = $1
+		  AND expires_at < now();
+	`
+
+	result, err := db.Exec(query, tokenType)
 	if err != nil {
 		return 0, fmt.Errorf("delete expired auth challenges: %w", err)
 	}
+
 	return result.RowsAffected()
 }
