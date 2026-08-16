@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"studify/internal"
 	"studify/internal/auth"
 	"studify/internal/user"
 
@@ -28,8 +29,22 @@ func (h *Handler) SendResetPasswordEmail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.sendConfirmationEmail(body.Email); err != nil {
-		log.Printf("failed to send confirmation email: %v", err)
+	currentUser, err := user.GetUserByEmail(h.DB, body.Email)
+	if err != nil {
+		log.Printf("failed to get user by email: %v", err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	token, err := createResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
+	if err != nil {
+		log.Printf("failed to create reset password token: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if err = h.Mailer.SendPasswordResetEmail("noreply@studify.com", body.Email, string(token)); err != nil {
+		log.Printf("failed to send password reset email: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -45,7 +60,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRecord, err := validateResetPasswordToken(h.DB, token)
+	tokenRecord, err := validateResetPasswordToken(h.DB, auth.Token(token))
 	if err != nil {
 		log.Printf("failed to validate reset password token: %v", err)
 		http.Error(w, "invalid reset password token", http.StatusBadRequest)

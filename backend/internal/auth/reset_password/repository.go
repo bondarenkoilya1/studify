@@ -2,34 +2,35 @@ package reset_password
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
 
-type Record struct {
-	UserID    int64
-	TokenHash string
-	ExpiresAt time.Time
-	CreatedAt time.Time
-}
+const tokenType = "password_reset"
 
 func GetResetPasswordTokenByHash(
 	db *sql.DB,
-	tokenHash string,
+	tokenHash []byte,
 ) (*Record, error) {
 	query := `
-	SELECT
-		user_id,
-		token_hash,
-		expires_at,
-		created_at
-	FROM password_reset_tokens
-	WHERE token_hash = $1;
+		SELECT
+			user_id,
+			token_hash,
+			expires_at,
+			created_at
+		FROM auth_tokens
+		WHERE token_hash = $1
+		  AND type = $2;
 	`
 
 	token := &Record{}
 
-	err := db.QueryRow(query, tokenHash).Scan(
+	err := db.QueryRow(
+		query,
+		tokenHash,
+		tokenType,
+	).Scan(
 		&token.UserID,
 		&token.TokenHash,
 		&token.ExpiresAt,
@@ -37,7 +38,14 @@ func GetResetPasswordTokenByHash(
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to get password reset token by hash: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, NotFound
+		}
+
+		return nil, fmt.Errorf(
+			"get password reset token by hash: %w",
+			err,
+		)
 	}
 
 	return token, nil
@@ -46,32 +54,32 @@ func GetResetPasswordTokenByHash(
 func InsertResetPasswordToken(
 	db *sql.DB,
 	userID int64,
-	tokenHash string,
+	tokenHash []byte,
 	expiresAt time.Time,
 ) error {
 	query := `
-	INSERT INTO password_reset_tokens (
-		user_id,
-		token_hash,
-		expires_at
-	)
-	VALUES ($1, $2, $3)
-	ON CONFLICT (user_id)
-	DO UPDATE SET
-		token_hash = EXCLUDED.token_hash,
-		expires_at = EXCLUDED.expires_at,
-		created_at = now();
+		INSERT INTO auth_tokens (
+			user_id,
+			token_hash,
+			type,
+			expires_at
+		)
+		VALUES ($1, $2, $3, $4);
 	`
 
 	_, err := db.Exec(
 		query,
 		userID,
 		tokenHash,
+		tokenType,
 		expiresAt,
 	)
 
 	if err != nil {
-		return fmt.Errorf("failed to insert password reset token: %w", err)
+		return fmt.Errorf(
+			"insert password reset token: %w",
+			err,
+		)
 	}
 
 	return nil
@@ -82,22 +90,29 @@ func DeleteResetPasswordToken(
 	userID int64,
 ) error {
 	query := `
-	DELETE FROM password_reset_tokens
-	WHERE user_id = $1;
+		DELETE FROM auth_tokens
+		WHERE user_id = $1
+		  AND type = $2;
 	`
 
-	result, err := db.Exec(query, userID)
+	result, err := db.Exec(query, userID, tokenType)
 	if err != nil {
-		return fmt.Errorf("failed to delete password reset token: %w", err)
+		return fmt.Errorf(
+			"delete password reset token: %w",
+			err,
+		)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get deleted password reset token count: %w", err)
+		return fmt.Errorf(
+			"get deleted password reset token count: %w",
+			err,
+		)
 	}
 
 	if rowsAffected == 0 {
-		return sql.ErrNoRows
+		return NotFound
 	}
 
 	return nil
