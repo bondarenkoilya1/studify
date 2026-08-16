@@ -1,1 +1,0 @@
-DROP TABLE confirmation_tokens;
