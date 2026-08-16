@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import {
   Dialog,
   DialogBody,
@@ -29,6 +30,24 @@ export function ForgotPasswordDialog({
     isSubmitting,
   } = useForgotPassword();
 
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const { ref: registerRef, ...emailField } = register("email");
+
+  useEffect(() => {
+    if (!open) return;
+
+    // setTimeout, а не rAF: Dialog фокусит свой контейнер через rAF при
+    // открытии, и если тут тоже использовать rAF, эффект контейнера может
+    // отработать позже (React коммитит эффекты детей раньше родителя) и
+    // перебить фокус инпута. setTimeout гарантированно выполнится следующим
+    // макротаском — уже после того как Dialog отфокусит контейнер.
+    const id = setTimeout(() => {
+      emailInputRef.current?.focus();
+    }, 0);
+
+    return () => clearTimeout(id);
+  }, [open]);
+
   const handleSubmit = async () => {
     try {
       await submit();
@@ -55,6 +74,10 @@ export function ForgotPasswordDialog({
           <FormField htmlFor="forgot-password-email" label="Эл. почта">
             <Input
               id="forgot-password-email"
+              ref={(el) => {
+                registerRef(el);
+                emailInputRef.current = el;
+              }}
               type="email"
               placeholder="octocat@gmail.com"
               autoComplete="email"
@@ -63,7 +86,7 @@ export function ForgotPasswordDialog({
               aria-describedby={
                 errors.email ? "forgot-password-email-error" : undefined
               }
-              {...register("email")}
+              {...emailField}
             />
 
             {errors.email?.message && (

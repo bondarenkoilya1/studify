@@ -3,6 +3,7 @@ package reset_password
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"studify/internal"
@@ -43,7 +44,13 @@ func (h *Handler) SendResetPasswordEmail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err = h.Mailer.SendPasswordResetEmail("noreply@studify.com", body.Email, string(token)); err != nil {
+	link := fmt.Sprintf(
+		"%s/reset-password/%s",
+		h.Config.AppURL,
+		token,
+	)
+
+	if err = h.Mailer.SendPasswordResetEmail("noreply@studify.com", body.Email, link); err != nil {
 		log.Printf("failed to send password reset email: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return

@@ -27,7 +27,7 @@ func (e *Service) SendConfirmationEmail(email string, userID internal.UserID) er
 		token,
 	)
 
-	if err := e.Mailer.SendConfirmationEmail("noreply@studify.com", email, link); err != nil {
+	if err = e.Mailer.SendConfirmationEmail("noreply@studify.com", email, link); err != nil {
 		return fmt.Errorf("send confirmation email: %w", err)
 	}
 
