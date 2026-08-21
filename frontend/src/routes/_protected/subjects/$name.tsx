@@ -13,10 +13,6 @@ export const Route = createFileRoute("/_protected/subjects/$name")({
   component: SubjectPage,
 });
 
-// ─────────────────────────────────────────────────────────────
-// Config / labels
-// ─────────────────────────────────────────────────────────────
-
 const STATUS_CONFIG: Record<
   TaskStatus,
   { label: string; dot: string; text: string }
