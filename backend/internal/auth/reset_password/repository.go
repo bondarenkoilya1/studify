@@ -39,7 +39,7 @@ func GetResetPasswordTokenByHash(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound
+			return nil, ErrNotFound
 		}
 
 		return nil, fmt.Errorf(
@@ -112,7 +112,7 @@ func DeleteResetPasswordToken(
 	}
 
 	if rowsAffected == 0 {
-		return NotFound
+		return ErrNotFound
 	}
 
 	return nil

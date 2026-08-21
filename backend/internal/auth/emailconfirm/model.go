@@ -13,7 +13,7 @@ type Record struct {
 }
 
 var (
-	NotFound = errors.New("email confirmation token not found")
+	ErrNotFound = errors.New("email confirmation token not found")
 
 	ErrConfirmationTokenExpired = errors.New(
 		"confirmation token has expired",

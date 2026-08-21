@@ -199,7 +199,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 
 	ch, err := challenge.GetAuthChallengeByTokenHash(h.DB, hash)
 	if err != nil {
-		if errors.Is(err, challenge.NotFound) {
+		if errors.Is(err, challenge.ErrNotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
 			return
 		}

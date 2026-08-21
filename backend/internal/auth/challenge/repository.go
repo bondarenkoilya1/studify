@@ -69,7 +69,7 @@ func GetAuthChallengeByTokenHash(
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound
+			return nil, ErrNotFound
 		}
 
 		return nil, fmt.Errorf("get auth challenge by token hash: %w", err)
@@ -96,7 +96,7 @@ func DeleteAuthChallenge(db *sql.DB, id int64) error {
 	}
 
 	if rows == 0 {
-		return NotFound
+		return ErrNotFound
 	}
 
 	return nil

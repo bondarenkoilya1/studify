@@ -39,7 +39,7 @@ func GetConfirmationTokenByUserID(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound
+			return nil, ErrNotFound
 		}
 
 		return nil, fmt.Errorf(
@@ -81,7 +81,7 @@ func GetConfirmationTokenByHash(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, NotFound
+			return nil, ErrNotFound
 		}
 
 		return nil, fmt.Errorf(
@@ -158,7 +158,7 @@ func DeleteConfirmationToken(
 	}
 
 	if rowsAffected == 0 {
-		return NotFound
+		return ErrNotFound
 	}
 
 	return nil

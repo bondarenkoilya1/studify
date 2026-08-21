@@ -22,7 +22,7 @@ type Record struct {
 }
 
 var (
-	NotFound = errors.New("password reset token not found")
+	ErrNotFound = errors.New("password reset token not found")
 
 	ErrResetPasswordTokenExpired = errors.New(
 		"reset password token expired",

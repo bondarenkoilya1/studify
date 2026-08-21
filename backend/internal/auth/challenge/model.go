@@ -13,4 +13,4 @@ type Record struct {
 	CreatedAt time.Time
 }
 
-var NotFound = errors.New("auth challenge not found")
+var ErrNotFound = errors.New("auth challenge not found")
