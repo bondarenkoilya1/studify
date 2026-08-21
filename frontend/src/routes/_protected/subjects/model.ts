@@ -1,0 +1,68 @@
+import type {
+  TaskDifficulty,
+  TaskStatus,
+  TaskType,
+  TaskPriority,
+} from "@/entities/task/model/types";
+
+export const STATUS_CONFIG: Record<
+  TaskStatus,
+  { label: string; dot: string; text: string }
+> = {
+  not_completed: {
+    label: "Not started",
+    dot: "bg-gray-300",
+    text: "text-gray-400",
+  },
+  ongoing: {
+    label: "In progress",
+    dot: "bg-[#0A84FF]",
+    text: "text-[#0A84FF]",
+  },
+  completed: {
+    label: "Completed",
+    dot: "bg-[#30B855]",
+    text: "text-[#2FA84A]",
+  },
+};
+
+export const TYPE_LABELS: Record<TaskType, string> = {
+  exam: "Exam",
+  credit: "Credit",
+  coursework: "Coursework",
+  project: "Project",
+  other: "Other",
+};
+
+export const DIFFICULTY_LEVEL: Record<TaskDifficulty, 1 | 2 | 3> = {
+  low: 1,
+  medium: 2,
+  high: 3,
+};
+
+export const DIFFICULTY_LABELS: Record<TaskDifficulty, string> = {
+  low: "Easy",
+  medium: "Medium",
+  high: "Hard",
+};
+
+export const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+};
+
+export const PRIORITY_CHIP: Record<
+  TaskPriority,
+  { bg: string; text: string } | null
+> = {
+  low: null,
+  medium: {
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+  },
+  high: {
+    bg: "bg-red-50",
+    text: "text-red-500",
+  },
+};
