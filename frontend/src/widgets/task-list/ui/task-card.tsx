@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
 import type { Task } from "@/entities/task";
 import type { TaskDifficulty } from "@/entities/task/model/types";
 import {
@@ -7,7 +8,6 @@ import {
   PRIORITY_CHIP,
   PRIORITY_LABELS,
   STATUS_CONFIG,
-  TYPE_LABELS,
 } from "@/routes/_protected/subjects/model";
 
 interface TaskCardProps {
@@ -54,82 +54,13 @@ function formatDeadline(deadline: string) {
   };
 }
 
-function IconTag() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5 shrink-0"
-    >
-      <path d="M12.59 2.59a2 2 0 0 0-1.42-.59H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.41l8 8a2 2 0 0 0 2.82 0l7.17-7.17a2 2 0 0 0 0-2.82Z" />
-      <circle cx="7.5" cy="7.5" r="1.25" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function IconClock({ className = "h-3.5 w-3.5" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`shrink-0 ${className}`}
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 3" />
-    </svg>
-  );
-}
-
-function IconCalendar() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5 shrink-0"
-    >
-      <rect x="3" y="4.5" width="18" height="16" rx="3" />
-      <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
-    </svg>
-  );
-}
-
-function IconChevron({ expanded }: { expanded: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`h-3.5 w-3.5 transition-transform duration-200 ${
-        expanded ? "rotate-180" : ""
-      }`}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
 function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
   const level = DIFFICULTY_LEVEL[difficulty];
-  const heights = [6, 9, 12];
+  const heights = [5, 8, 11];
 
   return (
     <span
-      className="flex items-end gap-[2.5px]"
+      className="flex items-end gap-[2px]"
       title={DIFFICULTY_LABELS[difficulty]}
       aria-label={`Difficulty: ${DIFFICULTY_LABELS[difficulty]}`}
     >
@@ -165,14 +96,14 @@ export function TaskCard({ task }: TaskCardProps) {
   return (
     <article
       className={`
-        group relative overflow-hidden rounded-[20px]
+        group relative cursor-pointer overflow-hidden rounded-[20px]
         border border-black/[0.06]
-        bg-white p-5 sm:p-6
+        bg-white p-5
         shadow-[0_1px_2px_rgba(0,0,0,0.03)]
         transition-all duration-200 ease-out
-        cursor-pointer
         hover:border-black/[0.09]
         hover:shadow-[0_6px_18px_rgba(0,0,0,0.06)]
+        sm:p-6
         ${isDone ? "opacity-[0.55]" : ""}
       `}
     >
@@ -188,7 +119,7 @@ export function TaskCard({ task }: TaskCardProps) {
             ${priorityChip.text}
           `}
         >
-          <IconClock className="h-3 w-3" />
+          <Flag className="h-3 w-3 shrink-0" />
           {PRIORITY_LABELS[task.priority]}
         </span>
       )}
@@ -231,7 +162,12 @@ export function TaskCard({ task }: TaskCardProps) {
               "
             >
               {descriptionExpanded ? "Show less" : "Show more"}
-              <IconChevron expanded={descriptionExpanded} />
+
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                  descriptionExpanded ? "rotate-180" : ""
+                }`}
+              />
             </button>
           )}
         </div>
@@ -255,18 +191,7 @@ export function TaskCard({ task }: TaskCardProps) {
         </p>
       )}
 
-      <div
-        className="
-          mt-4
-          flex flex-wrap
-          items-center
-          gap-x-5 gap-y-2
-          border-t border-black/[0.05]
-          pt-3.5
-          text-[12.5px]
-          text-gray-500
-        "
-      >
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-black/[0.05] pt-3.5 text-[12.5px] text-gray-500">
         {task.status !== "not_completed" && (
           <span className={`flex items-center gap-1.5 ${status.text}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
@@ -274,26 +199,27 @@ export function TaskCard({ task }: TaskCardProps) {
           </span>
         )}
 
-        <span className="flex items-center gap-1.5">
-          <IconTag />
-          {TYPE_LABELS[task.type]}
+        <span
+          className="flex items-center gap-2"
+          title={DIFFICULTY_LABELS[task.difficulty]}
+        >
+          <DifficultyBars difficulty={task.difficulty} />
+          <span>{DIFFICULTY_LABELS[task.difficulty]}</span>
         </span>
-
-        <DifficultyBars difficulty={task.difficulty} />
 
         {task.estimatedTime !== null && (
           <span
             className="
               flex items-center gap-1.5
-              sm:opacity-0
               sm:translate-y-1
+              sm:opacity-0
               sm:transition-all
               sm:duration-200
               sm:group-hover:translate-y-0
               sm:group-hover:opacity-100
             "
           >
-            <IconClock />~{task.estimatedTime} min
+            <Clock className="h-3.5 w-3.5 shrink-0" />~{task.estimatedTime} min
           </span>
         )}
 
@@ -301,15 +227,15 @@ export function TaskCard({ task }: TaskCardProps) {
           <span
             className="
               flex items-center gap-1.5
-              sm:opacity-0
               sm:translate-y-1
+              sm:opacity-0
               sm:transition-all
               sm:duration-200
               sm:group-hover:translate-y-0
               sm:group-hover:opacity-100
             "
           >
-            <IconCalendar />
+            <Calendar className="h-3.5 w-3.5 shrink-0" />
             {new Date(task.scheduledAt!).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",

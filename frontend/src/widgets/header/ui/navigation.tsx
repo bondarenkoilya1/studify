@@ -18,10 +18,6 @@ export function HeaderNavigation() {
       >
         Предметы
       </Link>
-
-      {/* потом */}
-      {/* <Link to="/tasks">Tasks</Link> */}
-      {/* <Link to="/dashboard">Dashboard</Link> */}
     </nav>
   );
 }

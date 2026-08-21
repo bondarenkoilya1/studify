@@ -27,11 +27,11 @@ export const STATUS_CONFIG: Record<
 };
 
 export const TYPE_LABELS: Record<TaskType, string> = {
-  exam: "Exam",
-  credit: "Credit",
-  coursework: "Coursework",
-  project: "Project",
-  other: "Other",
+  exam: "Экзамен",
+  credit: "Зачёт",
+  coursework: "Курсовая",
+  project: "Проект",
+  other: "Другое",
 };
 
 export const DIFFICULTY_LEVEL: Record<TaskDifficulty, 1 | 2 | 3> = {
@@ -66,3 +66,11 @@ export const PRIORITY_CHIP: Record<
     text: "text-red-500",
   },
 };
+
+export const TYPE_ORDER: TaskType[] = [
+  "exam",
+  "credit",
+  "coursework",
+  "project",
+  "other",
+];

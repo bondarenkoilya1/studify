@@ -1,13 +1,19 @@
-import { useGetTasks } from "@/entities/task";
 import type {
   TaskDifficulty,
-  TaskPriority,
   TaskStatus,
   TaskType,
+  TaskPriority,
 } from "@/entities/task/model/types";
+import { useGetTasks } from "@/entities/task";
+import { TYPE_ORDER } from "@/routes/_protected/subjects/model";
+
+interface TaskTypeMetadata {
+  type: TaskType;
+  count: number;
+}
 
 interface TaskMetadata {
-  types: TaskType[];
+  types: TaskTypeMetadata[];
   statuses: TaskStatus[];
   priorities: TaskPriority[];
   difficulties: TaskDifficulty[];
@@ -16,8 +22,18 @@ interface TaskMetadata {
 export function useTasksMetadata(): TaskMetadata {
   const { data: tasks = [] } = useGetTasks();
 
+  const typeCounts = new Map<TaskType, number>();
+
+  for (const task of tasks) {
+    typeCounts.set(task.type, (typeCounts.get(task.type) ?? 0) + 1);
+  }
+
   return {
-    types: [...new Set(tasks.map((task) => task.type))],
+    types: [...typeCounts.entries()]
+      .map(([type, count]) => ({ type, count }))
+      .toSorted(
+        (a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type),
+      ),
     statuses: [...new Set(tasks.map((task) => task.status))],
     priorities: [...new Set(tasks.map((task) => task.priority))],
     difficulties: [...new Set(tasks.map((task) => task.difficulty))],
