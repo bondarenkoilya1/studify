@@ -26,54 +26,67 @@ export function SubjectCard({ subject }: SubjectCardProps) {
   const gradient = gradients[subject.id % gradients.length];
 
   return (
-    <div className="group relative rounded-2xl border bg-background transition-all duration-200 hover:-translate-y-1 hover:border-primary hover:shadow-lg">
+    <div className="group relative h-[280px] overflow-hidden rounded-2xl border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
       <Link
         to="/subjects/$name"
         params={{ name: subject.name }}
-        className="block p-6"
+        className="block h-full p-6"
       >
-        <div className="flex items-start justify-between pr-12">
-          <div className="flex items-center gap-4">
-            <div
-              className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-lg font-bold text-white shadow-sm`}
-            >
-              {subject.name.slice(0, 2).toUpperCase()}
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold">{subject.name}</h3>
-              <p className="text-sm text-muted-foreground">Предмет</p>
-            </div>
+        {/* Header */}
+        <div className="flex items-start gap-4 pr-10">
+          <div
+            className={`flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-lg font-bold text-white shadow-sm`}
+          >
+            {subject.name.slice(0, 2).toUpperCase()}
           </div>
 
-          <div className="rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
-            Экзамен
+          <div className="min-w-0 flex-1">
+            <h3
+              title={subject.name}
+              className="line-clamp-2 text-lg font-semibold leading-tight tracking-tight"
+            >
+              {subject.name}
+            </h3>
+
+            <p className="mt-1 text-sm text-muted-foreground">Предмет</p>
           </div>
         </div>
 
-        <div className="my-5 h-px bg-border" />
+        {/* Meta */}
+        <div className="mt-8 space-y-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <GraduationCap className="size-4 shrink-0 text-muted-foreground" />
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-
-            <div>
-              <p className="font-medium">{subject.lecturer}</p>
+            <div className="min-w-0">
+              <p
+                title={subject.lecturer}
+                className="truncate text-sm font-medium"
+              >
+                {subject.lecturer}
+              </p>
               <p className="text-xs text-muted-foreground">Преподаватель</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
 
-            <div>
-              <p className="font-medium">{examDate}</p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{examDate}</p>
               <p className="text-xs text-muted-foreground">Дата экзамена</p>
             </div>
           </div>
         </div>
+
+        {/* Type */}
+        <div className="absolute bottom-6 left-6">
+          <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            Экзамен
+          </span>
+        </div>
       </Link>
 
+      {/* Delete */}
       <div className="absolute right-6 top-6">
         <DeleteSubjectButton id={subject.id} />
       </div>
