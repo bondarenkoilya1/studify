@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useGetTasks } from "@/entities/task";
 import { TaskList } from "@/widgets/task-list";
@@ -10,7 +10,7 @@ import {
 } from "@/routes/_protected/subjects/model";
 import { filterTasksByType } from "@/entities/task/model/filters";
 import { CreateTaskButton } from "@/features/task/create-task";
-import { getSubject, type Subject } from "@/entities/subject";
+import { useGetSubject } from "@/entities/subject";
 
 export const Route = createFileRoute("/_protected/subjects/$id")({
   parseParams: (params) => ({
@@ -23,16 +23,7 @@ function SubjectPage() {
   const { id } = Route.useParams();
   const { data: tasks } = useGetTasks(id);
   const { types } = useTasksMetadata(id);
-  const [subject, setSubject] = useState<Subject | null>(null);
-
-  useEffect(() => {
-    const fetchSubject = async () => {
-      const s = await getSubject(id);
-      setSubject(s);
-    };
-
-    fetchSubject();
-  }, [id]);
+  const subject = useGetSubject(id);
 
   const [selectedType, setSelectedType] = useState<
     "all" | (typeof types)[number]["type"]
