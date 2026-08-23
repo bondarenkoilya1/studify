@@ -126,6 +126,37 @@ func GetTasksByUserID(db *sql.DB, userID int64) ([]Task, error) {
 	return tasks, nil
 }
 
+func GetTasksBySubjectID(db *sql.DB, userID int64, subjectID int64) ([]Task, error) {
+	query := `
+		SELECT
+			t.id,
+			t.subject_id,
+			t.name,
+			t.type,
+			t.description,
+			t.estimated_time,
+			t.scheduled_at,
+			t.deadline,
+			t.status,
+			t.difficulty,
+			t.priority,
+			t.created_at,
+			t.updated_at
+		FROM tasks t
+		JOIN subjects s ON s.id = t.subject_id
+		WHERE t.subject_id = $1
+			AND s.user_id = $2
+		ORDER BY t.created_at DESC;
+	`
+
+	tasks, err := ScanTasks(db, query, subjectID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tasks by subject id: %w", err)
+	}
+
+	return tasks, nil
+}
+
 func InsertTask(
 	db *sql.DB,
 	userID int64,
