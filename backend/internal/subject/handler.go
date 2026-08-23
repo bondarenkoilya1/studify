@@ -42,11 +42,7 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(subject); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	writeJSON(w, http.StatusOK, subject)
 }
 
 func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
@@ -63,11 +59,7 @@ func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(subjects); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	writeJSON(w, http.StatusOK, subjects)
 }
 
 func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
@@ -77,26 +69,35 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var subject Subject
+	var req CreateSubjectRequest
 
-	err = json.NewDecoder(r.Body).Decode(&subject)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
 
-	if subject.Name == "" || subject.Lecturer == "" || subject.ExamDate.IsZero() {
-		http.Error(w, "invalid subject data", http.StatusBadRequest)
+	if req.Name == "" {
+		http.Error(w, "subject name is required", http.StatusBadRequest)
+		return
+	}
+
+	if req.Type == "" {
+		req.Type = "university"
+	}
+
+	if req.Type != "university" && req.Type != "personal" {
+		http.Error(w, "invalid subject type", http.StatusBadRequest)
 		return
 	}
 
 	createdSubject, err := InsertSubject(
 		h.DB,
 		userID,
-		subject.Name,
-		subject.Lecturer,
-		subject.LecturerAvatarURL,
-		subject.ExamDate,
+		req.Name,
+		req.Type,
+		req.Lecturer,
+		req.LecturerAvatarURL,
+		req.ExamDate,
 	)
 	if err != nil {
 		log.Printf("failed to insert subject: %v", err)
@@ -104,12 +105,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	if err := json.NewEncoder(w).Encode(createdSubject); err != nil {
-		log.Printf("failed to encode response: %v", err)
-	}
+	writeJSON(w, http.StatusCreated, createdSubject)
 }
 
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
@@ -125,34 +121,59 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newSubject Subject
-	if err = json.NewDecoder(r.Body).Decode(&newSubject); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	var req CreateSubjectRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
 
-	if newSubject.Name == "" {
-		http.Error(w, "Subject name is required", http.StatusBadRequest)
+	if req.Name == "" {
+		http.Error(w, "subject name is required", http.StatusBadRequest)
 		return
 	}
 
-	if err = UpdateSubject(h.DB, userID, id, newSubject.Name, newSubject.Lecturer, newSubject.ExamDate); err != nil {
+	if req.Type == "" {
+		req.Type = "university"
+	}
+
+	if req.Type != "university" && req.Type != "personal" {
+		http.Error(w, "invalid subject type", http.StatusBadRequest)
+		return
+	}
+
+	if err := UpdateSubject(
+		h.DB,
+		userID,
+		id,
+		req.Name,
+		req.Type,
+		req.Lecturer,
+		req.LecturerAvatarURL,
+		req.ExamDate,
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
+			http.Error(
+				w,
+				fmt.Sprintf("No such element with ID: %d", id),
+				http.StatusNotFound,
+			)
 			return
 		}
 
+		log.Printf("failed to replace subject: %v", err)
 		http.Error(w, "Failed to replace subject", http.StatusInternalServerError)
 		return
 	}
 
-	newSubject.ID = id
-	newSubject.UserID = userID
-	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(newSubject); err != nil {
-		log.Printf("Element was changed but cannot be returned as JSON because of encoding error: %v", err)
+	subject, err := GetSubjectByID(h.DB, id, userID)
+	if err != nil {
+		log.Printf("failed to get replaced subject: %v", err)
+		http.Error(w, "Failed to get replaced subject", http.StatusInternalServerError)
 		return
 	}
+
+	writeJSON(w, http.StatusOK, subject)
 }
 
 func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
@@ -162,20 +183,25 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req *UpdateSubjectRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if req.Name == nil && req.Lecturer == nil && req.ExamDate == nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
 	id, err := httpx.GetID(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateSubjectRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == nil &&
+		req.Type == nil &&
+		req.Lecturer == nil &&
+		req.LecturerAvatarURL == nil &&
+		req.ExamDate == nil {
+		http.Error(w, "no fields to update", http.StatusBadRequest)
 		return
 	}
 
@@ -192,18 +218,45 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Name != nil {
+		if *req.Name == "" {
+			http.Error(w, "subject name cannot be empty", http.StatusBadRequest)
+			return
+		}
+
 		subject.Name = *req.Name
 	}
 
+	if req.Type != nil {
+		if *req.Type != "university" && *req.Type != "personal" {
+			http.Error(w, "invalid subject type", http.StatusBadRequest)
+			return
+		}
+
+		subject.Type = *req.Type
+	}
+
 	if req.Lecturer != nil {
-		subject.Lecturer = *req.Lecturer
+		subject.Lecturer = req.Lecturer
+	}
+
+	if req.LecturerAvatarURL != nil {
+		subject.LecturerAvatarURL = req.LecturerAvatarURL
 	}
 
 	if req.ExamDate != nil {
 		subject.ExamDate = req.ExamDate
 	}
 
-	if err = UpdateSubject(h.DB, userID, id, subject.Name, subject.Lecturer, subject.ExamDate); err != nil {
+	if err := UpdateSubject(
+		h.DB,
+		userID,
+		id,
+		subject.Name,
+		subject.Type,
+		subject.Lecturer,
+		subject.LecturerAvatarURL,
+		subject.ExamDate,
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject not found", http.StatusNotFound)
 			return
@@ -214,11 +267,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(subject); err != nil {
-		http.Error(w, "Failed to encode subject as JSON", http.StatusInternalServerError)
-		return
-	}
+	writeJSON(w, http.StatusOK, subject)
 }
 
 func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
@@ -228,12 +277,12 @@ func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = DeleteSubjectsByUserID(h.DB, userID)
-	if err != nil {
+	if err := DeleteSubjectsByUserID(h.DB, userID); err != nil {
 		log.Printf("failed to delete subjects: %v", err)
 		http.Error(w, "Failed to delete subjects", http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -250,7 +299,7 @@ func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = DeleteSubjectByID(h.DB, userID, id); err != nil {
+	if err := DeleteSubjectByID(h.DB, userID, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "No such element with this ID", http.StatusNotFound)
 			return
@@ -268,12 +317,12 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	const (
-		maxAvatarBytes = 2 << 20 // 2 MiB
+		maxAvatarBytes = 2 << 20
 		maxWidth       = 2560
-		maxHeight
+		maxHeight      = 2560
 	)
+
 	r.Body = http.MaxBytesReader(w, r.Body, maxAvatarBytes)
-	// todo: 413 error
 
 	img, format, err := image.Decode(r.Body)
 	if err != nil {
@@ -288,9 +337,12 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 
 	switch format {
 	case "png", "jpeg", "webp":
-		// ok
 	default:
-		http.Error(w, "Invalid file format. Use PNG/JPEG/WEBP", http.StatusUnsupportedMediaType)
+		http.Error(
+			w,
+			"Invalid file format. Use PNG/JPEG/WEBP",
+			http.StatusUnsupportedMediaType,
+		)
 		return
 	}
 
@@ -299,12 +351,21 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 	height := bounds.Dy()
 
 	if width > maxWidth || height > maxHeight {
-		http.Error(w, fmt.Sprintf("File resolution is too large. Maximum resolution is %dx%d", maxWidth, maxHeight), http.StatusRequestEntityTooLarge)
+		http.Error(
+			w,
+			fmt.Sprintf(
+				"File resolution is too large. Maximum resolution is %dx%d",
+				maxWidth,
+				maxHeight,
+			),
+			http.StatusRequestEntityTooLarge,
+		)
 		return
 	}
 
 	dir := "./data/lecturer-avatars/"
-	if err = ensureDir(dir); err != nil {
+
+	if err := ensureDir(dir); err != nil {
 		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
 		return
 	}
@@ -319,25 +380,30 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dst.Close()
 
-	if err = webp.Encode(dst, img, &webp.Options{
+	if err := webp.Encode(dst, img, &webp.Options{
 		Quality: 85,
 	}); err != nil {
 		http.Error(w, "Failed to save image", http.StatusInternalServerError)
 		return
 	}
 
-	type URL struct {
+	type avatarResponse struct {
 		LecturerAvatarURL string `json:"lecturer_avatar_url"`
 	}
 
-	if err = json.NewEncoder(w).Encode(URL{LecturerAvatarURL: fullPath}); err != nil {
-		log.Printf("encode avatar upload response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	writeJSON(w, http.StatusOK, avatarResponse{
+		LecturerAvatarURL: fullPath,
+	})
 }
 
-// Helpers
+func writeJSON(w http.ResponseWriter, status int, value any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		log.Printf("failed to encode JSON response: %v", err)
+	}
+}
 
 func ensureDir(path string) error {
 	if err := os.MkdirAll(path, 0o755); err != nil {
@@ -351,11 +417,11 @@ func ensureDir(path string) error {
 
 	name := file.Name()
 
-	if err = file.Close(); err != nil {
+	if err := file.Close(); err != nil {
 		return fmt.Errorf("close check file %q: %w", name, err)
 	}
 
-	if err = os.Remove(name); err != nil {
+	if err := os.Remove(name); err != nil {
 		return fmt.Errorf("remove check file %q: %w", name, err)
 	}
 

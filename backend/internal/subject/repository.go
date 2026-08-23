@@ -7,44 +7,72 @@ import (
 	"time"
 )
 
-func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
-	query := `
+const subjectSelectQuery = `
 	SELECT
-			id,
-			user_id,
-			name,
-			lecturer,
-			exam_date,
-			COALESCE(lecturer_avatar_url, '')
-		FROM subjects
-	WHERE id = $1 AND user_id = $2;
+		id,
+		user_id,
+		name,
+		type,
+		lecturer,
+		exam_date,
+		lecturer_avatar_url
+	FROM subjects
 `
 
-	row := db.QueryRow(query, id, userID)
-	s := &Subject{}
-	var examDate sql.NullTime
+func scanSubject(scanner interface {
+	Scan(dest ...any) error
+}) (*Subject, error) {
+	subject := &Subject{}
 
-	err := row.Scan(&s.ID, &s.UserID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
+	var (
+		examDate          sql.NullTime
+		lecturer          sql.NullString
+		lecturerAvatarURL sql.NullString
+	)
+
+	if err := scanner.Scan(
+		&subject.ID,
+		&subject.UserID,
+		&subject.Name,
+		&subject.Type,
+		&lecturer,
+		&examDate,
+		&lecturerAvatarURL,
+	); err != nil {
+		return nil, err
+	}
+
+	if lecturer.Valid {
+		subject.Lecturer = &lecturer.String
+	}
+
+	if lecturerAvatarURL.Valid {
+		subject.LecturerAvatarURL = &lecturerAvatarURL.String
+	}
+
+	subject.ExamDate = util.NullTimePtr(examDate)
+
+	return subject, nil
+}
+
+func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
+	query := subjectSelectQuery + `
+		WHERE id = $1 AND user_id = $2;
+	`
+
+	subject, err := scanSubject(db.QueryRow(query, id, userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
-	s.ExamDate = util.NullTimePtr(examDate)
 
-	return s, nil
+	return subject, nil
 }
 
 func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
-	query := `
-	SELECT
-			id,
-			user_id,
-			name,
-			lecturer,
-			exam_date,
-			COALESCE(lecturer_avatar_url, '')
-		FROM subjects
-	WHERE user_id = $1;
-`
+	query := subjectSelectQuery + `
+		WHERE user_id = $1
+		ORDER BY id;
+	`
 
 	rows, err := db.Query(query, userID)
 	if err != nil {
@@ -55,58 +83,98 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 	subjects := make([]Subject, 0)
 
 	for rows.Next() {
-		var s Subject
-		var examDate sql.NullTime
-
-		err = rows.Scan(&s.ID, &s.UserID, &s.Name, &s.Lecturer, &examDate, &s.LecturerAvatarURL)
+		subject, err := scanSubject(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan subject: %w", err)
 		}
-		s.ExamDate = util.NullTimePtr(examDate)
 
-		subjects = append(subjects, s)
+		subjects = append(subjects, *subject)
 	}
 
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read subjects rows: %w", err)
 	}
 
 	return subjects, nil
 }
 
-func InsertSubject(db *sql.DB, userID int64, name, lecturer, lecturerAvatarURL string, examDate *time.Time) (*Subject, error) {
+func InsertSubject(
+	db *sql.DB,
+	userID int64,
+	name string,
+	subjectType string,
+	lecturer *string,
+	lecturerAvatarURL *string,
+	examDate *time.Time,
+) (*Subject, error) {
 	query := `
-	INSERT INTO subjects (user_id, name, lecturer, lecturer_avatar_url, exam_date) 
-	VALUES ($1, $2, $3, $4, $5)
-	RETURNING id;
+		INSERT INTO subjects (
+			user_id,
+			name,
+			type,
+			lecturer,
+			lecturer_avatar_url,
+			exam_date
+		)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING
+			id,
+			user_id,
+			name,
+			type,
+			lecturer,
+			exam_date,
+			lecturer_avatar_url;
 	`
 
-	var id int64
-	if err := db.QueryRow(query, userID, name, lecturer, lecturerAvatarURL, examDate).Scan(&id); err != nil {
+	subject, err := scanSubject(
+		db.QueryRow(
+			query,
+			userID,
+			name,
+			subjectType,
+			lecturer,
+			lecturerAvatarURL,
+			examDate,
+		),
+	)
+	if err != nil {
 		return nil, fmt.Errorf("failed to insert subject: %w", err)
 	}
 
-	return &Subject{
-		ID:                id,
-		UserID:            userID,
-		Name:              name,
-		Lecturer:          lecturer,
-		LecturerAvatarURL: lecturerAvatarURL,
-		ExamDate:          examDate,
-	}, nil
+	return subject, nil
 }
 
-func UpdateSubject(db *sql.DB, userID, id int64, name, lecturer string, examDate *time.Time) error {
+func UpdateSubject(
+	db *sql.DB,
+	userID, id int64,
+	name string,
+	subjectType string,
+	lecturer *string,
+	lecturerAvatarURL *string,
+	examDate *time.Time,
+) error {
 	query := `
-	UPDATE subjects
-	SET
-		name = $1,
-		lecturer = $2,
-		exam_date = $3
-	WHERE id = $4 AND user_id = $5;
-`
+		UPDATE subjects
+		SET
+			name = $1,
+			type = $2,
+			lecturer = $3,
+			lecturer_avatar_url = $4,
+			exam_date = $5
+		WHERE id = $6 AND user_id = $7;
+	`
 
-	result, err := db.Exec(query, name, lecturer, examDate, id, userID)
+	result, err := db.Exec(
+		query,
+		name,
+		subjectType,
+		lecturer,
+		lecturerAvatarURL,
+		examDate,
+		id,
+		userID,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to update subject: %w", err)
 	}
@@ -124,7 +192,10 @@ func UpdateSubject(db *sql.DB, userID, id int64, name, lecturer string, examDate
 }
 
 func DeleteSubjectsByUserID(db *sql.DB, userID int64) error {
-	query := `DELETE FROM subjects WHERE user_id = $1;`
+	const query = `
+		DELETE FROM subjects
+		WHERE user_id = $1;
+	`
 
 	if _, err := db.Exec(query, userID); err != nil {
 		return fmt.Errorf("failed to delete subjects by user id: %w", err)
@@ -134,7 +205,10 @@ func DeleteSubjectsByUserID(db *sql.DB, userID int64) error {
 }
 
 func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
-	query := `DELETE FROM subjects WHERE id = $1 AND user_id = $2;`
+	const query = `
+		DELETE FROM subjects
+		WHERE id = $1 AND user_id = $2;
+	`
 
 	result, err := db.Exec(query, id, userID)
 	if err != nil {

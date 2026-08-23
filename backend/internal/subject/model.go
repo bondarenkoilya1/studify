@@ -13,13 +13,24 @@ type Subject struct {
 	ID                int64      `json:"id"`
 	UserID            int64      `json:"user_id"`
 	Name              string     `json:"name"`
-	Lecturer          string     `json:"lecturer"`
-	LecturerAvatarURL string     `json:"lecturer_avatar_url"`
+	Type              string     `json:"type"`
 	ExamDate          *time.Time `json:"exam_date"`
+	Lecturer          *string    `json:"lecturer"`
+	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
+}
+
+type CreateSubjectRequest struct {
+	Name              string     `json:"name"`
+	Type              string     `json:"type"`
+	ExamDate          *time.Time `json:"exam_date"`
+	Lecturer          *string    `json:"lecturer"`
+	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
 }
 
 type UpdateSubjectRequest struct {
-	Name     *string    `json:"name"`
-	Lecturer *string    `json:"lecturer"`
-	ExamDate *time.Time `json:"exam_date"`
+	Name              *string    `json:"name"`
+	Type              *string    `json:"type"`
+	Lecturer          *string    `json:"lecturer"`
+	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
+	ExamDate          *time.Time `json:"exam_date"`
 }
