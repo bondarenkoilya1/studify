@@ -28,8 +28,8 @@ export function SubjectCard({ subject }: SubjectCardProps) {
   return (
     <div className="group relative h-[280px] overflow-hidden rounded-2xl border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
       <Link
-        to="/subjects/$name"
-        params={{ name: subject.name }}
+        to="/subjects/$id"
+        params={{ id: String(subject.id) }}
         className="block h-full p-6"
       >
         {/* Header */}

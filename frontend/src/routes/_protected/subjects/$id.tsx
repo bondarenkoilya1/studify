@@ -4,44 +4,36 @@ import { useState } from "react";
 import { useGetTasks } from "@/entities/task";
 import { TaskList } from "@/widgets/task-list";
 import { useTasksMetadata } from "@/entities/task/model/use-tasks-metadata";
-import { TYPE_LABELS } from "@/routes/_protected/subjects/model";
+import {
+  getTaskCountLabel,
+  TYPE_LABELS,
+} from "@/routes/_protected/subjects/model";
 import { filterTasksByType } from "@/entities/task/model/filters";
 import { CreateTaskButton } from "@/features/task/create-task";
+import { useGetSubjects } from "@/entities/subject/model/useGetSubjects";
 
-export const Route = createFileRoute("/_protected/subjects/$name")({
+export const Route = createFileRoute("/_protected/subjects/$id")({
+  parseParams: (params) => ({
+    id: Number(params.id),
+  }),
   component: SubjectPage,
 });
 
-function getTaskCountLabel(count: number) {
-  if (count % 10 === 1 && count % 100 !== 11) {
-    return "задача";
-  }
-
-  if (
-    count % 10 >= 2 &&
-    count % 10 <= 4 &&
-    (count % 100 < 10 || count % 100 >= 20)
-  ) {
-    return "задачи";
-  }
-
-  return "задач";
-}
-
 function SubjectPage() {
-  const { name } = Route.useParams();
-  const { data: tasks } = useGetTasks();
-  const { types } = useTasksMetadata();
+  const { id } = Route.useParams();
+  const { data: subjects } = useGetSubjects();
+  const { data: tasks } = useGetTasks(id);
+  const { types } = useTasksMetadata(id);
+  const subjectName = subjects?.find((s) => s.id === id)?.name; // todo: refactor, shouldn't get all subjects. just by id
 
   const [selectedType, setSelectedType] = useState<
     "all" | (typeof types)[number]["type"]
   >("all");
 
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
-  const subjectId = tasks?.[0]?.subjectId;
 
-  if (!subjectId) {
-    return <p>Loading...</p>;
+  if (!id) {
+    return <div>Loading...</div>;
   }
 
   return (
@@ -51,7 +43,7 @@ function SubjectPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-gray-900">
-                {name}
+                {subjectName}
               </h1>
 
               <p className="mt-1 text-[14px] text-gray-400">
@@ -60,7 +52,7 @@ function SubjectPage() {
               </p>
             </div>
 
-            <CreateTaskButton subjectId={subjectId} />
+            <CreateTaskButton subjectId={id} />
           </div>
 
           {types.length > 0 && (

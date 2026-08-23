@@ -4,6 +4,10 @@ import type {
   TaskType,
   TaskPriority,
 } from "@/entities/task/model/types";
+import { useGetTasks } from "@/entities/task";
+import { useTasksMetadata } from "@/entities/task/model/use-tasks-metadata";
+import { useState } from "react";
+import { Route } from "@/routes/_protected/subjects/$id";
 
 export const STATUS_CONFIG: Record<
   TaskStatus,
@@ -74,3 +78,19 @@ export const TYPE_ORDER: TaskType[] = [
   "project",
   "other",
 ];
+
+export function getTaskCountLabel(count: number) {
+  if (count % 10 === 1 && count % 100 !== 11) {
+    return "задача";
+  }
+
+  if (
+    count % 10 >= 2 &&
+    count % 10 <= 4 &&
+    (count % 100 < 10 || count % 100 >= 20)
+  ) {
+    return "задачи";
+  }
+
+  return "задач";
+}

@@ -19,8 +19,8 @@ interface TaskMetadata {
   difficulties: TaskDifficulty[];
 }
 
-export function useTasksMetadata(): TaskMetadata {
-  const { data: tasks = [] } = useGetTasks();
+export function useTasksMetadata(subjectId: number): TaskMetadata {
+  const { data: tasks = [] } = useGetTasks(subjectId);
 
   const typeCounts = new Map<TaskType, number>();
 
