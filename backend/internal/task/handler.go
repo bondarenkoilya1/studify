@@ -43,6 +43,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Remove this method / move to admin methods
 func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
@@ -60,6 +61,33 @@ func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(tasks); err != nil {
+		log.Printf("failed to encode tasks: %v", err)
+	}
+}
+
+func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	subjectID, err := httpx.GetID(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	tasks, err := GetTasksBySubjectID(h.DB, userID, subjectID)
+	if err != nil {
+		log.Printf("failed to get tasks by subject id: %v", err)
+		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err = json.NewEncoder(w).Encode(tasks); err != nil {
 		log.Printf("failed to encode tasks: %v", err)
 	}
 }

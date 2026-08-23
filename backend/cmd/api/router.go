@@ -34,7 +34,7 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(middlewares.ValidateAuth(h.Auth))
 
-			registerSubjectRoutes(r, h.Subject)
+			registerSubjectRoutes(r, h.Subject, h.Task)
 			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h.User)
 			registerDashboardRoutes(r, h.Dashboard)
@@ -66,7 +66,7 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 	})
 }
 
-func registerSubjectRoutes(r chi.Router, h *subject.Handler) {
+func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {
 	r.Route("/subjects", func(r chi.Router) {
 		r.Get("/", h.GetSubjects)
 		r.With(middlewares.RequireJSON).Post("/", h.AddSubject)
@@ -76,6 +76,8 @@ func registerSubjectRoutes(r chi.Router, h *subject.Handler) {
 		r.Delete("/{id}", h.DeleteSubject)
 		r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceSubject)
 		r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateSubject)
+
+		r.Get("/{id}/tasks", t.GetSubjectTasks)
 
 		r.Post("/avatar/", h.UploadLecturerAvatar)
 	})
