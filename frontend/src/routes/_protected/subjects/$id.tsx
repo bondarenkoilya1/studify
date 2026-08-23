@@ -11,6 +11,7 @@ import {
 import { filterTasksByType } from "@/entities/task/model/filters";
 import { CreateTaskButton } from "@/features/task/create-task";
 import { useGetSubjects } from "@/entities/subject/model/useGetSubjects";
+import { useGetDashboardStatus } from "@/entities/dashboard";
 
 export const Route = createFileRoute("/_protected/subjects/$id")({
   parseParams: (params) => ({
@@ -25,6 +26,9 @@ function SubjectPage() {
   const { data: tasks } = useGetTasks(id);
   const { types } = useTasksMetadata(id);
   const subjectName = subjects?.find((s) => s.id === id)?.name; // todo: refactor, shouldn't get all subjects. just by id
+  const { data: dashboardStatus } = useGetDashboardStatus();
+
+  console.log(dashboardStatus);
 
   const [selectedType, setSelectedType] = useState<
     "all" | (typeof types)[number]["type"]

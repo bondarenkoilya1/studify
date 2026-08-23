@@ -113,19 +113,39 @@ func GetOverdueTasks(db *sql.DB, userID int64) ([]task.Task, error) {
 			t.deadline,
 			t.status,
 			t.subject_id
-	FROM tasks t
-	JOIN subjects s ON s.id = t.subject_id
-	WHERE
-		t.status <> 'completed'
-		AND t.deadline IS NOT NULL
-		AND t.deadline < CURRENT_TIMESTAMP
-		AND s.user_id = $1
-	ORDER BY t.deadline DESC;
-`
+		FROM tasks t
+		JOIN subjects s ON s.id = t.subject_id
+		WHERE
+			t.status <> 'completed'
+			AND t.deadline IS NOT NULL
+			AND t.deadline < CURRENT_TIMESTAMP
+			AND s.user_id = $1
+		ORDER BY t.deadline DESC;
+	`
 
-	tasks, err := task.ScanTasks(db, query, userID)
+	rows, err := db.Query(query, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get overdue tasks: %w", err)
+		return nil, fmt.Errorf("failed to query overdue tasks: %w", err)
+	}
+	defer rows.Close()
+
+	tasks := make([]task.Task, 0)
+
+	for rows.Next() {
+		var t task.Task
+		var deadline sql.NullTime
+
+		err := rows.Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.Status, &t.SubjectID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan overdue task: %w", err)
+		}
+
+		t.Deadline = util.NullTimePtr(deadline)
+		tasks = append(tasks, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read overdue tasks rows: %w", err)
 	}
 
 	return tasks, nil

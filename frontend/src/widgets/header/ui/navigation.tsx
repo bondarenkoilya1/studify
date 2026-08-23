@@ -18,6 +18,15 @@ export function HeaderNavigation() {
       >
         Предметы
       </Link>
+      <Link
+        to="/dashboard"
+        className={linkClass}
+        activeProps={{
+          className: "text-studify-text",
+        }}
+      >
+        Дашборд
+      </Link>
     </nav>
   );
 }

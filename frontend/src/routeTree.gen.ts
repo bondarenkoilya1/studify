@@ -14,6 +14,7 @@ import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
+import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as GuestResetPasswordTokenRouteImport } from './routes/_guest/reset-password/$token'
 import { Route as ProtectedConfirmTokenRouteImport } from './routes/_protected/confirm/$token'
@@ -44,6 +45,11 @@ const GuestRegisterRoute = GuestRegisterRouteImport.update({
   id: '/register',
   path: '/register',
   getParentRoute: () => GuestRoute,
+} as any)
+const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   id: '/settings',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
+  '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
   '/reset-password/$token': typeof GuestResetPasswordTokenRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
+  '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
   '/reset-password/$token': typeof GuestResetPasswordTokenRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteWithChildren
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
+  '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
   '/_guest/reset-password/$token': typeof GuestResetPasswordTokenRoute
   '/_protected/confirm/$token': typeof ProtectedConfirmTokenRoute
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/dashboard'
     | '/settings'
     | '/reset-password/$token'
     | '/confirm/$token'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/dashboard'
     | '/settings'
     | '/reset-password/$token'
     | '/confirm/$token'
@@ -154,6 +165,7 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/_guest/login'
     | '/_guest/register'
+    | '/_protected/dashboard'
     | '/_protected/settings'
     | '/_guest/reset-password/$token'
     | '/_protected/confirm/$token'
@@ -205,6 +217,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/register'
       preLoaderRoute: typeof GuestRegisterRouteImport
       parentRoute: typeof GuestRoute
+    }
+    '/_protected/dashboard': {
+      id: '/_protected/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
     }
     '/_protected/settings': {
       id: '/_protected/settings'
@@ -286,6 +305,7 @@ const ProtectedSettingsRouteWithChildren =
   ProtectedSettingsRoute._addFileChildren(ProtectedSettingsRouteChildren)
 
 interface ProtectedRouteChildren {
+  ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRouteWithChildren
   ProtectedConfirmTokenRoute: typeof ProtectedConfirmTokenRoute
   ProtectedSubjectsIdRoute: typeof ProtectedSubjectsIdRoute
@@ -293,6 +313,7 @@ interface ProtectedRouteChildren {
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedSettingsRoute: ProtectedSettingsRouteWithChildren,
   ProtectedConfirmTokenRoute: ProtectedConfirmTokenRoute,
   ProtectedSubjectsIdRoute: ProtectedSubjectsIdRoute,

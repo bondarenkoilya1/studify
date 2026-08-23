@@ -4,10 +4,6 @@ import type {
   TaskType,
   TaskPriority,
 } from "@/entities/task/model/types";
-import { useGetTasks } from "@/entities/task";
-import { useTasksMetadata } from "@/entities/task/model/use-tasks-metadata";
-import { useState } from "react";
-import { Route } from "@/routes/_protected/subjects/$id";
 
 export const STATUS_CONFIG: Record<
   TaskStatus,

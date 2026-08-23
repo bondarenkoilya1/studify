@@ -49,7 +49,7 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) GetSubjects(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -221,7 +221,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) DeleteSubjects(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)

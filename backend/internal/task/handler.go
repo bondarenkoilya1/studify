@@ -43,7 +43,6 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Remove this method / move to admin methods
 func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
@@ -107,7 +106,6 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("userID=%d, subjectID=%d", userID, newTask.SubjectID)
 	task, err := InsertTask(
 		h.DB,
 		userID,
@@ -317,7 +315,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) DeleteTasks(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteUserTasks(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)

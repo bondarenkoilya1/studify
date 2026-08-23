@@ -68,31 +68,37 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 
 func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {
 	r.Route("/subjects", func(r chi.Router) {
-		r.Get("/", h.GetSubjects)
+		r.Get("/", h.GetUserSubjects)
 		r.With(middlewares.RequireJSON).Post("/", h.AddSubject)
-		r.Delete("/", h.DeleteSubjects)
+		r.Delete("/", h.DeleteUserSubjects)
 
-		r.Get("/{id}", h.GetSubject)
-		r.Delete("/{id}", h.DeleteSubject)
-		r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceSubject)
-		r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateSubject)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", h.GetSubject)
+			r.Delete("/", h.DeleteSubject)
+			r.With(middlewares.RequireJSON).Put("/", h.ReplaceSubject)
+			r.With(middlewares.RequireJSON).Patch("/", h.UpdateSubject)
 
-		r.Get("/{id}/tasks", t.GetSubjectTasks)
+			// Tasks
+			r.Get("/tasks", t.GetSubjectTasks)
+		})
 
+		// Avatar
 		r.Post("/avatar/", h.UploadLecturerAvatar)
 	})
 }
 
 func registerTaskRoutes(r chi.Router, h *task.Handler) {
 	r.Route("/tasks", func(r chi.Router) {
-		r.Get("/", h.GetUserTasks)
 		r.With(middlewares.RequireJSON).Post("/", h.AddTask)
-		r.Delete("/", h.DeleteTasks)
 
 		r.Get("/{id}", h.GetTask)
 		r.Delete("/{id}", h.DeleteTask)
 		r.With(middlewares.RequireJSON).Put("/{id}", h.ReplaceTask)
 		r.With(middlewares.RequireJSON).Patch("/{id}", h.UpdateTask)
+
+		// Move to admin routes:
+		r.Get("/", h.GetUserTasks)
+		r.Delete("/", h.DeleteUserTasks)
 	})
 }
 
