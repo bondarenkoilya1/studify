@@ -1,15 +1,19 @@
+export type SubjectType = "university" | "personal";
+
 export interface Subject {
   id: number;
   userId: number;
   name: string;
-  lecturer: string;
-  lecturerAvatarUrl?: string;
-  examDate: string;
+  type: SubjectType;
+  examDate: string | null;
+  lecturer: string | null;
+  lecturerAvatarUrl: string | null;
 }
 
 export interface SubjectInput {
   name: string;
-  lecturer: string;
-  lecturerAvatarUrl?: string;
-  examDate: string;
+  type: SubjectType;
+  examDate: string | null;
+  lecturer: string | null;
+  lecturerAvatarUrl: string | null;
 }

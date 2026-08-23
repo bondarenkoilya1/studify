@@ -23,21 +23,20 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
     resolver: zodResolver(createSubjectSchema),
     defaultValues: {
       name: "",
+      type: "university",
       lecturer: "",
-      lecturerAvatarUrl: "",
-      examDate: undefined as unknown as Date,
+      lecturerAvatarUrl: null,
+      examDate: undefined,
     },
   });
 
   const onSubmit = form.handleSubmit((values) => {
-    const isoDate =
-      values.examDate instanceof Date
-        ? values.examDate.toISOString()
-        : new Date(values.examDate).toISOString();
-
     mutation.mutate({
       ...values,
-      examDate: isoDate,
+      examDate: values.examDate.toISOString(),
+      lecturer: values.type === "personal" ? null : values.lecturer,
+      lecturerAvatarUrl:
+        values.type === "personal" ? null : (values.lecturerAvatarUrl ?? null),
     });
   });
 

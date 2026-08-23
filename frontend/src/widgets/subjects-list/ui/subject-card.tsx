@@ -17,25 +17,29 @@ const gradients = [
 ];
 
 export function SubjectCard({ subject }: SubjectCardProps) {
-  const examDate = new Date(subject.examDate).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-
   const gradient = gradients[subject.id % gradients.length];
 
+  const examDate = subject.examDate
+    ? new Date(subject.examDate).toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  const isUniversity = subject.type === "university";
+
   return (
-    <div className="group relative h-[280px] overflow-hidden rounded-2xl border bg-background transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+    <div className="group relative h-[280px] overflow-hidden rounded-2xl border border-black/[0.05] bg-background transition-all duration-200 hover:-translate-y-0.5 hover:border-black/[0.1] hover:shadow-lg">
       <Link
         to="/subjects/$id"
-        params={{ id: String(subject.id) }}
+        params={{ id: subject.id }}
         className="block h-full p-6"
       >
         {/* Header */}
         <div className="flex items-start gap-4 pr-10">
           <div
-            className={`flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-lg font-bold text-white shadow-sm`}
+            className={`flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-base font-semibold text-white shadow-sm`}
           >
             {subject.name.slice(0, 2).toUpperCase()}
           </div>
@@ -43,50 +47,59 @@ export function SubjectCard({ subject }: SubjectCardProps) {
           <div className="min-w-0 flex-1">
             <h3
               title={subject.name}
-              className="line-clamp-2 text-lg font-semibold leading-tight tracking-tight"
+              className="line-clamp-2 text-lg font-semibold leading-tight tracking-tight text-foreground"
             >
               {subject.name}
             </h3>
 
-            <p className="mt-1 text-sm text-muted-foreground">Предмет</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isUniversity ? "Университетский предмет" : "Личное обучение"}
+            </p>
           </div>
         </div>
 
         {/* Meta */}
         <div className="mt-8 space-y-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <GraduationCap className="size-4 shrink-0 text-muted-foreground" />
+          {/* Lecturer */}
+          {isUniversity && subject.lecturer && (
+            <div className="flex min-w-0 items-center gap-3">
+              <GraduationCap className="size-4 shrink-0 text-muted-foreground" />
 
-            <div className="min-w-0">
-              <p
-                title={subject.lecturer}
-                className="truncate text-sm font-medium"
-              >
-                {subject.lecturer}
-              </p>
-              <p className="text-xs text-muted-foreground">Преподаватель</p>
+              <div className="min-w-0">
+                <p
+                  title={subject.lecturer}
+                  className="truncate text-sm font-medium"
+                >
+                  {subject.lecturer}
+                </p>
+
+                <p className="text-xs text-muted-foreground">Преподаватель</p>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex items-center gap-3">
-            <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
+          {/* Exam date */}
+          {examDate && (
+            <div className="flex items-center gap-3">
+              <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
 
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{examDate}</p>
-              <p className="text-xs text-muted-foreground">Дата экзамена</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{examDate}</p>
+
+                <p className="text-xs text-muted-foreground">Дата экзамена</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Type */}
         <div className="absolute bottom-6 left-6">
           <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-            Экзамен
+            {isUniversity ? "Университет" : "Личный"}
           </span>
         </div>
       </Link>
 
-      {/* Delete */}
       <div className="absolute right-6 top-6">
         <DeleteSubjectButton id={subject.id} />
       </div>
