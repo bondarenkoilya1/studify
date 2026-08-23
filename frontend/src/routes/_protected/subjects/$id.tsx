@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useGetTasks } from "@/entities/task";
 import { TaskList } from "@/widgets/task-list";
@@ -10,8 +10,7 @@ import {
 } from "@/routes/_protected/subjects/model";
 import { filterTasksByType } from "@/entities/task/model/filters";
 import { CreateTaskButton } from "@/features/task/create-task";
-import { useGetSubjects } from "@/entities/subject/model/useGetSubjects";
-import { useGetDashboardStatus } from "@/entities/dashboard";
+import { getSubject, type Subject } from "@/entities/subject";
 
 export const Route = createFileRoute("/_protected/subjects/$id")({
   parseParams: (params) => ({
@@ -22,13 +21,18 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
 
 function SubjectPage() {
   const { id } = Route.useParams();
-  const { data: subjects } = useGetSubjects();
   const { data: tasks } = useGetTasks(id);
   const { types } = useTasksMetadata(id);
-  const subjectName = subjects?.find((s) => s.id === id)?.name; // todo: refactor, shouldn't get all subjects. just by id
-  const { data: dashboardStatus } = useGetDashboardStatus();
+  const [subject, setSubject] = useState<Subject | null>(null);
 
-  console.log(dashboardStatus);
+  useEffect(() => {
+    const fetchSubject = async () => {
+      const s = await getSubject(id);
+      setSubject(s);
+    };
+
+    fetchSubject();
+  }, [id]);
 
   const [selectedType, setSelectedType] = useState<
     "all" | (typeof types)[number]["type"]
@@ -36,7 +40,7 @@ function SubjectPage() {
 
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
 
-  if (!id) {
+  if (!id || !subject) {
     return <div>Loading...</div>;
   }
 
@@ -47,7 +51,7 @@ function SubjectPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-gray-900">
-                {subjectName}
+                {subject?.name}
               </h1>
 
               <p className="mt-1 text-[14px] text-gray-400">
