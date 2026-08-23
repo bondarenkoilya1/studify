@@ -52,7 +52,7 @@ export function CreateSubjectDialog({
             <Input
               id="create-subject-name"
               placeholder="Английский язык"
-              size="lg"
+              controlSize="large"
               aria-invalid={Boolean(form.formState.errors.name)}
               {...form.register("name")}
             />
@@ -68,7 +68,7 @@ export function CreateSubjectDialog({
             <Input
               id="create-subject-lecturer"
               placeholder="Дмитрий Сорокин"
-              size="lg"
+              controlSize="large"
               aria-invalid={Boolean(form.formState.errors.lecturer)}
               {...form.register("lecturer")}
             />

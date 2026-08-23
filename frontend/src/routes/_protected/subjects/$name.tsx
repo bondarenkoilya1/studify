@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+
 import { useGetTasks } from "@/entities/task";
 import { TaskList } from "@/widgets/task-list";
 import { useTasksMetadata } from "@/entities/task/model/use-tasks-metadata";
 import { TYPE_LABELS } from "@/routes/_protected/subjects/model";
 import { filterTasksByType } from "@/entities/task/model/filters";
+import { CreateTaskButton } from "@/features/task/create-task";
 
 export const Route = createFileRoute("/_protected/subjects/$name")({
   component: SubjectPage,
@@ -36,19 +38,30 @@ function SubjectPage() {
   >("all");
 
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
+  const subjectId = tasks?.[0]?.subjectId;
+
+  if (!subjectId) {
+    return <p>Loading...</p>;
+  }
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       <main className="mx-auto max-w-[640px] px-5 py-12 sm:px-8">
         <header>
-          <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-gray-900">
-            {name}
-          </h1>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-gray-900">
+                {name}
+              </h1>
 
-          <p className="mt-1 text-[14px] text-gray-400">
-            {filteredTasksByType?.length ?? 0}{" "}
-            {getTaskCountLabel(filteredTasksByType?.length ?? 0)}
-          </p>
+              <p className="mt-1 text-[14px] text-gray-400">
+                {filteredTasksByType?.length ?? 0}{" "}
+                {getTaskCountLabel(filteredTasksByType?.length ?? 0)}
+              </p>
+            </div>
+
+            <CreateTaskButton subjectId={subjectId} />
+          </div>
 
           {types.length > 0 && (
             <div className="mt-5 flex flex-wrap gap-2">
