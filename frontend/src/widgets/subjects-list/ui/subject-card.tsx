@@ -3,41 +3,20 @@ import { Link } from "@tanstack/react-router";
 
 import { DeleteSubjectButton } from "@/features/subjects/delete-subject";
 import type { Subject } from "@/entities/subject";
+import { SCOPE_LABELS } from "@/features/subjects/create-subject/model/model";
+import {
+  SCOPE_DOT_COLORS,
+  SCOPE_GRADIENTS,
+} from "@/widgets/subjects-list/model/model";
 
 interface SubjectCardProps {
   subject: Subject;
 }
 
-const gradients = [
-  "from-violet-500 to-indigo-600",
-  "from-blue-500 to-cyan-500",
-  "from-emerald-500 to-teal-500",
-  "from-orange-500 to-red-500",
-  "from-pink-500 to-rose-500",
-];
-
-const SCOPE_LABELS: Record<string, string> = {
-  technology: "Технологии",
-  healthcare: "Медицина",
-  humanities: "Гуманитарные науки",
-  business: "Бизнес",
-  social: "Социальные науки",
-  science: "Наука",
-  other: "Другое",
-};
-
-const SCOPE_DOT_COLORS: Record<string, string> = {
-  technology: "bg-blue-500",
-  healthcare: "bg-rose-500",
-  humanities: "bg-amber-500",
-  business: "bg-emerald-500",
-  social: "bg-violet-500",
-  science: "bg-cyan-500",
-  other: "bg-gray-400",
-};
-
 export function SubjectCard({ subject }: SubjectCardProps) {
-  const gradient = gradients[subject.id % gradients.length];
+  const scopeGradients =
+    SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
+  const gradient = scopeGradients[subject.id % scopeGradients.length];
 
   const examDate = subject.examDate
     ? new Date(subject.examDate).toLocaleDateString("ru-RU", {
@@ -75,7 +54,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
             </h3>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              {isUniversity ? "Университетский предмет" : "Личное обучение"}
+              {isUniversity ? "Университетский предмет" : "Личное обучение"}
             </p>
           </div>
         </div>
