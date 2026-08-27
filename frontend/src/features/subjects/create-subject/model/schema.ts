@@ -17,6 +17,8 @@ const baseSubjectSchema = {
     .min(1, "Укажите название предмета")
     .max(100, "Название слишком длинное"),
 
+  note: z.string().trim().max(200, "Заметка слишком длинная"),
+
   scope: z.enum(SUBJECT_SCOPES, {
     message: "Укажите категорию предмета",
   }),
@@ -43,7 +45,9 @@ export const createSubjectSchema = z.discriminatedUnion("type", [
   z.object({
     ...baseSubjectSchema,
     type: z.literal("personal"),
+
     examDate: z.date().optional(),
+
     lecturer: z.string().nullable().optional(),
   }),
 ]);

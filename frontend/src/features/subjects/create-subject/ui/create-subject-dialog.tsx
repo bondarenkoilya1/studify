@@ -126,6 +126,41 @@ export function CreateSubjectDialog({
             )}
           </FormField>
 
+          {/* Note */}
+          <FormField htmlFor="create-subject-note" label="Заметка">
+            <textarea
+              id="create-subject-note"
+              placeholder="Дополнительная информация о предмете"
+              maxLength={200}
+              rows={3}
+              aria-invalid={Boolean(form.formState.errors.note)}
+              {...form.register("note")}
+              className={cn(
+                "w-full resize-none rounded-xl border border-gray-200",
+                "bg-white px-3.5 py-3 text-[14px] text-gray-900",
+                "placeholder:text-gray-400",
+                "outline-none transition-colors",
+                "focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10",
+                form.formState.errors.note &&
+                  "border-red-500 focus:border-red-500 focus:ring-red-500/10",
+              )}
+            />
+
+            <div className="mt-1.5 flex items-start justify-between gap-3">
+              {form.formState.errors.note?.message ? (
+                <p className="text-[13px] text-red-500">
+                  {form.formState.errors.note.message}
+                </p>
+              ) : (
+                <span />
+              )}
+
+              <span className="shrink-0 text-[12px] text-gray-400">
+                {form.watch("note").length}/200
+              </span>
+            </div>
+          </FormField>
+
           {/* Scope */}
           <FormField htmlFor="create-subject-scope" label="Категория">
             <Controller

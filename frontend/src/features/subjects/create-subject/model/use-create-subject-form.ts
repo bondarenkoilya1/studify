@@ -23,6 +23,7 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
     resolver: zodResolver(createSubjectSchema),
     defaultValues: {
       name: "",
+      note: "",
       type: "university",
       scope: "other",
       lecturer: "",

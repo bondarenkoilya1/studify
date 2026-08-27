@@ -12,6 +12,7 @@ export interface Subject {
   id: number;
   userId: number;
   name: string;
+  note: string;
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
@@ -21,6 +22,7 @@ export interface Subject {
 
 export interface SubjectInput {
   name: string;
+  note: string;
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
