@@ -113,6 +113,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		h.DB,
 		userID,
 		req.Name,
+		req.Note,
 		req.Type,
 		req.Scope,
 		req.Lecturer,
@@ -176,6 +177,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		userID,
 		id,
 		req.Name,
+		req.Note,
 		req.Type,
 		req.Scope,
 		req.Lecturer,
@@ -227,6 +229,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Name == nil &&
+		req.Note == nil &&
 		req.Type == nil &&
 		req.Scope == nil &&
 		req.Lecturer == nil &&
@@ -255,6 +258,10 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		}
 
 		subject.Name = *req.Name
+	}
+
+	if req.Note != nil {
+		subject.Note = req.Note
 	}
 
 	if req.Type != nil {
@@ -292,6 +299,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		userID,
 		id,
 		subject.Name,
+		subject.Note,
 		subject.Type,
 		subject.Scope,
 		subject.Lecturer,

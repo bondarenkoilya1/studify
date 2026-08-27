@@ -12,6 +12,7 @@ const subjectSelectQuery = `
 	   id,
 	   user_id,
 	   name,
+	   note,
 	   type,
 	   scope,
 	   lecturer,
@@ -26,6 +27,7 @@ func scanSubject(scanner interface {
 	subject := &Subject{}
 
 	var (
+		note              sql.NullString
 		examDate          sql.NullTime
 		lecturer          sql.NullString
 		lecturerAvatarURL sql.NullString
@@ -35,6 +37,7 @@ func scanSubject(scanner interface {
 		&subject.ID,
 		&subject.UserID,
 		&subject.Name,
+		&note,
 		&subject.Type,
 		&subject.Scope,
 		&lecturer,
@@ -42,6 +45,10 @@ func scanSubject(scanner interface {
 		&lecturerAvatarURL,
 	); err != nil {
 		return nil, err
+	}
+
+	if note.Valid {
+		subject.Note = &note.String
 	}
 
 	if lecturer.Valid {
@@ -104,6 +111,7 @@ func InsertSubject(
 	db *sql.DB,
 	userID int64,
 	name string,
+	note *string,
 	subjectType string,
 	scope string,
 	lecturer *string,
@@ -114,17 +122,19 @@ func InsertSubject(
 	   INSERT INTO subjects (
 	      user_id,
 	      name,
+	      note,
 	      type,
 	      scope,
 	      lecturer,
 	      lecturer_avatar_url,
 	      exam_date
 	   )
-	   VALUES ($1, $2, $3, $4, $5, $6, $7)
+	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	   RETURNING
 	      id,
 	      user_id,
 	      name,
+	      note,
 	      type,
 	      scope,
 	      lecturer,
@@ -137,6 +147,7 @@ func InsertSubject(
 			query,
 			userID,
 			name,
+			note,
 			subjectType,
 			scope,
 			lecturer,
@@ -155,6 +166,7 @@ func UpdateSubject(
 	db *sql.DB,
 	userID, id int64,
 	name string,
+	note *string,
 	subjectType string,
 	scope string,
 	lecturer *string,
@@ -165,17 +177,19 @@ func UpdateSubject(
 	   UPDATE subjects
 	   SET
 	      name = $1,
-	      type = $2,
-	      scope = $3,
-	      lecturer = $4,
-	      lecturer_avatar_url = $5,
-	      exam_date = $6
-	   WHERE id = $7 AND user_id = $8;
+	      note = $2,
+	      type = $3,
+	      scope = $4,
+	      lecturer = $5,
+	      lecturer_avatar_url = $6,
+	      exam_date = $7
+	   WHERE id = $8 AND user_id = $9;
 	`
 
 	result, err := db.Exec(
 		query,
 		name,
+		note,
 		subjectType,
 		scope,
 		lecturer,
