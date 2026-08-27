@@ -22,21 +22,10 @@ import { useCreateSubjectForm } from "../model/use-create-subject-form";
 import { Controller } from "react-hook-form";
 import { DatePicker } from "@/shared/ui/date-picker";
 import { cn } from "@/shared/lib/cn";
-
-type CreateSubjectDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
-
-const SCOPE_LABELS: Record<string, string> = {
-  technology: "Технологии",
-  healthcare: "Медицина",
-  humanities: "Гуманитарные науки",
-  business: "Бизнес",
-  social: "Социальные науки",
-  science: "Наука",
-  other: "Другое",
-};
+import {
+  type CreateSubjectDialogProps,
+  SCOPE_LABELS,
+} from "@/features/subjects/create-subject/model/model";
 
 export function CreateSubjectDialog({
   open,
