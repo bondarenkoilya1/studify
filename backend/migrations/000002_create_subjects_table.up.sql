@@ -8,6 +8,10 @@ CREATE TABLE IF NOT EXISTS subjects (
   type TEXT NOT NULL DEFAULT 'university',
     CHECK (type IN ('university', 'personal')),
 
+  scope TEXT NOT NULL DEFAULT 'other',
+    CHECK (scope IN ('technology', 'healthcare', 'humanities', 'business', 'social', 'science', 'other')),
+
+
   lecturer TEXT,
   lecturer_avatar_url TEXT
 );

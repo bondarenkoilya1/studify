@@ -17,6 +17,16 @@ import (
 	"github.com/google/uuid"
 )
 
+var validScopes = map[string]bool{
+	"technology": true,
+	"healthcare": true,
+	"humanities": true,
+	"business":   true,
+	"social":     true,
+	"science":    true,
+	"other":      true,
+}
+
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
@@ -90,11 +100,21 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Scope == "" {
+		req.Scope = "other"
+	}
+
+	if !validScopes[req.Scope] {
+		http.Error(w, "invalid subject scope", http.StatusBadRequest)
+		return
+	}
+
 	createdSubject, err := InsertSubject(
 		h.DB,
 		userID,
 		req.Name,
 		req.Type,
+		req.Scope,
 		req.Lecturer,
 		req.LecturerAvatarURL,
 		req.ExamDate,
@@ -142,12 +162,22 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Scope == "" {
+		req.Scope = "other"
+	}
+
+	if !validScopes[req.Scope] {
+		http.Error(w, "invalid subject scope", http.StatusBadRequest)
+		return
+	}
+
 	if err := UpdateSubject(
 		h.DB,
 		userID,
 		id,
 		req.Name,
 		req.Type,
+		req.Scope,
 		req.Lecturer,
 		req.LecturerAvatarURL,
 		req.ExamDate,
@@ -198,6 +228,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 
 	if req.Name == nil &&
 		req.Type == nil &&
+		req.Scope == nil &&
 		req.Lecturer == nil &&
 		req.LecturerAvatarURL == nil &&
 		req.ExamDate == nil {
@@ -235,6 +266,15 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Type = *req.Type
 	}
 
+	if req.Scope != nil {
+		if !validScopes[*req.Scope] {
+			http.Error(w, "invalid subject scope", http.StatusBadRequest)
+			return
+		}
+
+		subject.Scope = *req.Scope
+	}
+
 	if req.Lecturer != nil {
 		subject.Lecturer = req.Lecturer
 	}
@@ -253,6 +293,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		id,
 		subject.Name,
 		subject.Type,
+		subject.Scope,
 		subject.Lecturer,
 		subject.LecturerAvatarURL,
 		subject.ExamDate,

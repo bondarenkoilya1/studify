@@ -9,13 +9,14 @@ import (
 
 const subjectSelectQuery = `
 	SELECT
-		id,
-		user_id,
-		name,
-		type,
-		lecturer,
-		exam_date,
-		lecturer_avatar_url
+	   id,
+	   user_id,
+	   name,
+	   type,
+	   scope,
+	   lecturer,
+	   exam_date,
+	   lecturer_avatar_url
 	FROM subjects
 `
 
@@ -35,6 +36,7 @@ func scanSubject(scanner interface {
 		&subject.UserID,
 		&subject.Name,
 		&subject.Type,
+		&subject.Scope,
 		&lecturer,
 		&examDate,
 		&lecturerAvatarURL,
@@ -57,7 +59,7 @@ func scanSubject(scanner interface {
 
 func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 	query := subjectSelectQuery + `
-		WHERE id = $1 AND user_id = $2;
+	   WHERE id = $1 AND user_id = $2;
 	`
 
 	subject, err := scanSubject(db.QueryRow(query, id, userID))
@@ -70,8 +72,8 @@ func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 
 func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 	query := subjectSelectQuery + `
-		WHERE user_id = $1
-		ORDER BY id;
+	   WHERE user_id = $1
+	   ORDER BY id;
 	`
 
 	rows, err := db.Query(query, userID)
@@ -103,28 +105,31 @@ func InsertSubject(
 	userID int64,
 	name string,
 	subjectType string,
+	scope string,
 	lecturer *string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
 ) (*Subject, error) {
 	query := `
-		INSERT INTO subjects (
-			user_id,
-			name,
-			type,
-			lecturer,
-			lecturer_avatar_url,
-			exam_date
-		)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING
-			id,
-			user_id,
-			name,
-			type,
-			lecturer,
-			exam_date,
-			lecturer_avatar_url;
+	   INSERT INTO subjects (
+	      user_id,
+	      name,
+	      type,
+	      scope,
+	      lecturer,
+	      lecturer_avatar_url,
+	      exam_date
+	   )
+	   VALUES ($1, $2, $3, $4, $5, $6, $7)
+	   RETURNING
+	      id,
+	      user_id,
+	      name,
+	      type,
+	      scope,
+	      lecturer,
+	      exam_date,
+	      lecturer_avatar_url;
 	`
 
 	subject, err := scanSubject(
@@ -133,6 +138,7 @@ func InsertSubject(
 			userID,
 			name,
 			subjectType,
+			scope,
 			lecturer,
 			lecturerAvatarURL,
 			examDate,
@@ -150,25 +156,28 @@ func UpdateSubject(
 	userID, id int64,
 	name string,
 	subjectType string,
+	scope string,
 	lecturer *string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
 ) error {
 	query := `
-		UPDATE subjects
-		SET
-			name = $1,
-			type = $2,
-			lecturer = $3,
-			lecturer_avatar_url = $4,
-			exam_date = $5
-		WHERE id = $6 AND user_id = $7;
+	   UPDATE subjects
+	   SET
+	      name = $1,
+	      type = $2,
+	      scope = $3,
+	      lecturer = $4,
+	      lecturer_avatar_url = $5,
+	      exam_date = $6
+	   WHERE id = $7 AND user_id = $8;
 	`
 
 	result, err := db.Exec(
 		query,
 		name,
 		subjectType,
+		scope,
 		lecturer,
 		lecturerAvatarURL,
 		examDate,
@@ -193,8 +202,8 @@ func UpdateSubject(
 
 func DeleteSubjectsByUserID(db *sql.DB, userID int64) error {
 	const query = `
-		DELETE FROM subjects
-		WHERE user_id = $1;
+	   DELETE FROM subjects
+	   WHERE user_id = $1;
 	`
 
 	if _, err := db.Exec(query, userID); err != nil {
@@ -206,8 +215,8 @@ func DeleteSubjectsByUserID(db *sql.DB, userID int64) error {
 
 func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
 	const query = `
-		DELETE FROM subjects
-		WHERE id = $1 AND user_id = $2;
+	   DELETE FROM subjects
+	   WHERE id = $1 AND user_id = $2;
 	`
 
 	result, err := db.Exec(query, id, userID)

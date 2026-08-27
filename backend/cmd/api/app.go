@@ -122,5 +122,3 @@ func openDB(databaseURL string) (*sql.DB, error) {
 	db.Close()
 	return nil, fmt.Errorf("connect to database: %w", pingErr)
 }
-
-// TODO: maybe I should make a single table "tokens" where I would differ theme by "type" column
