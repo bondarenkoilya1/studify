@@ -16,6 +16,26 @@ const gradients = [
   "from-pink-500 to-rose-500",
 ];
 
+const SCOPE_LABELS: Record<string, string> = {
+  technology: "Технологии",
+  healthcare: "Медицина",
+  humanities: "Гуманитарные науки",
+  business: "Бизнес",
+  social: "Социальные науки",
+  science: "Наука",
+  other: "Другое",
+};
+
+const SCOPE_DOT_COLORS: Record<string, string> = {
+  technology: "bg-blue-500",
+  healthcare: "bg-rose-500",
+  humanities: "bg-amber-500",
+  business: "bg-emerald-500",
+  social: "bg-violet-500",
+  science: "bg-cyan-500",
+  other: "bg-gray-400",
+};
+
 export function SubjectCard({ subject }: SubjectCardProps) {
   const gradient = gradients[subject.id % gradients.length];
 
@@ -28,6 +48,8 @@ export function SubjectCard({ subject }: SubjectCardProps) {
     : null;
 
   const isUniversity = subject.type === "university";
+  const scopeLabel = SCOPE_LABELS[subject.scope] ?? subject.scope;
+  const scopeDotColor = SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400";
 
   return (
     <div className="group relative h-[280px] overflow-hidden rounded-2xl border border-black/[0.05] bg-background transition-all duration-200 hover:-translate-y-0.5 hover:border-black/[0.1] hover:shadow-lg">
@@ -92,10 +114,18 @@ export function SubjectCard({ subject }: SubjectCardProps) {
           )}
         </div>
 
-        {/* Type */}
-        <div className="absolute bottom-6 left-6">
+        {/* Type + Scope */}
+        <div className="absolute bottom-6 left-6 flex items-center gap-2">
           <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
             {isUniversity ? "Университет" : "Личный"}
+          </span>
+
+          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <span className="text-muted-foreground/40">·</span>
+            <span
+              className={`size-1.5 shrink-0 rounded-full ${scopeDotColor}`}
+            />
+            {scopeLabel}
           </span>
         </div>
       </Link>

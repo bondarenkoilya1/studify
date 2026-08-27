@@ -24,6 +24,7 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
     defaultValues: {
       name: "",
       type: "university",
+      scope: "other",
       lecturer: "",
       lecturerAvatarUrl: null,
       examDate: undefined,
@@ -33,7 +34,10 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
   const onSubmit = form.handleSubmit((values) => {
     mutation.mutate({
       ...values,
-      examDate: values.examDate.toISOString(),
+      examDate:
+        values.type === "university"
+          ? values.examDate.toISOString()
+          : (values.examDate?.toISOString() ?? null),
       lecturer: values.type === "personal" ? null : values.lecturer,
       lecturerAvatarUrl:
         values.type === "personal" ? null : (values.lecturerAvatarUrl ?? null),

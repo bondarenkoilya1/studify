@@ -10,6 +10,13 @@ import {
 import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
 
 import { useCreateSubjectForm } from "../model/use-create-subject-form";
 import { Controller } from "react-hook-form";
@@ -19,6 +26,16 @@ import { cn } from "@/shared/lib/cn";
 type CreateSubjectDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+};
+
+const SCOPE_LABELS: Record<string, string> = {
+  technology: "Технологии",
+  healthcare: "Медицина",
+  humanities: "Гуманитарные науки",
+  business: "Бизнес",
+  social: "Социальные науки",
+  science: "Наука",
+  other: "Другое",
 };
 
 export function CreateSubjectDialog({
@@ -120,6 +137,43 @@ export function CreateSubjectDialog({
             )}
           </FormField>
 
+          {/* Scope */}
+          <FormField htmlFor="create-subject-scope" label="Категория">
+            <Controller
+              control={form.control}
+              name="scope"
+              render={({ field, fieldState }) => (
+                <>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      id="create-subject-scope"
+                      className="w-full"
+                      aria-invalid={Boolean(fieldState.error)}
+                    >
+                      <SelectValue placeholder="Выберите категорию">
+                        {(value: string) => SCOPE_LABELS[value] ?? value}
+                      </SelectValue>
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {Object.entries(SCOPE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {fieldState.error?.message && (
+                    <p className="mt-1.5 text-[13px] text-red-500">
+                      {fieldState.error.message}
+                    </p>
+                  )}
+                </>
+              )}
+            />
+          </FormField>
+
           {/* Lecturer — only for university */}
           {subjectType === "university" && (
             <FormField htmlFor="create-subject-lecturer" label="Преподаватель">
@@ -139,24 +193,26 @@ export function CreateSubjectDialog({
             </FormField>
           )}
 
-          {/* Exam date */}
-          <FormField htmlFor="create-subject-exam-date" label="Дата экзамена">
-            <Controller
-              control={form.control}
-              name="examDate"
-              render={({ field, fieldState }) => (
-                <>
-                  <DatePicker value={field.value} onChange={field.onChange} />
+          {/* Exam date — only for university */}
+          {subjectType === "university" && (
+            <FormField htmlFor="create-subject-exam-date" label="Дата экзамена">
+              <Controller
+                control={form.control}
+                name="examDate"
+                render={({ field, fieldState }) => (
+                  <>
+                    <DatePicker value={field.value} onChange={field.onChange} />
 
-                  {fieldState.error?.message && (
-                    <p className="mt-1.5 text-[13px] leading-snug text-red-500">
-                      {fieldState.error.message}
-                    </p>
-                  )}
-                </>
-              )}
-            />
-          </FormField>
+                    {fieldState.error?.message && (
+                      <p className="mt-1.5 text-[13px] leading-snug text-red-500">
+                        {fieldState.error.message}
+                      </p>
+                    )}
+                  </>
+                )}
+              />
+            </FormField>
+          )}
 
           <DialogFooter>
             <Button
