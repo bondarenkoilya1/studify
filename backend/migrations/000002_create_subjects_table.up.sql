@@ -13,6 +13,5 @@ CREATE TABLE IF NOT EXISTS subjects (
 
   exam_date TIMESTAMPTZ,
 
-  lecturer TEXT,
   lecturer_avatar_url TEXT
 );

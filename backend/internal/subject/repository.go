@@ -15,7 +15,6 @@ const subjectSelectQuery = `
 	   note,
 	   type,
 	   scope,
-	   lecturer,
 	   exam_date,
 	   lecturer_avatar_url
 	FROM subjects
@@ -29,7 +28,6 @@ func scanSubject(scanner interface {
 	var (
 		note              sql.NullString
 		examDate          sql.NullTime
-		lecturer          sql.NullString
 		lecturerAvatarURL sql.NullString
 	)
 
@@ -40,7 +38,6 @@ func scanSubject(scanner interface {
 		&note,
 		&subject.Type,
 		&subject.Scope,
-		&lecturer,
 		&examDate,
 		&lecturerAvatarURL,
 	); err != nil {
@@ -49,10 +46,6 @@ func scanSubject(scanner interface {
 
 	if note.Valid {
 		subject.Note = &note.String
-	}
-
-	if lecturer.Valid {
-		subject.Lecturer = &lecturer.String
 	}
 
 	if lecturerAvatarURL.Valid {
@@ -114,7 +107,6 @@ func InsertSubject(
 	note *string,
 	subjectType string,
 	scope string,
-	lecturer *string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
 ) (*Subject, error) {
@@ -125,11 +117,10 @@ func InsertSubject(
 	      note,
 	      type,
 	      scope,
-	      lecturer,
 	      lecturer_avatar_url,
 	      exam_date
 	   )
-	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	   VALUES ($1, $2, $3, $4, $5, $6, $7)
 	   RETURNING
 	      id,
 	      user_id,
@@ -137,7 +128,6 @@ func InsertSubject(
 	      note,
 	      type,
 	      scope,
-	      lecturer,
 	      exam_date,
 	      lecturer_avatar_url;
 	`
@@ -150,7 +140,6 @@ func InsertSubject(
 			note,
 			subjectType,
 			scope,
-			lecturer,
 			lecturerAvatarURL,
 			examDate,
 		),
@@ -169,7 +158,6 @@ func UpdateSubject(
 	note *string,
 	subjectType string,
 	scope string,
-	lecturer *string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
 ) error {
@@ -180,10 +168,9 @@ func UpdateSubject(
 	      note = $2,
 	      type = $3,
 	      scope = $4,
-	      lecturer = $5,
-	      lecturer_avatar_url = $6,
-	      exam_date = $7
-	   WHERE id = $8 AND user_id = $9;
+	      lecturer_avatar_url = $5,
+	      exam_date = $6
+	   WHERE id = $7 AND user_id = $8;
 	`
 
 	result, err := db.Exec(
@@ -192,7 +179,6 @@ func UpdateSubject(
 		note,
 		subjectType,
 		scope,
-		lecturer,
 		lecturerAvatarURL,
 		examDate,
 		id,

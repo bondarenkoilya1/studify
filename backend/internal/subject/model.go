@@ -17,7 +17,6 @@ type Subject struct {
 	Type              string     `json:"type"`
 	Scope             string     `json:"scope"`
 	ExamDate          *time.Time `json:"exam_date"`
-	Lecturer          *string    `json:"lecturer"`
 	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
 }
 
@@ -27,7 +26,6 @@ type CreateSubjectRequest struct {
 	Type              string     `json:"type"`
 	Scope             string     `json:"scope"`
 	ExamDate          *time.Time `json:"exam_date"`
-	Lecturer          *string    `json:"lecturer"`
 	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
 }
 
@@ -36,7 +34,6 @@ type UpdateSubjectRequest struct {
 	Note              *string    `json:"note"`
 	Type              *string    `json:"type"`
 	Scope             *string    `json:"scope"`
-	Lecturer          *string    `json:"lecturer"`
 	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
 	ExamDate          *time.Time `json:"exam_date"`
 }

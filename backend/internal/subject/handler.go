@@ -116,7 +116,6 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note,
 		req.Type,
 		req.Scope,
-		req.Lecturer,
 		req.LecturerAvatarURL,
 		req.ExamDate,
 	)
@@ -180,7 +179,6 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note,
 		req.Type,
 		req.Scope,
-		req.Lecturer,
 		req.LecturerAvatarURL,
 		req.ExamDate,
 	); err != nil {
@@ -232,7 +230,6 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note == nil &&
 		req.Type == nil &&
 		req.Scope == nil &&
-		req.Lecturer == nil &&
 		req.LecturerAvatarURL == nil &&
 		req.ExamDate == nil {
 		http.Error(w, "no fields to update", http.StatusBadRequest)
@@ -282,10 +279,6 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Scope = *req.Scope
 	}
 
-	if req.Lecturer != nil {
-		subject.Lecturer = req.Lecturer
-	}
-
 	if req.LecturerAvatarURL != nil {
 		subject.LecturerAvatarURL = req.LecturerAvatarURL
 	}
@@ -302,7 +295,6 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Note,
 		subject.Type,
 		subject.Scope,
-		subject.Lecturer,
 		subject.LecturerAvatarURL,
 		subject.ExamDate,
 	); err != nil {
