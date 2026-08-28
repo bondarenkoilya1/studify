@@ -17,16 +17,6 @@ import (
 	"github.com/google/uuid"
 )
 
-var validScopes = map[string]bool{
-	"technology": true,
-	"healthcare": true,
-	"humanities": true,
-	"business":   true,
-	"social":     true,
-	"science":    true,
-	"other":      true,
-}
-
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
@@ -86,26 +76,8 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		http.Error(w, "subject name is required", http.StatusBadRequest)
-		return
-	}
-
-	if req.Type == "" {
-		req.Type = "university"
-	}
-
-	if req.Type != "university" && req.Type != "personal" {
-		http.Error(w, "invalid subject type", http.StatusBadRequest)
-		return
-	}
-
-	if req.Scope == "" {
-		req.Scope = "other"
-	}
-
-	if !validScopes[req.Scope] {
-		http.Error(w, "invalid subject scope", http.StatusBadRequest)
+	if err := validateCreateSubjectRequest(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -118,6 +90,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		req.Scope,
 		req.LecturerAvatarURL,
 		req.ExamDate,
+		req.Lecturers,
 	)
 	if err != nil {
 		log.Printf("failed to insert subject: %v", err)
@@ -148,26 +121,8 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		http.Error(w, "subject name is required", http.StatusBadRequest)
-		return
-	}
-
-	if req.Type == "" {
-		req.Type = "university"
-	}
-
-	if req.Type != "university" && req.Type != "personal" {
-		http.Error(w, "invalid subject type", http.StatusBadRequest)
-		return
-	}
-
-	if req.Scope == "" {
-		req.Scope = "other"
-	}
-
-	if !validScopes[req.Scope] {
-		http.Error(w, "invalid subject scope", http.StatusBadRequest)
+	if err := validateCreateSubjectRequest(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -435,36 +390,4 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, avatarResponse{
 		LecturerAvatarURL: fullPath,
 	})
-}
-
-func writeJSON(w http.ResponseWriter, status int, value any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(value); err != nil {
-		log.Printf("failed to encode JSON response: %v", err)
-	}
-}
-
-func ensureDir(path string) error {
-	if err := os.MkdirAll(path, 0o755); err != nil {
-		return fmt.Errorf("prepare storage directory %q: %w", path, err)
-	}
-
-	file, err := os.CreateTemp(path, ".check-*")
-	if err != nil {
-		return fmt.Errorf("storage directory %q is not writable: %w", path, err)
-	}
-
-	name := file.Name()
-
-	if err := file.Close(); err != nil {
-		return fmt.Errorf("close check file %q: %w", name, err)
-	}
-
-	if err := os.Remove(name); err != nil {
-		return fmt.Errorf("remove check file %q: %w", name, err)
-	}
-
-	return nil
 }

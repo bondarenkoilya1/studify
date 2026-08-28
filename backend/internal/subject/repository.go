@@ -9,6 +9,12 @@ import (
 
 // todo: optimize with joins
 
+type DBTX interface {
+	Exec(query string, args ...any) (sql.Result, error)
+	Query(query string, args ...any) (*sql.Rows, error)
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 const subjectSelectQuery = `
 	SELECT
 	   id,
@@ -149,6 +155,54 @@ func InsertSubject(
 	scope string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
+	lecturers []Lecturer,
+) (*Subject, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	newSubject, err := insertSubjectTx(
+		tx,
+		userID,
+		name,
+		note,
+		subjectType,
+		scope,
+		lecturerAvatarURL,
+		examDate,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	newLecturers, err := insertLecturersTx(
+		tx,
+		newSubject.ID,
+		lecturers,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	newSubject.Lecturers = newLecturers
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return newSubject, nil
+}
+
+func insertSubjectTx(db DBTX,
+	userID int64,
+	name string,
+	note *string,
+	subjectType string,
+	scope string,
+	lecturerAvatarURL *string,
+	examDate *time.Time,
 ) (*Subject, error) {
 	query := `
 	   INSERT INTO subjects (
@@ -189,6 +243,40 @@ func InsertSubject(
 	}
 
 	return subject, nil
+}
+
+func insertLecturersTx(db DBTX, subjectID int64, lecturers []Lecturer) ([]Lecturer, error) {
+	result := make([]Lecturer, 0, len(lecturers))
+
+	const query = `
+		INSERT INTO lecturers (
+			subject_id,
+			name,
+			position
+		)
+		VALUES ($1, $2, $3)
+		RETURNING name, position;
+	`
+
+	for _, lecturer := range lecturers {
+		var created Lecturer
+
+		if err := db.QueryRow(
+			query,
+			subjectID,
+			lecturer.Name,
+			lecturer.Position,
+		).Scan(
+			&created.Name,
+			&created.Position,
+		); err != nil {
+			return nil, fmt.Errorf("failed to insert lecturer: %w", err)
+		}
+
+		result = append(result, created)
+	}
+
+	return result, nil
 }
 
 func UpdateSubject(

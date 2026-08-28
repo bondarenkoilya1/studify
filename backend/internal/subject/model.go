@@ -27,13 +27,13 @@ type Subject struct {
 }
 
 type CreateSubjectRequest struct {
-	Name              string      `json:"name"`
-	Note              *string     `json:"note"`
-	Type              string      `json:"type"`
-	Scope             string      `json:"scope"`
-	ExamDate          *time.Time  `json:"exam_date"`
-	Lecturers         *[]Lecturer `json:"lecturers"`
-	LecturerAvatarURL *string     `json:"lecturer_avatar_url"`
+	Name              string     `json:"name"`
+	Note              *string    `json:"note"`
+	Type              string     `json:"type"`
+	Scope             string     `json:"scope"`
+	ExamDate          *time.Time `json:"exam_date"`
+	Lecturers         []Lecturer `json:"lecturers"`
+	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
 }
 
 type UpdateSubjectRequest struct {
@@ -44,4 +44,14 @@ type UpdateSubjectRequest struct {
 	Lecturers         *[]Lecturer `json:"lecturers"`
 	LecturerAvatarURL *string     `json:"lecturer_avatar_url"`
 	ExamDate          *time.Time  `json:"exam_date"`
+}
+
+var validScopes = map[string]bool{
+	"technology": true,
+	"healthcare": true,
+	"humanities": true,
+	"business":   true,
+	"social":     true,
+	"science":    true,
+	"other":      true,
 }
