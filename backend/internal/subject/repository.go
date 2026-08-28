@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// todo: optimize with joins
+
 const subjectSelectQuery = `
 	SELECT
 	   id,
@@ -57,15 +59,47 @@ func scanSubject(scanner interface {
 	return subject, nil
 }
 
+func getLecturersBySubjectID(db *sql.DB, subjectID int64) ([]Lecturer, error) {
+	rows, err := db.Query(`
+		SELECT name, position
+		FROM lecturers
+		WHERE subject_id = $1;
+	`, subjectID)
+	if err != nil {
+		return nil, fmt.Errorf("receive lecturers: %w", err)
+	}
+	defer rows.Close()
+
+	var lecturers []Lecturer
+	for rows.Next() {
+		var l Lecturer
+		if err := rows.Scan(&l.Name, &l.Position); err != nil {
+			return nil, fmt.Errorf("scan lecturer: %w", err)
+		}
+		lecturers = append(lecturers, l)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read lecturers rows: %w", err)
+	}
+
+	return lecturers, nil
+}
+
 func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 	query := subjectSelectQuery + `
 	   WHERE id = $1 AND user_id = $2;
 	`
-
 	subject, err := scanSubject(db.QueryRow(query, id, userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
+
+	lecturers, err := getLecturersBySubjectID(db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	subject.Lecturers = lecturers
 
 	return subject, nil
 }
@@ -89,6 +123,12 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan subject: %w", err)
 		}
+
+		lecturers, err := getLecturersBySubjectID(db, subject.ID)
+		if err != nil {
+			return nil, err
+		}
+		subject.Lecturers = lecturers
 
 		subjects = append(subjects, *subject)
 	}
