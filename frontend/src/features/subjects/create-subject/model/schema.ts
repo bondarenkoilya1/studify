@@ -1,14 +1,16 @@
 import { z } from "zod";
+import { LECTURER_POSITIONS, SUBJECT_SCOPES } from "./model";
 
-const SUBJECT_SCOPES = [
-  "technology",
-  "healthcare",
-  "humanities",
-  "business",
-  "social",
-  "science",
-  "other",
-] as const;
+const lecturerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Укажите имя преподавателя")
+    .max(100, "Имя преподавателя слишком длинное"),
+  position: z.enum(LECTURER_POSITIONS, {
+    message: "Укажите должность преподавателя",
+  }),
+});
 
 const baseSubjectSchema = {
   name: z
@@ -16,13 +18,8 @@ const baseSubjectSchema = {
     .trim()
     .min(1, "Укажите название предмета")
     .max(100, "Название слишком длинное"),
-
   note: z.string().trim().max(200, "Заметка слишком длинная"),
-
-  scope: z.enum(SUBJECT_SCOPES, {
-    message: "Укажите категорию предмета",
-  }),
-
+  scope: z.enum(SUBJECT_SCOPES, { message: "Укажите категорию предмета" }),
   lecturerAvatarUrl: z.string().nullable().optional(),
 };
 
@@ -30,25 +27,17 @@ export const createSubjectSchema = z.discriminatedUnion("type", [
   z.object({
     ...baseSubjectSchema,
     type: z.literal("university"),
-
-    examDate: z.date({
-      message: "Укажите дату экзамена",
-    }),
-
-    lecturer: z
-      .string()
-      .trim()
-      .min(1, "Укажите преподавателя")
-      .max(100, "Имя преподавателя слишком длинное"),
+    examDate: z.date({ message: "Укажите дату экзамена" }),
+    lecturers: z
+      .array(lecturerSchema)
+      .min(1, "Добавьте хотя бы одного преподавателя"),
   }),
 
   z.object({
     ...baseSubjectSchema,
     type: z.literal("personal"),
-
     examDate: z.date().optional(),
-
-    lecturer: z.string().nullable().optional(),
+    lecturers: z.array(lecturerSchema),
   }),
 ]);
 

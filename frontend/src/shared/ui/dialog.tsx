@@ -15,11 +15,12 @@ type DialogProps = {
 };
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
+  const [mounted, setMounted] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // рендерим портал только на клиенте (SSR-safe: document недоступен на сервере)
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -28,7 +29,9 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onOpenChange(false);
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -43,16 +46,15 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     };
   }, [open, onOpenChange]);
 
-  if (!open || !mounted) return null;
+  if (!open || !mounted) {
+    return null;
+  }
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        aria-label="Close dialog"
+        aria-label="Закрыть"
         className="fixed inset-0 cursor-default bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
         onClick={() => onOpenChange(false)}
       />
@@ -62,13 +64,22 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="relative z-10 w-full max-w-md rounded-[28px] border border-black/5 bg-background p-6 shadow-2xl outline-none animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out"
+        className="relative z-10 w-full max-w-2xl rounded-[28px] border border-black/5 bg-background p-6 shadow-2xl outline-none animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out"
       >
         {children}
       </div>
     </div>,
     document.body,
   );
+}
+
+type DialogContentProps = HTMLAttributes<HTMLDivElement>;
+
+export function DialogContent({
+  className = "",
+  ...props
+}: DialogContentProps) {
+  return <div className={className} {...props} />;
 }
 
 type DialogHeaderProps = HTMLAttributes<HTMLDivElement>;
@@ -129,7 +140,7 @@ export function DialogClose({ onClick, className = "" }: DialogCloseProps) {
     <button
       type="button"
       onClick={onClick}
-      aria-label="Close dialog"
+      aria-label="Закрыть"
       className={`absolute right-4 top-4 flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground ${className}`}
     >
       <X className="size-4" />

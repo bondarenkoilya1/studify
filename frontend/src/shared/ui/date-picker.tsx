@@ -9,9 +9,10 @@ import { cn } from "@/shared/lib/cn";
 type DatePickerProps = {
   value?: Date;
   onChange: (date: Date | undefined) => void;
+  className?: string;
 };
 
-export function DatePicker({ value, onChange }: DatePickerProps) {
+export function DatePicker({ value, onChange, className }: DatePickerProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -24,6 +25,7 @@ export function DatePicker({ value, onChange }: DatePickerProps) {
           "border border-transparent focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/10",
           "text-neutral-900 dark:text-neutral-100",
           !value && "text-neutral-400 dark:text-neutral-500",
+          className,
         )}
       >
         <span className="truncate">

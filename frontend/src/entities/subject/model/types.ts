@@ -7,6 +7,16 @@ export type SubjectScope =
   | "social"
   | "science"
   | "other";
+export type LecturerPosition =
+  | "lecturer"
+  | "practical_instructor"
+  | "lab_instructor"
+  | "assistant";
+
+export interface Lecturer {
+  name: string;
+  position: string;
+}
 
 export interface Subject {
   id: number;
@@ -16,7 +26,7 @@ export interface Subject {
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
-  lecturer: string | null;
+  lecturers: Lecturer[];
   lecturerAvatarUrl: string | null;
 }
 
@@ -26,6 +36,6 @@ export interface SubjectInput {
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
-  lecturer: string | null;
+  lecturers: Lecturer[];
   lecturerAvatarUrl: string | null;
 }
