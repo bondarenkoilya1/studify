@@ -10,8 +10,8 @@ type Handler struct {
 }
 
 type Lecturer struct {
-	Name     string
-	Position string
+	Name     string `json:"name"`
+	Position string `json:"position"`
 }
 
 type Subject struct {

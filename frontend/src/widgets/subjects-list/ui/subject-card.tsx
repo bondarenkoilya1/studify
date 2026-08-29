@@ -3,7 +3,12 @@ import { Link } from "@tanstack/react-router";
 
 import { DeleteSubjectButton } from "@/features/subjects/delete-subject";
 import type { Subject } from "@/entities/subject";
-import { SCOPE_LABELS } from "@/features/subjects/create-subject/model/model";
+import {
+  LECTURER_POSITIONS,
+  LECTURER_POSITION_LABELS,
+  SCOPE_LABELS,
+} from "@/features/subjects/create-subject/model/model";
+import type { LecturerPosition } from "@/entities/subject/model/types";
 import {
   SCOPE_DOT_COLORS,
   SCOPE_GRADIENTS,
@@ -13,11 +18,52 @@ interface SubjectCardProps {
   subject: Subject;
 }
 
+// Максимум строк-должностей, которые показываем в карточке до того,
+// как схлопнуть остаток в "+N". Карточка фиксированной высоты (300px),
+// а должностей теоретически может быть сколько угодно — без капа
+// длинный список лекторов сдвинул бы или сломал нижние бейджи.
+const MAX_LECTURER_ROWS = 2;
+
+// Детерминированный хэш строки/числа в неотрицательное целое.
+// Раньше был `subject.id % scopeGradients.length` — это ломается,
+// если id не number (UUID, slug и т.п. дают NaN). Хэш работает
+// одинаково для string и number и всегда даёт стабильный индекс
+// для одного и того же id.
+function hashToIndex(id: string | number, length: number) {
+  const str = String(id);
+  let hash = 0;
+
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+
+  return Math.abs(hash) % length;
+}
+
+function MetaRow({
+  icon: Icon,
+  children,
+  title,
+}: {
+  icon: typeof GraduationCap;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2.5" title={title}>
+      <Icon className="size-[15px] shrink-0 text-neutral-400" />
+      <p className="truncate text-[13px] text-neutral-700">{children}</p>
+    </div>
+  );
+}
+
 export function SubjectCard({ subject }: SubjectCardProps) {
   const scopeGradients =
     SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
 
-  const gradient = scopeGradients[subject.id % scopeGradients.length];
+  const gradient =
+    scopeGradients[hashToIndex(subject.id, scopeGradients.length)];
 
   const examDate = subject.examDate
     ? new Date(subject.examDate).toLocaleDateString("ru-RU", {
@@ -30,6 +76,29 @@ export function SubjectCard({ subject }: SubjectCardProps) {
   const isUniversity = subject.type === "university";
   const scopeLabel = SCOPE_LABELS[subject.scope] ?? subject.scope;
   const scopeDotColor = SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400";
+
+  // Группируем лекторов по должности, сохраняя порядок из
+  // LECTURER_POSITIONS (Лектор → Практика → Лабы → Ассистент), а не
+  // порядок в массиве с бэкенда — так строки всегда в предсказуемом,
+  // "смысловом" порядке независимо от того, как их сохранили.
+  const lecturerGroups = isUniversity
+    ? LECTURER_POSITIONS.map((position) => {
+        const names = subject.lecturers
+          .filter((lecturer) => lecturer.position === position)
+          .map((lecturer) => lecturer.name)
+          .filter(Boolean);
+
+        return names.length > 0 ? { position, names: names.join(", ") } : null;
+      }).filter(
+        (group): group is { position: LecturerPosition; names: string } =>
+          group !== null,
+      )
+    : [];
+
+  const visibleGroups = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
+  const hiddenCount = lecturerGroups.length - visibleGroups.length;
+
+  const hasMeta = visibleGroups.length > 0 || Boolean(examDate);
 
   return (
     <div
@@ -48,7 +117,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
       <Link
         to="/subjects/$id"
         params={{ id: subject.id }}
-        className="block h-full p-6"
+        className="flex h-full flex-col p-6"
       >
         {/* Header */}
         <div className="flex items-start gap-3.5 pr-9">
@@ -99,38 +168,46 @@ export function SubjectCard({ subject }: SubjectCardProps) {
         )}
 
         {/* Divider */}
-        {(isUniversity && subject.lecturer) || examDate ? (
-          <div className="my-4 h-px bg-black/[0.04]" />
-        ) : null}
+        {hasMeta && <div className="my-4 h-px bg-black/[0.04]" />}
 
         {/* Meta */}
-        <div className="space-y-3">
-          {isUniversity && subject.lecturer && (
-            <div className="flex min-w-0 items-center gap-2.5">
-              <GraduationCap className="size-[15px] shrink-0 text-neutral-400" />
+        <div className="space-y-2.5">
+          {visibleGroups.map(({ position, names }) => (
+            <MetaRow
+              key={position}
+              icon={GraduationCap}
+              title={`${LECTURER_POSITION_LABELS[position]}: ${names}`}
+            >
+              <span className="text-neutral-400">
+                {LECTURER_POSITION_LABELS[position]}:{" "}
+              </span>
+              <span className="font-medium text-neutral-700">{names}</span>
+            </MetaRow>
+          ))}
 
-              <p
-                title={subject.lecturer}
-                className="truncate text-[13px] font-medium text-neutral-700"
-              >
-                {subject.lecturer}
-              </p>
-            </div>
+          {hiddenCount > 0 && (
+            <p className="pl-[23px] text-[12px] text-neutral-400">
+              +{hiddenCount} {hiddenCount === 1 ? "должность" : "должности"}
+            </p>
           )}
 
           {examDate && (
-            <div className="flex min-w-0 items-center gap-2.5">
-              <CalendarDays className="size-[15px] shrink-0 text-neutral-400" />
-
-              <p className="truncate text-[13px] font-medium text-neutral-700">
-                {examDate}
-              </p>
-            </div>
+            <MetaRow icon={CalendarDays} title={examDate}>
+              <span className="font-medium text-neutral-700">{examDate}</span>
+            </MetaRow>
           )}
         </div>
 
-        {/* Bottom metadata */}
-        <div className="absolute bottom-6 left-6 flex items-center gap-2">
+        {/*
+          Bottom metadata — прижат через mt-auto в flex-column вместо
+          absolute-позиционирования: гарантированно не наедет на meta
+          выше, сколько бы строк лекторов ни было (это и есть причина,
+          почему выше введён MAX_LECTURER_ROWS — без капа meta мог бы
+          вытолкнуть контент за пределы фиксированной высоты карточки,
+          mt-auto защищает только от наложения, но не от переполнения
+          самой карточки).
+        */}
+        <div className="mt-auto flex items-center gap-2 pt-4">
           <span
             className="
               rounded-full
@@ -159,6 +236,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
           opacity-0
           transition-opacity duration-200
           group-hover:opacity-100
+          group-focus-within:opacity-100
         "
       >
         <DeleteSubjectButton id={subject.id} />
