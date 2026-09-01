@@ -132,7 +132,8 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 
 func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
 	r.Route("/reset-password", func(r chi.Router) {
-		r.With(middlewares.RequireJSON).Post("/", h.SendResetPasswordEmail)
+		r.With(middlewares.RequireJSON).Post("/request", h.RequestPasswordReset)
+		r.With(middlewares.RequireJSON).Post("/verify", h.ValidateResetPasswordToken)
 		r.Post("/{token}", h.ResetPassword)
 	})
 }

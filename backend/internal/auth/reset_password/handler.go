@@ -26,7 +26,7 @@ type TokenResponse struct {
 	Token string `json:"password_reset_token"`
 }
 
-func (h *Handler) SendResetPasswordEmail(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	body := incomingEmail{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		log.Printf("failed to decode request body: %v", err)
