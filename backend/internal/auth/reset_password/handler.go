@@ -2,7 +2,6 @@ package reset_password
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,6 +14,16 @@ import (
 
 type incomingEmail struct {
 	Email string `json:"email"`
+}
+
+type ChangePasswordRequest struct {
+	Token                string `json:"password_reset_token"`
+	NewPassword          string `json:"new_password"`
+	NewPasswordConfirmed string `json:"new_password_confirmed"`
+}
+
+type TokenResponse struct {
+	Token string `json:"password_reset_token"`
 }
 
 func (h *Handler) SendResetPasswordEmail(w http.ResponseWriter, r *http.Request) {
@@ -59,25 +68,55 @@ func (h *Handler) SendResetPasswordEmail(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ValidateResetPasswordToken(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	if token == "" {
-		log.Printf("failed to get token from url params")
 		http.Error(w, "missing token", http.StatusBadRequest)
 		return
 	}
 
-	tokenRecord, err := validateResetPasswordToken(h.DB, auth.Token(token))
+	_, err := validateResetPasswordToken(h.DB, auth.Token(token))
 	if err != nil {
-		log.Printf("failed to validate reset password token: %v", err)
-		http.Error(w, "invalid reset password token", http.StatusBadRequest)
+		http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
 		return
 	}
 
-	newPass := "qwerty00"
-	hash, err := auth.HashPassword(newPass)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var body ChangePasswordRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if body.Token == "" {
+		http.Error(w, "missing reset token", http.StatusBadRequest)
+		return
+	}
+
+	if body.NewPassword != body.NewPasswordConfirmed {
+		http.Error(w, "passwords do not match", http.StatusBadRequest)
+		return
+	}
+
+	if err := auth.ValidatePassword(body.NewPassword, auth.AuthActionRegister); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	tokenRecord, err := validateResetPasswordToken(h.DB, auth.Token(body.Token))
 	if err != nil {
-		log.Printf("failed to hash new password: %v", err)
+		log.Printf("invalid or expired token: %v", err)
+		http.Error(w, "invalid or expired token", http.StatusBadRequest)
+		return
+	}
+
+	hash, err := auth.HashPassword(body.NewPassword)
+	if err != nil {
+		log.Printf("failed to hash password: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -89,28 +128,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = DeleteResetPasswordToken(h.DB, tokenRecord.UserID); err != nil {
-		log.Printf("failed to delete password reset token from db: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	currentUser, err := user.GetUserByID(h.DB, tokenRecord.UserID)
-	if err != nil {
-		if errors.Is(err, user.ErrUserNotFound) {
-			log.Printf("user not found: %v", err)
-			http.Error(w, "user not found", http.StatusNotFound)
-			return
-		}
-
-		log.Printf("get user by ID: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err = h.Mailer.SendNewPasswordEmail("noreply@studify.com", currentUser.Email, newPass); err != nil {
-		log.Printf("failed to send new password email: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+		log.Printf("failed to delete reset token: %v", err)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
