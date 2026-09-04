@@ -7,12 +7,12 @@ import {
   LECTURER_POSITIONS,
   LECTURER_POSITION_LABELS,
   SCOPE_LABELS,
-} from "@/features/subject/create-subject/model/model";
+} from "@/features/subject/create-subject/model/constants";
 import type { LecturerPosition } from "@/entities/subject/model/types";
 import {
   SCOPE_DOT_COLORS,
   SCOPE_GRADIENTS,
-} from "@/widgets/subjects-list/model/model";
+} from "@/entities/subject/model/presentation";
 
 interface SubjectCardProps {
   subject: Subject;

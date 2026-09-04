@@ -9,6 +9,7 @@ import {
   PRIORITY_LABELS,
   STATUS_CONFIG,
 } from "../model/model";
+} from "../model/presentation";
 
 interface TaskCardProps {
   task: Task;

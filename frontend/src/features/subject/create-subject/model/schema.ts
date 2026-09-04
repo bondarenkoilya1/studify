@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LECTURER_POSITIONS, SUBJECT_SCOPES } from "./model";
+import { LECTURER_POSITIONS, SUBJECT_SCOPES } from "./constants";
 
 const lecturerSchema = z.object({
   name: z

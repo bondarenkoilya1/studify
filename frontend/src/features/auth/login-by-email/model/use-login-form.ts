@@ -13,7 +13,7 @@ import {
 
 import { loginByEmail } from "../api/login-by-email";
 import { verifyLoginTotp } from "../api/verify-login-totp";
-import { isLoginChallenge } from "./model";
+import { isLoginChallenge } from "./auth-response";
 
 export function useLoginForm() {
   const [step, setStep] = useState<"credentials" | "totp">("credentials");
