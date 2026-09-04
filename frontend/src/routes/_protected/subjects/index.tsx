@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
-import { useGetSubjects } from "@/entities/subject/model/useGetSubjects";
+import { useGetSubjects } from "@/entities/subject/model/use-get-subjects";
 import { Button } from "@/shared/ui/button";
 import { SubjectList } from "@/widgets/subjects-list";
 import { CreateSubjectDialog } from "@/features/subjects/create-subject/ui/create-subject-dialog";

@@ -1,6 +1,6 @@
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { useConfirmTOTPSetupForm } from "../model/useConfirmTotpSetupForm";
+import { useConfirmTOTPSetupForm } from "../model/use-confirm-totp-setup-form";
 import { RecoveryCodesDialog } from "./recovery-codes-dialog";
 
 export function TotpSetupConfirmationForm() {

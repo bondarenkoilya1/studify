@@ -2,7 +2,7 @@ import { ShieldCheck, Smartphone, KeyRound } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 import { useCurrentUser } from "@/entities/user";
-import { useGenerateTotp } from "../model/useGenerateTotp";
+import { useGenerateTotp } from "../model/use-generate-totp";
 import { TotpEnabled } from "./totp-enabled";
 import { TotpEmailVerificationRequired } from "./totp-email-verification-required";
 import { CopyButton } from "@/shared/ui/copy-button";
