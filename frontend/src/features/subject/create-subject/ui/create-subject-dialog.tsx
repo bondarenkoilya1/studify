@@ -28,7 +28,7 @@ import {
   LECTURER_POSITION_LABELS,
   type CreateSubjectDialogProps,
   SCOPE_LABELS,
-} from "@/features/subjects/create-subject/model/model";
+} from "../model/model";
 
 import { useCreateSubjectForm } from "../model/use-create-subject-form";
 import type { LecturerPosition } from "@/entities/subject/model/types";

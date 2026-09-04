@@ -1,4 +1,4 @@
-import { useDisableTotp } from "@/features/profile/manage-totp/model/use-disable-totp";
+import { useDisableTotp } from "../model/use-disable-totp";
 
 export function DisableTotpButton() {
   const { mutate } = useDisableTotp();

@@ -1,5 +1,5 @@
 import { ShieldCheck } from "lucide-react";
-import { DisableTotpButton } from "@/features/profile/manage-totp/ui/disable-totp-button";
+import { DisableTotpButton } from "./disable-totp-button";
 
 export function TotpEnabled() {
   return (

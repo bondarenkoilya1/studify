@@ -4,7 +4,7 @@ import { type TotpFormData, totpSchema } from "./schema";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/shared/api";
 import { useState } from "react";
-import { confirmTotpSetup } from "@/features/profile/manage-totp/api/confirm-totp-setup";
+import { confirmTotpSetup } from "../api/confirm-totp-setup";
 
 export function useConfirmTOTPSetupForm() {
   const {

@@ -3,7 +3,7 @@ import type {
   TaskStatus,
   TaskType,
   TaskPriority,
-} from "@/entities/task/model/types";
+} from "./types";
 import { useGetTasks } from "@/entities/task";
 import { TYPE_ORDER } from "@/routes/_protected/subjects/model";
 

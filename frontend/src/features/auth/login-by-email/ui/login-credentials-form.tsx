@@ -8,8 +8,8 @@ import { Input } from "@/shared/ui/input";
 
 import { LoginFormError } from "./login-form-error";
 import { LoginFormHeader } from "./login-form-header";
-import { ForgotPasswordButton } from "@/features/auth/login-by-email/ui/forgot-password-button";
-import { ForgotPasswordDialog } from "@/features/auth/login-by-email/ui/forgot-password-dialog";
+import { ForgotPasswordButton } from "./forgot-password-button";
+import { ForgotPasswordDialog } from "./forgot-password-dialog";
 
 type LoginCredentialsFormProps = {
   credentials: {

@@ -1,5 +1,5 @@
 import { generateTotp } from "../api/generate-totp";
-import { useTotp } from "@/features/profile/manage-totp";
+import { useTotp } from "..";
 
 export function useGenerateTotp() {
   const { qrCode, textKey, setTextKey, setQrCode } = useTotp();

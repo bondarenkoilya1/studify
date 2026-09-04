@@ -6,7 +6,7 @@ import { useGenerateTotp } from "../model/use-generate-totp";
 import { TotpEnabled } from "./totp-enabled";
 import { TotpEmailVerificationRequired } from "./totp-email-verification-required";
 import { CopyButton } from "@/shared/ui/copy-button";
-import { TotpSetupConfirmationForm } from "@/features/profile/manage-totp/ui/totp-setup-confirmation-form";
+import { TotpSetupConfirmationForm } from "./totp-setup-confirmation-form";
 
 export function TotpSection() {
   const { handleGenerate, qrCode, textKey } = useGenerateTotp();

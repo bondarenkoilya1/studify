@@ -1,13 +1,13 @@
 import { CalendarDays, GraduationCap } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
-import { DeleteSubjectButton } from "@/features/subjects/delete-subject";
+import { DeleteSubjectButton } from "@/features/subject/delete-subject";
 import type { Subject } from "@/entities/subject";
 import {
   LECTURER_POSITIONS,
   LECTURER_POSITION_LABELS,
   SCOPE_LABELS,
-} from "@/features/subjects/create-subject/model/model";
+} from "@/features/subject/create-subject/model/model";
 import type { LecturerPosition } from "@/entities/subject/model/types";
 import {
   SCOPE_DOT_COLORS,

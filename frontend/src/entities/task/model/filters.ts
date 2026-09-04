@@ -1,5 +1,5 @@
 import type { Task } from "@/entities/task";
-import type { TaskType } from "@/entities/task/model/types";
+import type { TaskType } from "./types";
 
 export type TaskTypeFilter = "all" | TaskType;
 

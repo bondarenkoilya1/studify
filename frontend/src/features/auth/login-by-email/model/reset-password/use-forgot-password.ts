@@ -1,24 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-
-import { forgotPassword } from "@/features/auth/login-by-email/api/forgot-password";
-
+import { forgotPassword } from "../../api/reset-password/forgot-password";
 import {
-  forgotPasswordSchema,
   type ForgotPasswordFormValues,
-} from "../model/forgot-password.schema";
+  forgotPasswordSchema,
+} from "./forgot-password.schema";
 
 export function useForgotPassword() {
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: {
-      email: "",
-    },
+    defaultValues: { email: "" },
   });
 
-  const submit = form.handleSubmit(async (values) => {
-    await forgotPassword(values.email);
-  });
+  const submit = form.handleSubmit((values) => forgotPassword(values.email));
 
   return {
     ...form,
