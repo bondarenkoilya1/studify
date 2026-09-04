@@ -8,7 +8,7 @@ import {
   PRIORITY_CHIP,
   PRIORITY_LABELS,
   STATUS_CONFIG,
-} from "@/routes/_protected/subjects/model";
+} from "../model/model";
 
 interface TaskCardProps {
   task: Task;

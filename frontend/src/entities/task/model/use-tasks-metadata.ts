@@ -5,7 +5,7 @@ import type {
   TaskPriority,
 } from "./types";
 import { useGetTasks } from "@/entities/task";
-import { TYPE_ORDER } from "@/routes/_protected/subjects/model";
+import { TYPE_ORDER } from "@/widgets/task-list/model/model";
 
 interface TaskTypeMetadata {
   type: TaskType;

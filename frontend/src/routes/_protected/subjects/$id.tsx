@@ -7,7 +7,7 @@ import { useTasksMetadata } from "@/entities/task/model/use-tasks-metadata";
 import {
   getTaskCountLabel,
   TYPE_LABELS,
-} from "@/routes/_protected/subjects/model";
+} from "@/widgets/task-list/model/model";
 import { filterTasksByType } from "@/entities/task/model/filters";
 import { CreateTaskButton } from "@/features/task/create-task";
 import { useGetSubject } from "@/entities/subject";
