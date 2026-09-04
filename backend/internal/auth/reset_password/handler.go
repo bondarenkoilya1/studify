@@ -8,26 +8,26 @@ import (
 	"studify/internal"
 	"studify/internal/auth"
 	"studify/internal/user"
-
-	"github.com/go-chi/chi/v5"
 )
 
-type incomingEmail struct {
+type email struct {
 	Email string `json:"email"`
 }
 
-type ChangePasswordRequest struct {
+type changePasswordRequest struct {
 	Token                string `json:"password_reset_token"`
 	NewPassword          string `json:"new_password"`
 	NewPasswordConfirmed string `json:"new_password_confirmed"`
 }
 
-type TokenResponse struct {
+type token struct {
 	Token string `json:"password_reset_token"`
 }
 
+// RequestPasswordReset get user email and send generated link with token so user can
+// visit it and start procedure
 func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
-	body := incomingEmail{}
+	body := email{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		log.Printf("failed to decode request body: %v", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -53,11 +53,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link := fmt.Sprintf(
-		"%s/reset-password/%s",
-		h.Config.AppURL,
-		token,
-	)
+	link := fmt.Sprintf("%s/reset-password?token=%s", h.Config.AppURL, token)
 
 	if err = h.Mailer.SendPasswordResetEmail("noreply@studify.com", body.Email, link); err != nil {
 		log.Printf("failed to send password reset email: %v", err)
@@ -68,14 +64,21 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) ValidateResetPasswordToken(w http.ResponseWriter, r *http.Request) {
-	token := chi.URLParam(r, "token")
-	if token == "" {
+// VerifyResetPasswordToken gets token via JSON and validates it relevancy
+func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Request) {
+	body := token{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		log.Printf("failed to decode request body: %v", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if body.Token == "" {
 		http.Error(w, "missing token", http.StatusBadRequest)
 		return
 	}
 
-	_, err := validateResetPasswordToken(h.DB, auth.Token(token))
+	_, err := validateResetPasswordToken(h.DB, auth.Token(body.Token))
 	if err != nil {
 		http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
 		return
@@ -84,8 +87,9 @@ func (h *Handler) ValidateResetPasswordToken(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
+// ResetPassword accepts token and new password via JSON, hashes it and updates the user's password
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
-	var body ChangePasswordRequest
+	var body changePasswordRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
