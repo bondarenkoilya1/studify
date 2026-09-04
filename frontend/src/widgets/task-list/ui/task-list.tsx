@@ -1,5 +1,5 @@
 import type { Task } from "@/entities/task";
-import { TaskCard } from "./task-card";
+import { TaskCard } from "@/entities/task/ui/task-card";
 
 interface TaskListProps {
   tasks?: Task[];
