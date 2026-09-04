@@ -13,7 +13,7 @@ import {
   formatRelativeDeadline,
   useGetDashboardStatus,
   formatDate,
-} from "@/entities/dashboard";
+} from "@/widgets/dashboard";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   component: RouteComponent,
