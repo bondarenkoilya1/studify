@@ -2,6 +2,7 @@ package reset_password
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"studify/internal"
 	"studify/internal/auth"
@@ -19,10 +20,11 @@ func createResetPasswordToken(
 	}
 
 	tokenHash := auth.HashAuthToken(token)
+	expiresAt := time.Now().Add(config.ResetPasswordTokenTTL)
 
-	expiresAt := time.Now().Add(
-		config.ResetPasswordTokenTTL,
-	)
+	if err = DeleteResetPasswordToken(db, int64(userID)); err != nil && !errors.Is(err, ErrNotFound) {
+		return "", fmt.Errorf("delete previous reset password token: %w", err)
+	}
 
 	if err = InsertResetPasswordToken(
 		db,

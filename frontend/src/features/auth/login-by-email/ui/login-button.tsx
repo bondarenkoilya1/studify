@@ -5,7 +5,7 @@ export function LoginButton() {
     <Button
       type="button"
       variant="primary"
-      controlSize="medium"
+      size="default"
       onClick={() => (window.location.href = "/login")}
       className="px-6"
     >

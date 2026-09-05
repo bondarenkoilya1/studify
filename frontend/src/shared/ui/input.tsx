@@ -13,27 +13,36 @@ const sizes = {
   large: "min-h-12 rounded-xl px-4 py-3 text-base",
 } as const;
 
+type InputSize = keyof typeof sizes | "lg";
+
 type InputProps = Omit<ComponentProps<"input">, "size"> & {
   variant?: keyof typeof variants;
-  controlSize?: keyof typeof sizes;
+  size?: InputSize;
+  controlSize?: InputSize;
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   (
-    { className, variant = "default", controlSize = "medium", ...props },
+    { className, variant = "default", size, controlSize, ...props },
     ref,
-  ) => (
-    <input
-      ref={ref}
-      className={cn(
-        "text-studify-text placeholder:text-studify-muted focus:ring-studify-focus/40 block w-full border shadow-sm outline-none transition-colors focus:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60",
-        variants[variant],
-        sizes[controlSize],
-        className,
-      )}
-      {...props}
-    />
-  ),
+  ) => {
+    const normalizedSize = (controlSize ?? size ?? "medium") as InputSize;
+    const resolvedSize: keyof typeof sizes =
+      normalizedSize === "lg" ? "large" : normalizedSize;
+
+    return (
+      <input
+        ref={ref}
+        className={cn(
+          "text-studify-text placeholder:text-studify-muted focus:ring-studify-focus/40 block w-full border shadow-sm outline-none transition-colors focus:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60",
+          variants[variant],
+          sizes[resolvedSize],
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
 );
 
 Input.displayName = "Input";

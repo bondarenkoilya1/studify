@@ -3,7 +3,7 @@ import { useCreateSubjectForm } from "../model/use-create-subject-form";
 export function CreateSubjectSection() {
   const {
     register,
-    onSubmit,
+    submit,
     isPending,
     formState: { errors },
   } = useCreateSubjectForm();
@@ -23,7 +23,7 @@ export function CreateSubjectSection() {
           Добавить предмет
         </h2>
 
-        <form onSubmit={onSubmit} className="space-y-5">
+        <form onSubmit={submit} className="space-y-5">
           <div className="space-y-2">
             <label
               htmlFor="name"
@@ -46,21 +46,23 @@ export function CreateSubjectSection() {
 
           <div className="space-y-2">
             <label
-              htmlFor="lecturer"
+              htmlFor="lecturers.0.name"
               className="text-sm font-medium text-studify-text"
             >
               Преподаватель
             </label>
 
             <input
-              id="lecturer"
-              {...register("lecturer")}
+              id="lecturers.0.name"
+              {...register("lecturers.0.name")}
               placeholder="Иван Иванов"
               className="w-full rounded-lg border border-studify-border bg-studify-field px-3 py-2 outline-none transition focus:border-studify-primary"
             />
 
-            {errors.lecturer && (
-              <p className="text-sm text-red-500">{errors.lecturer.message}</p>
+            {errors.lecturers?.[0]?.name && (
+              <p className="text-sm text-red-500">
+                {errors.lecturers[0].name.message}
+              </p>
             )}
           </div>
 

@@ -8,7 +8,6 @@ import {
   PRIORITY_CHIP,
   PRIORITY_LABELS,
   STATUS_CONFIG,
-} from "../model/model";
 } from "../model/presentation";
 
 interface TaskCardProps {

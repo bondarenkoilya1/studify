@@ -8,6 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        primary: "bg-primary text-primary-foreground hover:bg-primary/80",
         default: "bg-primary text-primary-foreground hover:bg-primary/80",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
@@ -40,16 +41,29 @@ const buttonVariants = cva(
   },
 );
 
+type ButtonSize = "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
+type ButtonVariant = "primary" | "default" | "outline" | "secondary" | "ghost" | "destructive" | "link";
+
+type ButtonProps = Omit<ButtonPrimitive.Props, "size" | "variant"> &
+  VariantProps<typeof buttonVariants> & {
+    size?: ButtonSize;
+    variant?: ButtonVariant;
+    controlSize?: ButtonSize;
+  };
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  controlSize,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
+  const resolvedSize = controlSize ?? size;
+
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size: resolvedSize, className }))}
       {...props}
     />
   );

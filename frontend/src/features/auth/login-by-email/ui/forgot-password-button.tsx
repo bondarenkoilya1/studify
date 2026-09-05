@@ -9,7 +9,7 @@ export function ForgotPasswordButton({ onClick }: ForgotPasswordButtonProps) {
     <Button
       type="button"
       variant="ghost"
-      controlSize="medium"
+      size="default"
       onClick={onClick}
       className="min-h-0 px-0 py-0 text-[13px] font-medium cursor-pointer"
     >

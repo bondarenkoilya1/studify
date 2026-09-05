@@ -5,7 +5,7 @@ export function RegisterButton() {
     <Button
       type="button"
       variant="secondary"
-      controlSize="medium"
+      size="default"
       onClick={() => (window.location.href = "/register")}
       className="px-6"
     >
