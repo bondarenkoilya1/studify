@@ -62,5 +62,9 @@ func validateCreateSubjectRequest(req *CreateSubjectRequest) error {
 		return errors.New("invalid subject scope")
 	}
 
+	if req.Term != nil && (*req.Term < 1 || *req.Term > 16) {
+		return errors.New("term must be between 1 and 16")
+	}
+
 	return nil
 }

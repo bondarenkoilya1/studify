@@ -90,6 +90,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		req.Scope,
 		req.LecturerAvatarURL,
 		req.ExamDate,
+		req.Term,
 		req.Lecturers,
 	)
 	if err != nil {
@@ -136,6 +137,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		req.Scope,
 		req.LecturerAvatarURL,
 		req.ExamDate,
+		req.Term,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(
@@ -186,7 +188,8 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		req.Type == nil &&
 		req.Scope == nil &&
 		req.LecturerAvatarURL == nil &&
-		req.ExamDate == nil {
+		req.ExamDate == nil &&
+		req.Term == nil {
 		http.Error(w, "no fields to update", http.StatusBadRequest)
 		return
 	}
@@ -242,6 +245,15 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.ExamDate = req.ExamDate
 	}
 
+	if req.Term != nil {
+		if *req.Term < 1 || *req.Term > 16 {
+			http.Error(w, "term must be between 1 and 16", http.StatusBadRequest)
+			return
+		}
+
+		subject.Term = req.Term
+	}
+
 	if err := UpdateSubject(
 		h.DB,
 		userID,
@@ -252,6 +264,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Scope,
 		subject.LecturerAvatarURL,
 		subject.ExamDate,
+		subject.Term,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "Subject not found", http.StatusNotFound)

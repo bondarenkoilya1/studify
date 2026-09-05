@@ -22,6 +22,7 @@ type Subject struct {
 	Type              string     `json:"type"`
 	Scope             string     `json:"scope"`
 	ExamDate          *time.Time `json:"exam_date"`
+	Term              *int       `json:"term"`
 	Lecturers         []Lecturer `json:"lecturers"`
 	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
 }
@@ -32,6 +33,7 @@ type CreateSubjectRequest struct {
 	Type              string     `json:"type"`
 	Scope             string     `json:"scope"`
 	ExamDate          *time.Time `json:"exam_date"`
+	Term              *int       `json:"term"`
 	Lecturers         []Lecturer `json:"lecturers"`
 	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
 }
@@ -44,6 +46,7 @@ type UpdateSubjectRequest struct {
 	Lecturers         *[]Lecturer `json:"lecturers"`
 	LecturerAvatarURL *string     `json:"lecturer_avatar_url"`
 	ExamDate          *time.Time  `json:"exam_date"`
+	Term              *int        `json:"term"`
 }
 
 var validScopes = map[string]bool{

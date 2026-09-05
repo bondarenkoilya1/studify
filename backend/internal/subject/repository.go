@@ -24,6 +24,7 @@ const subjectSelectQuery = `
 	   type,
 	   scope,
 	   exam_date,
+	   term,
 	   lecturer_avatar_url
 	FROM subjects
 `
@@ -36,6 +37,7 @@ func scanSubject(scanner interface {
 	var (
 		note              sql.NullString
 		examDate          sql.NullTime
+		term              sql.NullInt64
 		lecturerAvatarURL sql.NullString
 	)
 
@@ -47,6 +49,7 @@ func scanSubject(scanner interface {
 		&subject.Type,
 		&subject.Scope,
 		&examDate,
+		&term,
 		&lecturerAvatarURL,
 	); err != nil {
 		return nil, err
@@ -54,6 +57,11 @@ func scanSubject(scanner interface {
 
 	if note.Valid {
 		subject.Note = &note.String
+	}
+
+	if term.Valid {
+		value := int(term.Int64)
+		subject.Term = &value
 	}
 
 	if lecturerAvatarURL.Valid {
@@ -155,6 +163,7 @@ func InsertSubject(
 	scope string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
+	term *int,
 	lecturers []Lecturer,
 ) (*Subject, error) {
 	tx, err := db.Begin()
@@ -172,6 +181,7 @@ func InsertSubject(
 		scope,
 		lecturerAvatarURL,
 		examDate,
+		term,
 	)
 	if err != nil {
 		return nil, err
@@ -203,6 +213,7 @@ func insertSubjectTx(db DBTX,
 	scope string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
+	term *int,
 ) (*Subject, error) {
 	query := `
 	   INSERT INTO subjects (
@@ -211,10 +222,11 @@ func insertSubjectTx(db DBTX,
 	      note,
 	      type,
 	      scope,
-	      lecturer_avatar_url,
-	      exam_date
+	      exam_date,
+	      term,
+	      lecturer_avatar_url
 	   )
-	   VALUES ($1, $2, $3, $4, $5, $6, $7)
+	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	   RETURNING
 	      id,
 	      user_id,
@@ -223,6 +235,7 @@ func insertSubjectTx(db DBTX,
 	      type,
 	      scope,
 	      exam_date,
+	      term,
 	      lecturer_avatar_url;
 	`
 
@@ -234,8 +247,9 @@ func insertSubjectTx(db DBTX,
 			note,
 			subjectType,
 			scope,
-			lecturerAvatarURL,
 			examDate,
+			toNullInt64(term),
+			lecturerAvatarURL,
 		),
 	)
 	if err != nil {
@@ -279,6 +293,15 @@ func insertLecturersTx(db DBTX, subjectID int64, lecturers []Lecturer) ([]Lectur
 	return result, nil
 }
 
+func toNullInt64(value *int) *int64 {
+	if value == nil {
+		return nil
+	}
+
+	v := int64(*value)
+	return &v
+}
+
 func UpdateSubject(
 	db *sql.DB,
 	userID, id int64,
@@ -288,6 +311,7 @@ func UpdateSubject(
 	scope string,
 	lecturerAvatarURL *string,
 	examDate *time.Time,
+	term *int,
 ) error {
 	query := `
 	   UPDATE subjects
@@ -296,9 +320,10 @@ func UpdateSubject(
 	      note = $2,
 	      type = $3,
 	      scope = $4,
-	      lecturer_avatar_url = $5,
-	      exam_date = $6
-	   WHERE id = $7 AND user_id = $8;
+	      exam_date = $5,
+	      term = $6,
+	      lecturer_avatar_url = $7
+	   WHERE id = $8 AND user_id = $9;
 	`
 
 	result, err := db.Exec(
@@ -307,8 +332,9 @@ func UpdateSubject(
 		note,
 		subjectType,
 		scope,
-		lecturerAvatarURL,
 		examDate,
+		toNullInt64(term),
+		lecturerAvatarURL,
 		id,
 		userID,
 	)
