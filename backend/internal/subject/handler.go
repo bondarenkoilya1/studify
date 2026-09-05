@@ -246,8 +246,8 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Term != nil {
-		if *req.Term < 1 || *req.Term > 16 {
-			http.Error(w, "term must be between 1 and 16", http.StatusBadRequest)
+		if err := validateTerm(req.Term); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 

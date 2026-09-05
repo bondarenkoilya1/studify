@@ -63,6 +63,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
         year: "numeric",
       })
     : null;
+  const termLabel = subject.term ? `Термин ${subject.term}` : null;
 
   const isUniversity = subject.type === "university";
   const scopeLabel = SCOPE_LABELS[subject.scope] ?? subject.scope;
@@ -89,7 +90,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
   const visibleGroups = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
   const hiddenCount = lecturerGroups.length - visibleGroups.length;
 
-  const hasMeta = visibleGroups.length > 0 || Boolean(examDate);
+  const hasMeta = visibleGroups.length > 0 || Boolean(examDate) || Boolean(termLabel);
 
   return (
     <div
@@ -111,7 +112,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
         className="flex h-full flex-col p-6"
       >
         {/* Header */}
-        <div className="flex items-start gap-3.5 pr-9">
+        <div className="flex min-h-11 items-center gap-3.5 pr-9">
           <div
             className={`
               flex size-11 shrink-0 items-center justify-center
@@ -124,7 +125,7 @@ export function SubjectCard({ subject }: SubjectCardProps) {
             {subject.name.slice(0, 2).toUpperCase()}
           </div>
 
-          <div className="min-w-0 flex-1 pt-0.5">
+          <div className="min-w-0 flex-1">
             <h3
               title={subject.name}
               className="
@@ -137,10 +138,6 @@ export function SubjectCard({ subject }: SubjectCardProps) {
             >
               {subject.name}
             </h3>
-
-            <p className="mt-0.5 text-[13px] text-neutral-500">
-              {isUniversity ? "Университетский предмет" : "Личное обучение"}
-            </p>
           </div>
         </div>
 
@@ -182,6 +179,12 @@ export function SubjectCard({ subject }: SubjectCardProps) {
             </p>
           )}
 
+          {termLabel && (
+            <MetaRow icon={CalendarDays} title={termLabel}>
+              <span className="font-medium text-neutral-700">{termLabel}</span>
+            </MetaRow>
+          )}
+
           {examDate && (
             <MetaRow icon={CalendarDays} title={examDate}>
               <span className="font-medium text-neutral-700">{examDate}</span>
@@ -210,6 +213,12 @@ export function SubjectCard({ subject }: SubjectCardProps) {
           >
             {isUniversity ? "Университет" : "Личный"}
           </span>
+
+          {termLabel && (
+            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700">
+              {termLabel}
+            </span>
+          )}
 
           <span className="flex items-center gap-1.5 text-[11px] font-medium text-neutral-500">
             <span

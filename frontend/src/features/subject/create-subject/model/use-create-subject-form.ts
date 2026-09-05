@@ -11,6 +11,8 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
   note: "",
   type: "university",
   scope: "other",
+  course: 1,
+  term: 1,
   lecturers: [
     {
       name: "",
@@ -26,12 +28,16 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
 };
 
 function toSubjectInput(values: CreateSubjectFormValues): SubjectInput {
+  const course = values.course ?? 1;
+  const term = values.term ?? 1;
+
   return {
     name: values.name,
     note: values.note,
     type: values.type,
     scope: values.scope,
     examDate: values.examDate?.toISOString() ?? null,
+    term: course * term,
     lecturers: values.lecturers,
     lecturerAvatarUrl: values.lecturerAvatarUrl ?? null,
   };

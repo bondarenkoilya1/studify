@@ -24,10 +24,14 @@ import { DatePicker } from "@/shared/ui/date-picker";
 import { cn } from "@/shared/lib/cn";
 
 import {
+  COURSE_LABELS,
+  COURSE_OPTIONS,
   LECTURER_POSITIONS,
   LECTURER_POSITION_LABELS,
   type CreateSubjectDialogProps,
   SCOPE_LABELS,
+  TERM_LABELS,
+  TERM_OPTIONS,
 } from "../model/constants";
 
 import { useCreateSubjectForm } from "../model/use-create-subject-form";
@@ -252,6 +256,83 @@ export function CreateSubjectDialog({
                 )}
               />
             </FormField>
+
+            {/* COURSE + TERM */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField htmlFor="create-subject-course" label="Курс">
+                <Controller
+                  control={form.control}
+                  name="course"
+                  render={({ field, fieldState }) => (
+                    <>
+                      <Select
+                        value={
+                          field.value === null || field.value === undefined
+                            ? undefined
+                            : String(field.value)
+                        }
+                        onValueChange={(value) => field.onChange(Number(value))}
+                      >
+                        <SelectTrigger
+                          id="create-subject-course"
+                          className={cn("h-11 w-full", FOCUS_RING)}
+                          aria-invalid={Boolean(fieldState.error)}
+                        >
+                          <SelectValue placeholder="Выберите курс" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {COURSE_OPTIONS.map((course) => (
+                            <SelectItem key={course} value={String(course)}>
+                              {COURSE_LABELS[course]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <FieldError message={fieldState.error?.message} />
+                    </>
+                  )}
+                />
+              </FormField>
+
+              <FormField htmlFor="create-subject-term" label="Term">
+                <Controller
+                  control={form.control}
+                  name="term"
+                  render={({ field, fieldState }) => (
+                    <>
+                      <Select
+                        value={
+                          field.value === null || field.value === undefined
+                            ? undefined
+                            : String(field.value)
+                        }
+                        onValueChange={(value) => field.onChange(Number(value))}
+                      >
+                        <SelectTrigger
+                          id="create-subject-term"
+                          className={cn("h-11 w-full", FOCUS_RING)}
+                          aria-invalid={Boolean(fieldState.error)}
+                        >
+                          <SelectValue placeholder="Выберите term" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {TERM_OPTIONS.map((termOption) => (
+                            <SelectItem key={termOption} value={String(termOption)}>
+                              {TERM_LABELS[termOption]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      <FieldError message={fieldState.error?.message} />
+                    </>
+                  )}
+                />
+              </FormField>
+            </div>
 
             {/* DATE — рендерим всегда, чтобы Collapse ниже мог его схлопнуть
                 плавно; но т.к. DATE технически часть grid-раскладки со SCOPE,

@@ -20,6 +20,20 @@ const baseSubjectSchema = {
     .max(100, "Название слишком длинное"),
   note: z.string().trim().max(200, "Заметка слишком длинная"),
   scope: z.enum(SUBJECT_SCOPES, { message: "Укажите категорию предмета" }),
+  course: z
+    .number()
+    .int("Курс должен быть целым числом")
+    .min(1, "Курс должен быть от 1 до 2")
+    .max(2, "Курс должен быть от 1 до 2")
+    .nullable()
+    .optional(),
+  term: z
+    .number()
+    .int("Term должен быть целым числом")
+    .min(1, "Term должен быть от 1 до 2")
+    .max(2, "Term должен быть от 1 до 2")
+    .nullable()
+    .optional(),
   lecturerAvatarUrl: z.string().nullable().optional(),
 };
 

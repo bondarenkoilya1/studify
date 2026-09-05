@@ -41,6 +41,18 @@ func ensureDir(path string) error {
 	return nil
 }
 
+func validateTerm(term *int) error {
+	if term == nil {
+		return nil
+	}
+
+	if *term < 1 || *term > 16 {
+		return errors.New("term must be between 1 and 16")
+	}
+
+	return nil
+}
+
 func validateCreateSubjectRequest(req *CreateSubjectRequest) error {
 	if req.Name == "" {
 		return errors.New("subject name is required")
@@ -62,8 +74,8 @@ func validateCreateSubjectRequest(req *CreateSubjectRequest) error {
 		return errors.New("invalid subject scope")
 	}
 
-	if req.Term != nil && (*req.Term < 1 || *req.Term > 16) {
-		return errors.New("term must be between 1 and 16")
+	if err := validateTerm(req.Term); err != nil {
+		return err
 	}
 
 	return nil
