@@ -58,3 +58,7 @@ var validScopes = map[string]bool{
 	"science":    true,
 	"other":      true,
 }
+
+type thumbnail struct {
+	ThumbnailURL string `json:"thumbnail_url"`
+}

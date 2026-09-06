@@ -1,4 +1,5 @@
-import { CalendarDays, GraduationCap } from "lucide-react";
+import React from "react";
+import { CalendarDays, GraduationCap, type LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 import { DeleteSubjectButton } from "@/features/subject/delete-subject";
@@ -8,36 +9,27 @@ import {
   LECTURER_POSITION_LABELS,
   SCOPE_LABELS,
 } from "@/features/subject/create-subject/model/constants";
-import type { LecturerPosition } from "@/entities/subject/model/types";
 import {
   SCOPE_DOT_COLORS,
   SCOPE_GRADIENTS,
 } from "@/entities/subject/model/presentation";
-
-interface SubjectCardProps {
-  subject: Subject;
-}
+import { publicEnv } from "@/shared/config";
 
 const MAX_LECTURER_ROWS = 2;
 
-function hashToIndex(id: string | number, length: number) {
-  const str = String(id);
-  let hash = 0;
-
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0;
-  }
-
-  return Math.abs(hash) % length;
-}
+const hashIndex = (val: string | number, max: number) =>
+  Math.abs(
+    String(val)
+      .split("")
+      .reduce((acc, ch) => ((acc << 5) - acc + ch.charCodeAt(0)) | 0, 0),
+  ) % max;
 
 function MetaRow({
   icon: Icon,
   children,
   title,
 }: {
-  icon: typeof GraduationCap;
+  icon: LucideIcon;
   children: React.ReactNode;
   title?: string;
 }) {
@@ -49,12 +41,15 @@ function MetaRow({
   );
 }
 
-export function SubjectCard({ subject }: SubjectCardProps) {
-  const scopeGradients =
-    SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
+export function SubjectCard({ subject }: { subject: Subject }) {
+  const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
+  const gradient = gradients[hashIndex(subject.id, gradients.length)];
 
-  const gradient =
-    scopeGradients[hashToIndex(subject.id, scopeGradients.length)];
+  const isUniversity = subject.type === "university";
+  const course = subject.term ? Math.ceil(subject.term / 2) : null;
+  const termLabel = subject.term
+    ? `${course} Курс • ${subject.term} Семестр`
+    : null;
 
   const examDate = subject.examDate
     ? new Date(subject.examDate).toLocaleDateString("ru-RU", {
@@ -63,182 +58,117 @@ export function SubjectCard({ subject }: SubjectCardProps) {
         year: "numeric",
       })
     : null;
-  const termLabel = subject.term ? `Термин ${subject.term}` : null;
 
-  const isUniversity = subject.type === "university";
-  const scopeLabel = SCOPE_LABELS[subject.scope] ?? subject.scope;
-  const scopeDotColor = SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400";
-
-  // Группируем лекторов по должности, сохраняя порядок из
-  // LECTURER_POSITIONS (Лектор → Практика → Лабы → Ассистент), а не
-  // порядок в массиве с бэкенда — так строки всегда в предсказуемом,
-  // "смысловом" порядке независимо от того, как их сохранили.
   const lecturerGroups = isUniversity
-    ? LECTURER_POSITIONS.map((position) => {
+    ? LECTURER_POSITIONS.flatMap((pos) => {
         const names = subject.lecturers
-          .filter((lecturer) => lecturer.position === position)
-          .map((lecturer) => lecturer.name)
-          .filter(Boolean);
-
-        return names.length > 0 ? { position, names: names.join(", ") } : null;
-      }).filter(
-        (group): group is { position: LecturerPosition; names: string } =>
-          group !== null,
-      )
+          .filter((l) => l.position === pos)
+          .map((l) => l.name)
+          .filter(Boolean)
+          .join(", ");
+        return names
+          ? [{ pos, label: LECTURER_POSITION_LABELS[pos], names }]
+          : [];
+      })
     : [];
 
-  const visibleGroups = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
-  const hiddenCount = lecturerGroups.length - visibleGroups.length;
+  const visibleLecturers = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
+  const hiddenCount = lecturerGroups.length - visibleLecturers.length;
+  const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
 
-  const hasMeta = visibleGroups.length > 0 || Boolean(examDate) || Boolean(termLabel);
+  const thumbUrl = subject.thumbnailUrl
+    ? `${publicEnv.apiBaseUrl.replace(/\/$/, "")}/api/${subject.thumbnailUrl.replace(/^\//, "")}`
+    : null;
 
   return (
-    <div
-      className="
-        group relative h-[300px] overflow-hidden
-        rounded-[22px]
-        border border-black/[0.06]
-        bg-white
-        shadow-[0_1px_1px_rgba(0,0,0,0.02),0_1px_3px_rgba(0,0,0,0.03)]
-        transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
-        hover:-translate-y-[3px]
-        hover:border-black/[0.05]
-        hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.14)]
-      "
-    >
+    <div className="group relative h-[300px] rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.14)]">
       <Link
         to="/subjects/$id"
         params={{ id: subject.id }}
-        className="flex h-full flex-col p-6"
+        className="flex h-full flex-col p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-[22px]"
       >
         {/* Header */}
-        <div className="flex min-h-11 items-center gap-3.5 pr-9">
-          <div
-            className={`
-              flex size-11 shrink-0 items-center justify-center
-              rounded-[13px]
-              bg-gradient-to-br ${gradient}
-              text-[14px] font-semibold tracking-tight text-white
-              shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-1px_1px_rgba(0,0,0,0.06),0_6px_14px_-6px_rgba(0,0,0,0.35)]
-            `}
-          >
-            {subject.name.slice(0, 2).toUpperCase()}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <h3
-              title={subject.name}
-              className="
-                line-clamp-2
-                text-[16px] font-semibold
-                leading-[1.25]
-                tracking-[-0.01em]
-                text-neutral-900
-              "
+        <div className="flex min-h-11 items-center gap-3.5 pr-8">
+          {thumbUrl ? (
+            <img
+              src={thumbUrl}
+              alt=""
+              className="size-11 shrink-0 rounded-[13px] object-cover shadow-sm"
+            />
+          ) : (
+            <div
+              className={`flex size-11 shrink-0 items-center justify-center rounded-[13px] bg-gradient-to-br ${gradient} text-[14px] font-semibold text-white shadow-sm`}
             >
-              {subject.name}
-            </h3>
-          </div>
+              {subject.name.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <h3
+            title={subject.name}
+            className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-neutral-900"
+          >
+            {subject.name}
+          </h3>
         </div>
 
         {/* Note */}
         {subject.note && (
           <p
             title={subject.note}
-            className="
-              mt-4 line-clamp-2
-              text-[13px] leading-[1.5]
-              text-neutral-500
-            "
+            className="mt-3 line-clamp-2 text-[13px] leading-[1.4] text-neutral-500"
           >
             {subject.note}
           </p>
         )}
 
-        {/* Divider */}
-        {hasMeta && <div className="my-4 h-px bg-black/[0.04]" />}
-
         {/* Meta */}
-        <div className="space-y-2.5">
-          {visibleGroups.map(({ position, names }) => (
-            <MetaRow
-              key={position}
-              icon={GraduationCap}
-              title={`${LECTURER_POSITION_LABELS[position]}: ${names}`}
-            >
-              <span className="text-neutral-400">
-                {LECTURER_POSITION_LABELS[position]}:{" "}
-              </span>
-              <span className="font-medium text-neutral-700">{names}</span>
-            </MetaRow>
-          ))}
+        {hasMeta && (
+          <div className="mt-3 space-y-2 border-t border-black/[0.04] pt-3">
+            {visibleLecturers.map(({ pos, label, names }) => (
+              <MetaRow
+                key={pos}
+                icon={GraduationCap}
+                title={`${label}: ${names}`}
+              >
+                <span className="text-neutral-400">{label}: </span>
+                <span className="font-medium text-neutral-700">{names}</span>
+              </MetaRow>
+            ))}
 
-          {hiddenCount > 0 && (
-            <p className="pl-[23px] text-[12px] text-neutral-400">
-              +{hiddenCount} {hiddenCount === 1 ? "должность" : "должности"}
-            </p>
-          )}
+            {hiddenCount > 0 && (
+              <p className="pl-[23px] text-[12px] text-neutral-400">
+                +{hiddenCount} ещё
+              </p>
+            )}
 
-          {termLabel && (
-            <MetaRow icon={CalendarDays} title={termLabel}>
-              <span className="font-medium text-neutral-700">{termLabel}</span>
-            </MetaRow>
-          )}
+            {examDate && (
+              <MetaRow icon={CalendarDays} title={examDate}>
+                <span className="font-medium text-neutral-700">{examDate}</span>
+              </MetaRow>
+            )}
+          </div>
+        )}
 
-          {examDate && (
-            <MetaRow icon={CalendarDays} title={examDate}>
-              <span className="font-medium text-neutral-700">{examDate}</span>
-            </MetaRow>
-          )}
-        </div>
-
-        {/*
-          Bottom metadata — прижат через mt-auto в flex-column вместо
-          absolute-позиционирования: гарантированно не наедет на meta
-          выше, сколько бы строк лекторов ни было (это и есть причина,
-          почему выше введён MAX_LECTURER_ROWS — без капа meta мог бы
-          вытолкнуть контент за пределы фиксированной высоты карточки,
-          mt-auto защищает только от наложения, но не от переполнения
-          самой карточки).
-        */}
+        {/* Footer Badges */}
         <div className="mt-auto flex items-center gap-2 pt-4">
-          <span
-            className="
-              rounded-full
-              bg-neutral-100
-              px-2.5 py-1
-              text-[11px] font-medium
-              text-neutral-500
-            "
-          >
+          <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600">
             {isUniversity ? "Университет" : "Личный"}
           </span>
-
           {termLabel && (
-            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-700">
+            <span className="truncate rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-medium text-violet-700">
               {termLabel}
             </span>
           )}
-
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-neutral-500">
+          <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-neutral-500">
             <span
-              className={`size-1.5 shrink-0 rounded-full ${scopeDotColor}`}
+              className={`size-1.5 shrink-0 rounded-full ${SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400"}`}
             />
-            {scopeLabel}
+            {SCOPE_LABELS[subject.scope] ?? subject.scope}
           </span>
         </div>
       </Link>
 
-      {/* Actions */}
-      <div
-        className="
-          absolute right-4 top-4
-          opacity-0
-          transition-opacity duration-200
-          group-hover:opacity-100
-          group-focus-within:opacity-100
-        "
-      >
+      {/* Action Button */}
+      <div className="absolute right-4 top-4 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <DeleteSubjectButton id={subject.id} />
       </div>
     </div>

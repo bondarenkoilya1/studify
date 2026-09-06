@@ -389,3 +389,28 @@ func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
 
 	return nil
 }
+
+func InsertSubjectThumbnail(db *sql.DB, subjectID int64, thumbnailURL string, userID int64) error {
+	query := `
+		UPDATE subjects
+		SET
+		    thumbnail_url = $1
+		WHERE id = $2 and user_id = $3;
+	`
+
+	result, err := db.Exec(query, thumbnailURL, subjectID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update subject thumbnail: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get updated subjects count: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}

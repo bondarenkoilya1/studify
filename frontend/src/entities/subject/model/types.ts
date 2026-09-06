@@ -28,7 +28,7 @@ export interface Subject {
   examDate: string | null;
   term: number | null;
   lecturers: Lecturer[];
-  lecturerAvatarUrl: string | null;
+  thumbnailUrl: string | null;
 }
 
 export interface SubjectInput {
@@ -39,5 +39,5 @@ export interface SubjectInput {
   examDate: string | null;
   term: number | null;
   lecturers: Lecturer[];
-  lecturerAvatarUrl: string | null;
+  thumbnailUrl: string | null;
 }

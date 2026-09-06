@@ -372,9 +372,9 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dir := "./data/thumbnails/"
+	dir := "./data/"
 
-	if err := ensureDir(dir); err != nil {
+	if err = ensureDir(dir); err != nil {
 		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
 		return
 	}
@@ -389,18 +389,19 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 	}
 	defer dst.Close()
 
-	if err := webp.Encode(dst, img, &webp.Options{
+	if err = webp.Encode(dst, img, &webp.Options{
 		Quality: 85,
 	}); err != nil {
 		http.Error(w, "Failed to save image", http.StatusInternalServerError)
 		return
 	}
 
-	type thumbnail struct {
-		ThumbnailURL string `json:"thumbnail_url"`
+	thumbnailURL := "/static/" + filename
+
+	if err = InsertSubjectThumbnail(h.DB, 1, thumbnailURL, 1); err != nil {
+		http.Error(w, "Failed to insert thumbnail", http.StatusInternalServerError)
+		return
 	}
 
-	writeJSON(w, http.StatusOK, thumbnail{
-		ThumbnailURL: "/static/thumbnails/" + filename,
-	})
+	writeJSON(w, http.StatusOK, thumbnail{ThumbnailURL: thumbnailURL})
 }

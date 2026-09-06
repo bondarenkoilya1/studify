@@ -139,6 +139,6 @@ func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
 }
 
 func registerStaticRoutes(r chi.Router) {
-	thumbnails := http.FileServer(http.Dir("data/thumbnails"))
+	thumbnails := http.FileServer(http.Dir("data"))
 	r.Get("/static/*", http.StripPrefix("/api/static/", thumbnails).ServeHTTP)
 }
