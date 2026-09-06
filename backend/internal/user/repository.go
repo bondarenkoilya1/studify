@@ -20,18 +20,22 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 			email,
 			password,
 			is_email_verified,
-			is_totp_enabled
+			is_totp_enabled,
+			avatar_url
 		FROM users
 		WHERE email = $1;
 	`
 
 	var user User
+	var avatarURL sql.NullString
+
 	err := db.QueryRow(query, email).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Password,
 		&user.IsEmailVerified,
 		&user.IsTOTPEnabled,
+		&avatarURL,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -39,6 +43,10 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 		}
 
 		return nil, fmt.Errorf("get user by email: %w", err)
+	}
+
+	if avatarURL.Valid {
+		user.AvatarURL = &avatarURL.String
 	}
 
 	return &user, nil
@@ -50,17 +58,21 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 			id,
 			email,
 			is_email_verified,
-			is_totp_enabled
+			is_totp_enabled,
+			avatar_url
 		FROM users
 		WHERE id = $1;
 	`
 
 	var user User
+	var avatarURL sql.NullString
+
 	err := db.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Email,
 		&user.IsEmailVerified,
 		&user.IsTOTPEnabled,
+		&avatarURL,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -68,6 +80,10 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 		}
 
 		return nil, fmt.Errorf("get user by id: %w", err)
+	}
+
+	if avatarURL.Valid {
+		user.AvatarURL = &avatarURL.String
 	}
 
 	return &user, nil
@@ -136,7 +152,7 @@ func VerifyUserEmail(db *sql.DB, id int64) error {
 	}
 
 	if rows == 0 {
-		return sql.ErrNoRows
+		return ErrUserNotFound
 	}
 
 	return nil
@@ -153,6 +169,9 @@ func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*User, error) {
 
 	var user User
 	if err := db.QueryRow(query, newEmail, id).Scan(&user.ID, &user.Email, &user.IsEmailVerified); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
 		return nil, fmt.Errorf("update user email: %w", err)
 	}
 
@@ -178,7 +197,58 @@ func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
 	}
 
 	if rows == 0 {
-		return sql.ErrNoRows
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+// UpdateUserAvatar обновляет путь к аватарке пользователя
+func UpdateUserAvatar(db *sql.DB, id int64, avatarURL string) error {
+	query := `
+		UPDATE users
+		SET
+		    avatar_url = $1
+		WHERE id = $2;
+	`
+
+	result, err := db.Exec(query, avatarURL, id)
+	if err != nil {
+		return fmt.Errorf("update user avatar: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("get updated user count: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrUserNotFound
+	}
+
+	return nil
+}
+
+func DeleteUserAvatar(db *sql.DB, id int64) error {
+	query := `
+		UPDATE users
+		SET
+		    avatar_url = NULL
+		WHERE id = $1;
+	`
+
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("delete user avatar: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("get updated user count: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrUserNotFound
 	}
 
 	return nil

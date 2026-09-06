@@ -3,10 +3,8 @@ package subject
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -16,29 +14,6 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	if err := json.NewEncoder(w).Encode(value); err != nil {
 		log.Printf("failed to encode JSON response: %v", err)
 	}
-}
-
-func ensureDir(path string) error {
-	if err := os.MkdirAll(path, 0o755); err != nil {
-		return fmt.Errorf("prepare storage directory %q: %w", path, err)
-	}
-
-	file, err := os.CreateTemp(path, ".check-*")
-	if err != nil {
-		return fmt.Errorf("storage directory %q is not writable: %w", path, err)
-	}
-
-	name := file.Name()
-
-	if err := file.Close(); err != nil {
-		return fmt.Errorf("close check file %q: %w", name, err)
-	}
-
-	if err := os.Remove(name); err != nil {
-		return fmt.Errorf("remove check file %q: %w", name, err)
-	}
-
-	return nil
 }
 
 func validateTerm(term *int) error {

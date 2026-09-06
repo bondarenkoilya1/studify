@@ -11,11 +11,12 @@ type Handler struct {
 }
 
 type User struct {
-	ID              int64  `json:"id"`
-	Email           string `json:"email"`
-	Password        string `json:"-"`
-	IsEmailVerified bool   `json:"is_email_verified"`
-	IsTOTPEnabled   bool   `json:"is_totp_enabled"`
+	ID              int64   `json:"id"`
+	Email           string  `json:"email"`
+	Password        string  `json:"-"`
+	IsEmailVerified bool    `json:"is_email_verified"`
+	IsTOTPEnabled   bool    `json:"is_totp_enabled"`
+	AvatarURL       *string `json:"avatar_url"`
 }
 
 type EmailRequest struct {

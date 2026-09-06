@@ -77,7 +77,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
 
   const thumbUrl = subject.thumbnailUrl
-    ? `${publicEnv.apiBaseUrl.replace(/\/$/, "")}/api/${subject.thumbnailUrl.replace(/^\//, "")}`
+    ? `${publicEnv.apiBaseUrl.replace(/\/$/, "")}/${subject.thumbnailUrl.replace(/^\//, "")}`
     : null;
 
   return (

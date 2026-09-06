@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"studify/internal/httpx"
+	"studify/internal/util"
 
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"
@@ -374,7 +375,7 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 
 	dir := "./data/"
 
-	if err = ensureDir(dir); err != nil {
+	if err = util.EnsureDir(dir); err != nil {
 		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
 		return
 	}

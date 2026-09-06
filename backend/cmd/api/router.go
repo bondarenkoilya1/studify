@@ -38,8 +38,12 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h.User)
 			registerDashboardRoutes(r, h.Dashboard)
-			registerStaticRoutes(r)
 		})
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(middlewares.ValidateAuth(h.Auth))
+		registerStaticRoutes(r)
 	})
 
 	return r
@@ -107,6 +111,11 @@ func registerUserRoutes(r chi.Router, h *user.Handler) {
 			r.Get("/", h.GetUser)
 			r.With(middlewares.RequireJSON).Patch("/email", h.UpdateUserEmail)
 			r.With(middlewares.RequireJSON).Patch("/password", h.UpdateUserPassword)
+
+			r.Route("/avatar", func(r chi.Router) {
+				r.Post("/", h.UploadAvatar)
+				r.Delete("/", h.DeleteAvatar)
+			})
 		})
 	})
 }
@@ -139,6 +148,6 @@ func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
 }
 
 func registerStaticRoutes(r chi.Router) {
-	thumbnails := http.FileServer(http.Dir("data"))
-	r.Get("/static/*", http.StripPrefix("/api/static/", thumbnails).ServeHTTP)
+	fs := http.FileServer(http.Dir("data"))
+	r.Get("/static/*", http.StripPrefix("/static/", fs).ServeHTTP)
 }

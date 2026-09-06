@@ -5,15 +5,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"studify/internal"
 	"studify/internal/auth"
 	"studify/internal/httpx"
+	"studify/internal/util"
 
+	"github.com/chai2010/webp"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type AvatarResponse struct {
+	AvatarURL string `json:"avatar_url"`
+}
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := CurrentUser(r, h.DB)
@@ -157,10 +168,115 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-	// TODO: Reset refresh tokens.
 }
 
-// Helpers
+func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		log.Printf("failed to get user id: %v", err)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	const (
+		maxAvatarBytes = 2 << 20
+		maxWidth       = 2560
+		maxHeight      = 2560
+	)
+
+	r.Body = http.MaxBytesReader(w, r.Body, maxAvatarBytes)
+
+	img, format, err := image.Decode(r.Body)
+	if err != nil {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
+			http.Error(w, "avatar is too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+
+		http.Error(w, "invalid image", http.StatusBadRequest)
+		return
+	}
+
+	switch format {
+	case "png", "jpeg", "webp":
+	default:
+		http.Error(w, "invalid file format. Use PNG, JPEG or WEBP", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	bounds := img.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+
+	if width > maxWidth || height > maxHeight {
+		http.Error(w, fmt.Sprintf("file resolution is too large. Maximum resolution is %dx%d", maxWidth, maxHeight), http.StatusRequestEntityTooLarge)
+		return
+	}
+
+	dir := "./data/users/"
+	if err = util.EnsureDir(dir); err != nil {
+		log.Printf("failed to ensure dir: %v", err)
+		http.Error(w, "wrong directory on the server", http.StatusInternalServerError)
+		return
+	}
+
+	filename := uuid.New().String() + ".webp"
+	fullPath := dir + filename
+
+	dst, err := os.Create(fullPath)
+	if err != nil {
+		log.Printf("failed to create file: %v", err)
+		http.Error(w, "failed to create file", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	if err = webp.Encode(dst, img, &webp.Options{Quality: 85}); err != nil {
+		log.Printf("failed to encode webp: %v", err)
+		http.Error(w, "failed to save image", http.StatusInternalServerError)
+		return
+	}
+
+	avatarURL := "/static/users/" + filename
+
+	if err = UpdateUserAvatar(h.DB, userID, avatarURL); err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to update user avatar: %v", err)
+		http.Error(w, "failed to update user avatar", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(AvatarResponse{AvatarURL: avatarURL}); err != nil {
+		log.Printf("failed to encode avatar response: %v", err)
+	}
+}
+
+func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		log.Printf("failed to get user id: %v", err)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if err := DeleteUserAvatar(h.DB, userID); err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			http.Error(w, "user not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to delete user avatar: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
 
 func CurrentUser(r *http.Request, db *sql.DB) (*User, error) {
 	userID, err := httpx.GetUserID(r)
