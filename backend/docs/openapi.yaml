@@ -3,197 +3,214 @@ info:
   title: Studify API
   version: 1.0.0
   description: |
-    REST API for users, subjects, study tasks, and dashboard statistics.
+    REST API for users, subjects, study tasks, dashboard statistics, and auth flows.
 
-    ## Authentication
-    Authentication uses HttpOnly `access_token` and `refresh_token` cookies.
-    - Register or log in first to receive cookies
-    - Swagger UI automatically manages cookies for subsequent requests
-    - All protected endpoints require valid `access_token` cookie
+    Authentication uses HttpOnly cookies:
+    - access_token
+    - refresh_token
 
-    ## Email Verification
-    - After registration, users receive a confirmation email
-    - Must verify email via the confirmation link
-    - Can resend confirmation email if needed
+    Protected endpoints require a valid access_token cookie.
+    Refresh token rotation is done through the /api/auth/refresh endpoint.
 servers:
   - url: http://localhost:8080
     description: Local development server
 tags:
-  - name: Authentication
-    description: User registration, login, logout, and email confirmation
+  - name: Auth
+    description: Registration, login, logout, and token issuance
+  - name: Auth / Confirm
+    description: Email confirmation flows
+  - name: Auth / TOTP
+    description: MFA setup and verification
+  - name: Auth / Reset Password
+    description: Password reset requests, validation, and completion
   - name: Dashboard
-    description: User statistics and overview
+    description: Dashboard overview and task statistics
   - name: Subjects
-    description: Subject management (lectures, courses)
+    description: Subject and lecturer management
   - name: Tasks
     description: Study task management
   - name: Profile
-    description: User account management
+    description: Current authenticated user account operations
+
 paths:
   /api/auth/register:
     post:
-      tags: [Authentication]
+      tags: [Auth]
       summary: Register a new user
-      description: Creates a new user account and sets authentication cookies. Sends a confirmation email to verify the email address.
       operationId: registerUser
       requestBody:
-        $ref: "#/components/requestBodies/Credentials"
+        $ref: '#/components/requestBodies/Credentials'
       responses:
-        "201":
-          description: User created successfully. Authentication cookies are set and confirmation email sent.
+        '201':
+          description: User was created and auth cookies were issued.
           headers:
             Set-Cookie:
-              $ref: "#/components/headers/AuthCookies"
+              $ref: '#/components/headers/AuthCookies'
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "409":
-          $ref: "#/components/responses/Conflict"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/auth/login:
     post:
-      tags: [Authentication]
-      summary: Log in user
-      description: Validates credentials and sets authentication cookies.
+      tags: [Auth]
+      summary: Log in a user
       operationId: loginUser
       requestBody:
-        $ref: "#/components/requestBodies/Credentials"
+        $ref: '#/components/requestBodies/Credentials'
       responses:
-        "200":
-          description: Login successful. Authentication cookies are set.
+        '200':
+          description: Login was successful. If MFA is enabled, the server returns a challenge token. Otherwise it issues auth cookies and returns the user profile.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/User'
+                  - $ref: '#/components/schemas/ChallengeTokenResponse'
           headers:
             Set-Cookie:
-              $ref: "#/components/headers/AuthCookies"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+              $ref: '#/components/headers/AuthCookies'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
-  /api/auth/refresh:
+  /api/auth/login/totp:
     post:
-      tags: [Authentication]
-      summary: Refresh authentication tokens
-      description: Validates and revokes the current refresh token, then issues new access and refresh token cookies.
-      operationId: refreshTokens
+      tags: [Auth / TOTP]
+      summary: Complete MFA login with a TOTP code
+      operationId: loginTOTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginTOTPRequest'
       responses:
-        "204":
-          description: Tokens rotated successfully. New authentication cookies are set.
+        '200':
+          description: TOTP challenge was accepted and the server issued auth cookies.
           headers:
             Set-Cookie:
-              $ref: "#/components/headers/AuthCookies"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
+              $ref: '#/components/headers/AuthCookies'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/auth/logout:
     post:
-      tags: [Authentication]
-      summary: Log out user
-      description: Revokes the current refresh token and clears authentication cookies.
+      tags: [Auth]
+      summary: Log out the current user
       operationId: logoutUser
       responses:
-        "204":
-          description: User logged out successfully. Cookies cleared.
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '204':
+          description: Refresh token was revoked and auth cookies were cleared.
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate refresh token and issue new auth cookies
+      operationId: refreshTokens
+      responses:
+        '204':
+          description: Tokens were rotated successfully and the new auth cookies were set.
+          headers:
+            Set-Cookie:
+              $ref: '#/components/headers/AuthCookies'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/auth/confirm/resend:
     post:
-      tags: [Authentication]
-      summary: Resend confirmation email
-      description: Sends a new confirmation email to the authenticated user.
+      tags: [Auth / Confirm]
+      summary: Resend the email confirmation message
       operationId: resendConfirmationEmail
       security:
         - accessCookie: []
       responses:
-        "204":
-          description: Confirmation email sent successfully.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '204':
+          description: Confirmation email was sent.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/auth/confirm/{token}:
     post:
-      tags: [Authentication]
-      summary: Confirm email address
-      description: Verifies user's email address using the confirmation token from email link.
+      tags: [Auth / Confirm]
+      summary: Confirm a user's email address
       operationId: confirmEmail
+      security:
+        - accessCookie: []
       parameters:
         - name: token
           in: path
           required: true
-          description: Email confirmation token
+          description: Email confirmation token from the confirmation link.
           schema:
             type: string
       responses:
-        "204":
-          description: Email verified successfully.
-        "400":
-          description: Invalid or expired confirmation token.
-          content:
-            text/plain:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/dashboard:
-    get:
-      tags: [Dashboard]
-      summary: Get dashboard statistics
-      description: Returns statistics and status for the authenticated user including task counts, completion percentage, and upcoming deadlines.
-      operationId: getDashboard
-      security:
-        - accessCookie: []
-      responses:
-        "200":
-          description: Dashboard statistics for the authenticated user.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DashboardStatus"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/subjects/:
-    get:
-      tags: [Subjects]
-      summary: List subjects
-      operationId: listSubjects
-      security:
-        - accessCookie: []
-      responses:
-        "200":
-          description: All subjects belonging to the authenticated user.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Subject"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '204':
+          description: Email was confirmed successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/totp/setup:
     post:
-      tags: [Subjects]
-      summary: Create subjects
-      operationId: createSubjects
+      tags: [Auth / TOTP]
+      summary: Generate a TOTP setup QR-code and secret
+      operationId: generateTOTP
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: TOTP secret and QR-code were generated and saved for the user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TOTPSetupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/totp/setup/confirm:
+    post:
+      tags: [Auth / TOTP]
+      summary: Confirm the TOTP setup with a one-time 6-digit code
+      operationId: confirmTOTPSetup
       security:
         - accessCookie: []
       requestBody:
@@ -201,68 +218,206 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              minItems: 1
-              items:
-                $ref: "#/components/schemas/SubjectInput"
+              $ref: '#/components/schemas/Passcode'
       responses:
-        "201":
-          description: Created subjects.
+        '200':
+          description: TOTP setup was confirmed and recovery codes were returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/totp:
+    delete:
+      tags: [Auth / TOTP]
+      summary: Disable TOTP for the authenticated user
+      operationId: disableTOTP
+      security:
+        - accessCookie: []
+      responses:
+        '204':
+          description: TOTP was disabled successfully.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/reset-password/request:
+    post:
+      tags: [Auth / Reset Password]
+      summary: Request a password reset email
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetEmailRequest'
+      responses:
+        '204':
+          description: Password reset email was sent if the account exists.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/reset-password/verify:
+    post:
+      tags: [Auth / Reset Password]
+      summary: Validate a password reset token
+      operationId: verifyResetPasswordToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetTokenRequest'
+      responses:
+        '200':
+          description: Token is valid.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/reset-password:
+    post:
+      tags: [Auth / Reset Password]
+      summary: Reset the user's password with a valid reset token
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '204':
+          description: Password was updated successfully.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Get dashboard statistics for the authenticated user
+      operationId: getDashboardStatus
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Dashboard statistics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/subjects:
+    get:
+      tags: [Subjects]
+      summary: Get all subjects of the authenticated user
+      operationId: getUserSubjects
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Subject list.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Subject"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                  $ref: '#/components/schemas/Subject'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Subjects]
+      summary: Create one or more subjects
+      operationId: addSubject
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubjectCreateRequest'
+      responses:
+        '201':
+          description: Subject created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
     delete:
       tags: [Subjects]
-      summary: Delete all subjects
-      description: Deletes every subject belonging to the authenticated user. Related tasks are deleted by the database.
-      operationId: deleteSubjects
+      summary: Delete all subjects of the authenticated user
+      operationId: deleteUserSubjects
       security:
         - accessCookie: []
       responses:
-        "204":
-          description: Subjects deleted.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '204':
+          description: All subjects were deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/subjects/{id}:
     parameters:
-      - $ref: "#/components/parameters/NumericId"
+      - $ref: '#/components/parameters/NumericId'
     get:
       tags: [Subjects]
-      summary: Get a subject
+      summary: Get a subject by ID
       operationId: getSubject
       security:
         - accessCookie: []
       responses:
-        "200":
+        '200':
           description: Subject found.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Subject"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/Subject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     put:
       tags: [Subjects]
-      summary: Replace a subject
+      summary: Replace a subject by ID
       operationId: replaceSubject
       security:
         - accessCookie: []
@@ -271,28 +426,27 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SubjectInput"
+              $ref: '#/components/schemas/SubjectCreateRequest'
       responses:
-        "200":
-          description: Replaced subject.
+        '200':
+          description: Subject replaced.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Subject"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/Subject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
     patch:
       tags: [Subjects]
-      summary: Update a subject
-      description: At least one property must be supplied.
+      summary: Update selected fields of a subject
       operationId: updateSubject
       security:
         - accessCookie: []
@@ -301,50 +455,71 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SubjectPatch"
+              $ref: '#/components/schemas/SubjectUpdateRequest'
       responses:
-        "200":
-          description: Updated subject.
+        '200':
+          description: Subject updated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Subject"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/Subject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
     delete:
       tags: [Subjects]
-      summary: Delete a subject
-      description: Deletes the subject owned by the authenticated user. Related tasks are deleted by the database.
+      summary: Delete a subject by ID
       operationId: deleteSubject
       security:
         - accessCookie: []
       responses:
-        "204":
-          description: Subject deleted.
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '204':
+          description: Subject was deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/subjects/{id}/tasks:
+    get:
+      tags: [Subjects]
+      summary: Get tasks tied to a subject
+      operationId: getSubjectTasks
+      security:
+        - accessCookie: []
+      parameters:
+        - $ref: '#/components/parameters/NumericId'
+      responses:
+        '200':
+          description: Tasks for the subject.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/subjects/avatar/:
     post:
       tags: [Subjects]
-      summary: Upload a lecturer avatar
-      description: |
-        Sends raw PNG, JPEG, or WebP image bytes (not multipart form data).
-        Maximum body size is 2 MiB and maximum dimensions are 2560×2560.
-        The server converts the image to WebP.
+      summary: Upload a lecturer avatar as raw image bytes
       operationId: uploadLecturerAvatar
       security:
         - accessCookie: []
@@ -364,54 +539,55 @@ paths:
               type: string
               format: binary
       responses:
-        "200":
-          description: Avatar stored.
+        '200':
+          description: Avatar saved and URL returned.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AvatarUpload"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "413":
-          description: Image body or dimensions exceed the limit.
+                $ref: '#/components/schemas/AvatarUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Image exceeds the maximum size or resolution.
           content:
             text/plain:
               schema:
-                $ref: "#/components/schemas/Error"
-        "415":
-          description: The decoded image is not PNG, JPEG, or WebP.
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Unsupported image format.
           content:
             text/plain:
               schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /api/tasks/:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/tasks:
     get:
       tags: [Tasks]
-      summary: List user tasks
-      operationId: listUserTasks
+      summary: Get all tasks of the authenticated user
+      operationId: getUserTasks
       security:
         - accessCookie: []
       responses:
-        "200":
-          description: All tasks belonging to the authenticated user.
+        '200':
+          description: Task list.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Task"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
     post:
       tags: [Tasks]
-      summary: Create tasks
-      operationId: createTasks
+      summary: Create a task
+      operationId: addTask
       security:
         - accessCookie: []
       requestBody:
@@ -419,73 +595,65 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              minItems: 1
-              items:
-                $ref: "#/components/schemas/TaskInput"
+              $ref: '#/components/schemas/TaskCreateRequest'
       responses:
-        "201":
-          description: Created tasks.
+        '201':
+          description: Task created.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Task"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          description: Referenced subject not found.
-          content:
-            text/plain:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
     delete:
       tags: [Tasks]
-      summary: Delete all tasks
-      operationId: deleteTasks
+      summary: Delete all tasks of the authenticated user
+      operationId: deleteUserTasks
       security:
         - accessCookie: []
       responses:
-        "204":
-          description: Tasks deleted.
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '204':
+          description: All tasks were deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/tasks/{id}:
     parameters:
-      - $ref: "#/components/parameters/NumericId"
+      - $ref: '#/components/parameters/NumericId'
     get:
       tags: [Tasks]
-      summary: Get a task
+      summary: Get a task by ID
       operationId: getTask
       security:
         - accessCookie: []
       responses:
-        "200":
+        '200':
           description: Task found.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
     put:
       tags: [Tasks]
-      summary: Replace a task
+      summary: Replace a task by ID
       operationId: replaceTask
       security:
         - accessCookie: []
@@ -494,28 +662,27 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskInput"
+              $ref: '#/components/schemas/TaskCreateRequest'
       responses:
-        "200":
-          description: Replaced task.
+        '200':
+          description: Task replaced.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
     patch:
       tags: [Tasks]
-      summary: Update a task
-      description: At least one property must be supplied.
+      summary: Update selected task fields
       operationId: updateTask
       security:
         - accessCookie: []
@@ -524,68 +691,67 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TaskPatch"
+              $ref: '#/components/schemas/TaskUpdateRequest'
       responses:
-        "200":
-          description: Updated task.
+        '200':
+          description: Task updated.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
     delete:
       tags: [Tasks]
-      summary: Delete a task
+      summary: Delete a task by ID
       operationId: deleteTask
       security:
         - accessCookie: []
       responses:
-        "204":
-          description: Task deleted.
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '204':
+          description: Task was deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/users/me:
     get:
       tags: [Profile]
       summary: Get current user profile
-      description: Returns the authenticated user's profile information.
       operationId: getCurrentUser
       security:
         - accessCookie: []
       responses:
-        "200":
-          description: Current authenticated user profile.
+        '200':
+          description: Current user profile.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/users/me/email:
     patch:
       tags: [Profile]
-      summary: Update user email
-      description: Changes the user's email address and sends a new confirmation email. User must verify the new email.
+      summary: Update the authenticated user's email
       operationId: updateUserEmail
       security:
         - accessCookie: []
@@ -594,30 +760,29 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/EmailRequest"
+              $ref: '#/components/schemas/EmailRequest'
       responses:
-        "200":
-          description: Email updated successfully. Confirmation email sent to new address.
+        '200':
+          description: Email updated and a confirmation email was sent.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/users/me/password:
     patch:
       tags: [Profile]
-      summary: Update user password
-      description: Changes the user's password. Current password verification is required.
+      summary: Update the authenticated user's password
       operationId: updateUserPassword
       security:
         - accessCookie: []
@@ -626,36 +791,34 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PasswordRequest"
+              $ref: '#/components/schemas/PasswordRequest'
       responses:
-        "204":
+        '204':
           description: Password updated successfully.
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          description: Unauthorized - invalid current password or missing credentials.
-          content:
-            text/plain:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "415":
-          $ref: "#/components/responses/UnsupportedMediaType"
-        "500":
-          $ref: "#/components/responses/InternalError"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
 components:
   securitySchemes:
     accessCookie:
       type: apiKey
       in: cookie
       name: access_token
-      description: HttpOnly JWT cookie issued by register, login, or refresh.
+      description: HttpOnly JWT access token cookie.
     refreshCookie:
       type: apiKey
       in: cookie
       name: refresh_token
-      description: HttpOnly JWT cookie issued by register, login, or refresh.
+      description: HttpOnly JWT refresh token cookie.
+
   parameters:
     NumericId:
       name: id
@@ -666,69 +829,71 @@ components:
         type: integer
         format: int64
         minimum: 1
-    Email:
-      name: email
-      in: path
-      required: true
-      schema:
-        type: string
-        minLength: 3
-        maxLength: 32
-        pattern: '^[A-Za-z0-9._]+$'
+
   headers:
     AuthCookies:
-      description: The backend emits separate access_token and refresh_token Set-Cookie headers.
+      description: Session cookies are set by the backend.
       schema:
         type: string
+
   requestBodies:
     Credentials:
       required: true
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Credentials"
+            $ref: '#/components/schemas/Credentials'
+
   responses:
     BadRequest:
-      description: Invalid path parameter, JSON, or field value.
+      description: Invalid JSON, missing fields, or invalid payload values.
       content:
         text/plain:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
     Unauthorized:
-      description: Authentication cookie is missing, invalid, or expired.
+      description: Missing or invalid authentication cookies.
       content:
         text/plain:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
     NotFound:
       description: Resource not found.
       content:
         text/plain:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
     Conflict:
-      description: A user with the requested email already exists.
+      description: User already exists.
       content:
         text/plain:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
     UnsupportedMediaType:
-      description: Content-Type must be application/json.
+      description: Content-Type must be application/json for JSON endpoints.
       content:
         text/plain:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: The submitted token is invalid or expired.
+      content:
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/Error'
     InternalError:
       description: Internal server error.
       content:
         text/plain:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
+
   schemas:
     Error:
       type: string
-      description: Plain-text error message, usually terminated by a newline.
-      example: unauthorized
+      description: Plain-text error message.
+      example: invalid email or password
+
     Credentials:
       type: object
       additionalProperties: false
@@ -736,86 +901,175 @@ components:
       properties:
         email:
           type: string
+          format: email
           minLength: 3
-          maxLength: 32
-          pattern: '^[A-Za-z0-9._]+$'
-          example: student
+          maxLength: 255
+          example: student@example.com
         password:
           type: string
           format: password
           minLength: 8
           maxLength: 72
           writeOnly: true
-          example: strong password
+          example: strongPassword123
+
     User:
       type: object
-      required: [id, email, is_email_verified]
+      required: [id, email, is_email_verified, is_totp_enabled]
       properties:
         id:
           type: integer
           format: int64
-          description: Unique user identifier
           example: 1
         email:
           type: string
-          description: User's email address
+          format: email
           example: student@example.com
         is_email_verified:
           type: boolean
-          description: Whether the user has verified their email address
           example: true
+        is_totp_enabled:
+          type: boolean
+          example: false
+
+    ChallengeTokenResponse:
+      type: object
+      required: [challenge_token]
+      properties:
+        challenge_token:
+          type: string
+          description: One-time login challenge token used with /api/auth/login/totp.
+          example: e9ab... 
+
+    LoginTOTPRequest:
+      type: object
+      additionalProperties: false
+      required: [challenge_token, code]
+      properties:
+        challenge_token:
+          type: string
+          example: e9ab7d4c9b874c4d
+        code:
+          type: string
+          description: 6-digit TOTP code.
+          example: '123456'
+
+    Passcode:
+      type: object
+      additionalProperties: false
+      required: [passcode]
+      properties:
+        passcode:
+          type: string
+          description: 6-digit TOTP validation code.
+          example: '123456'
+
+    TOTPSetupResponse:
+      type: object
+      required: [qr_code, text_key]
+      properties:
+        qr_code:
+          type: string
+          description: Base64-encoded QR image payload.
+          example: iVBORw0KGgoAAAANSUhEUgAA...
+        text_key:
+          type: string
+          description: TOTP secret to enter manually in the authenticator app.
+          example: JBSWY3DPEHPK3PXP
+
+    RecoveryCodesResponse:
+      type: object
+      required: [codes]
+      properties:
+        codes:
+          type: array
+          items:
+            type: string
+          example: ["A1B2C3", "D4E5F6"]
+
     EmailRequest:
       type: object
-      required: [new_email]
       additionalProperties: false
+      required: [new_email]
       properties:
         new_email:
           type: string
-          description: New email address for the user
-          minLength: 1
-          maxLength: 255
-          example: newemail@example.com
+          format: email
+          example: new_student@example.com
+
     PasswordRequest:
       type: object
-      required: [current_password, new_password]
       additionalProperties: false
+      required: [current_password, new_password]
       properties:
         current_password:
           type: string
           format: password
-          description: Current password for verification
-          minLength: 1
-          maxLength: 72
           writeOnly: true
-          example: currentPassword123
+          minLength: 1
+          example: currentStrongPassword123
         new_password:
           type: string
           format: password
-          description: New password
+          writeOnly: true
           minLength: 8
           maxLength: 72
-          writeOnly: true
           example: newStrongPassword123
-    UserPatch:
+
+    PasswordResetEmailRequest:
       type: object
       additionalProperties: false
-      minProperties: 1
+      required: [email]
       properties:
         email:
           type: string
-          minLength: 1
-          maxLength: 32
-          example: updated_student
-        password:
+          format: email
+          example: student@example.com
+
+    PasswordResetTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [password_reset_token]
+      properties:
+        password_reset_token:
+          type: string
+          example: 72b693db-2cbf-41ea-bd4a-1b19d7f1a5df
+
+    PasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [password_reset_token, new_password, new_password_confirmed]
+      properties:
+        password_reset_token:
+          type: string
+          example: 72b693db-2cbf-41ea-bd4a-1b19d7f1a5df
+        new_password:
           type: string
           format: password
-          minLength: 1
+          minLength: 8
           maxLength: 72
           writeOnly: true
-          example: another strong password
+          example: StrongResetPassword123
+        new_password_confirmed:
+          type: string
+          format: password
+          writeOnly: true
+          example: StrongResetPassword123
+
+    Lecturer:
+      type: object
+      required: [name, position]
+      properties:
+        name:
+          type: string
+          example: Dr. Smith
+        position:
+          type: string
+          example: Lecturer
+
     Subject:
       type: object
-      required: [id, user_id, name, lecturer, lecturer_avatar_url, exam_date]
+      required: [id, user_id, name, type, scope, lecturers]
       properties:
         id:
           type: integer
@@ -828,37 +1082,82 @@ components:
         name:
           type: string
           example: Databases
-        lecturer:
+        note:
           type: string
-          example: Dr. Smith
-        lecturer_avatar_url:
+          nullable: true
+          example: Intro to SQL and relation modeling
+        type:
           type: string
-          example: /static/lecturer-avatars/550e8400-e29b-41d4-a716-446655440000.webp
+          enum: [university, personal]
+          example: university
+        scope:
+          type: string
+          enum: [technology, healthcare, humanities, business, social, science, other]
+          example: technology
         exam_date:
           type: string
           format: date-time
           nullable: true
-          example: "2026-07-20T09:00:00Z"
-    SubjectInput:
+          example: '2026-07-20T09:00:00Z'
+        term:
+          type: integer
+          minimum: 1
+          maximum: 16
+          nullable: true
+          example: 3
+        lecturers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lecturer'
+        lecturer_avatar_url:
+          type: string
+          nullable: true
+          example: ./data/lecturer-avatars/1d9c94a6-8f8a-45ad-a0ec-692123f8c7dd.webp
+
+    SubjectCreateRequest:
       type: object
+      additionalProperties: false
       required: [name]
       properties:
         name:
           type: string
           minLength: 1
           example: Databases
-        lecturer:
+        note:
           type: string
-          example: Dr. Smith
-        lecturer_avatar_url:
+          nullable: true
+          example: Intro to SQL and relation modeling
+        type:
           type: string
-          example: /static/lecturer-avatars/550e8400-e29b-41d4-a716-446655440000.webp
+          enum: [university, personal]
+          default: university
+          example: university
+        scope:
+          type: string
+          enum: [technology, healthcare, humanities, business, social, science, other]
+          default: other
+          example: technology
         exam_date:
           type: string
           format: date-time
           nullable: true
-          example: "2026-07-20T09:00:00Z"
-    SubjectPatch:
+          example: '2026-07-20T09:00:00Z'
+        term:
+          type: integer
+          minimum: 1
+          maximum: 16
+          nullable: true
+          example: 3
+        lecturers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lecturer'
+        lecturer_avatar_url:
+          type: string
+          nullable: true
+          example: ./data/lecturer-avatars/1d9c94a6-8f8a-45ad-a0ec-692123f8c7dd.webp
+
+    SubjectUpdateRequest:
       type: object
       additionalProperties: false
       minProperties: 1
@@ -866,62 +1165,148 @@ components:
         name:
           type: string
           example: Advanced Databases
-        lecturer:
+        note:
           type: string
-          example: Dr. Jones
+          nullable: true
+          example: Updated notes
+        type:
+          type: string
+          enum: [university, personal]
+          example: personal
+        scope:
+          type: string
+          enum: [technology, healthcare, humanities, business, social, science, other]
+          example: science
         exam_date:
           type: string
           format: date-time
           nullable: true
-          example: "2026-07-21T09:00:00Z"
+          example: '2026-07-21T09:00:00Z'
+        term:
+          type: integer
+          minimum: 1
+          maximum: 16
+          nullable: true
+          example: 4
+        lecturers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lecturer'
+        lecturer_avatar_url:
+          type: string
+          nullable: true
+          example: ./data/lecturer-avatars/1d9c94a6-8f8a-45ad-a0ec-692123f8c7dd.webp
+
     Task:
       type: object
-      required: [id, name, description, subject_id, deadline, status]
+      required: [id, subject_id, name, type, description, status, difficulty, priority, created_at, updated_at]
       properties:
         id:
           type: integer
           format: int64
-          example: 1
-        name:
-          type: string
-          example: Read chapter 4
-        description:
-          type: string
-          example: Write a summary
+          example: 10
         subject_id:
           type: integer
           format: int64
           example: 1
+        name:
+          type: string
+          example: Read chapter 4
+        type:
+          type: string
+          enum: [exam, credit, coursework, project, other]
+          example: coursework
+        description:
+          type: string
+          example: Write a short summary and review the key terms.
+        estimated_time:
+          type: integer
+          nullable: true
+          minimum: 1
+          example: 90
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-07-08T12:00:00Z'
         deadline:
           type: string
           format: date-time
           nullable: true
-          example: "2026-07-10T12:00:00Z"
+          example: '2026-07-10T12:00:00Z'
         status:
-          $ref: "#/components/schemas/TaskStatus"
-    TaskInput:
+          type: string
+          enum: [not_completed, ongoing, completed]
+          example: ongoing
+        difficulty:
+          type: string
+          enum: [low, medium, high]
+          example: medium
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: high
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-07-01T12:00:00Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-07-02T09:00:00Z'
+
+    TaskCreateRequest:
       type: object
-      required: [name, subject_id, status]
+      additionalProperties: false
+      required: [subject_id, name, type, status]
       properties:
-        name:
-          type: string
-          example: Read chapter 4
-        description:
-          type: string
-          example: Write a summary
         subject_id:
           type: integer
           format: int64
           minimum: 1
           example: 1
+        name:
+          type: string
+          example: Read chapter 4
+        type:
+          type: string
+          enum: [exam, credit, coursework, project, other]
+          example: coursework
+        description:
+          type: string
+          example: Write a short summary and review the key terms.
+        estimated_time:
+          type: integer
+          nullable: true
+          minimum: 1
+          example: 90
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-07-08T12:00:00Z'
         deadline:
           type: string
           format: date-time
           nullable: true
-          example: "2026-07-10T12:00:00Z"
+          example: '2026-07-10T12:00:00Z'
         status:
-          $ref: "#/components/schemas/TaskStatus"
-    TaskPatch:
+          type: string
+          enum: [not_completed, ongoing, completed]
+          default: not_completed
+          example: ongoing
+        difficulty:
+          type: string
+          enum: [low, medium, high]
+          default: low
+          example: medium
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: low
+          example: high
+
+    TaskUpdateRequest:
       type: object
       additionalProperties: false
       minProperties: 1
@@ -929,25 +1314,46 @@ components:
         name:
           type: string
           example: Read chapters 4 and 5
+        type:
+          type: string
+          enum: [exam, credit, coursework, project, other]
+          example: exam
         description:
           type: string
-          example: Write a two-page summary
-        subject_id:
+          example: Review the primary definitions and examples.
+        estimated_time:
           type: integer
-          format: int64
+          nullable: true
           minimum: 1
-          example: 1
+          example: 120
+        scheduled_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-07-08T12:00:00Z'
         deadline:
           type: string
           format: date-time
           nullable: true
-          example: "2026-07-11T12:00:00Z"
+          example: '2026-07-11T12:00:00Z'
+        subject_id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 2
         status:
-          $ref: "#/components/schemas/TaskStatus"
-    TaskStatus:
-      type: string
-      enum: [not_completed, ongoing, completed]
-      example: ongoing
+          type: string
+          enum: [not_completed, ongoing, completed]
+          example: completed
+        difficulty:
+          type: string
+          enum: [low, medium, high]
+          example: high
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: medium
+
     DashboardStatus:
       type: object
       required:
@@ -967,11 +1373,11 @@ components:
         total_tasks:
           type: integer
           format: int64
-          example: 4
+          example: 8
         total_completed_tasks:
           type: integer
           format: int64
-          example: 1
+          example: 3
         total_ongoing_tasks:
           type: integer
           format: int64
@@ -979,25 +1385,23 @@ components:
         total_not_completed_tasks:
           type: integer
           format: int64
-          example: 1
+          example: 3
         completion_percent:
           type: number
           format: double
-          minimum: 0
-          maximum: 100
-          example: 25
+          example: 37.5
         nearest_deadline_task:
-          allOf:
-            - $ref: "#/components/schemas/Task"
+          $ref: '#/components/schemas/Task'
           nullable: true
         overdue_tasks:
           type: array
           items:
-            $ref: "#/components/schemas/Task"
-    AvatarUpload:
+            $ref: '#/components/schemas/Task'
+
+    AvatarUploadResponse:
       type: object
       required: [lecturer_avatar_url]
       properties:
         lecturer_avatar_url:
           type: string
-          example: ./data/lecturer-avatars/550e8400-e29b-41d4-a716-446655440000.webp
+          example: ./data/lecturer-avatars/26c15f91-1756-4be7-b4b5-4ea6732dbe11.webp
