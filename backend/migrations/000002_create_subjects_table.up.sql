@@ -15,5 +15,5 @@ CREATE TABLE IF NOT EXISTS subjects (
   exam_date TIMESTAMPTZ,
   term SMALLINT CHECK (term BETWEEN 1 AND 16),
 
-  lecturer_avatar_url TEXT
+  thumbnail_url TEXT
 );

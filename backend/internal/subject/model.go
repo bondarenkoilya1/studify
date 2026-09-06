@@ -15,38 +15,38 @@ type Lecturer struct {
 }
 
 type Subject struct {
-	ID                int64      `json:"id"`
-	UserID            int64      `json:"user_id"`
-	Name              string     `json:"name"`
-	Note              *string    `json:"note"`
-	Type              string     `json:"type"`
-	Scope             string     `json:"scope"`
-	ExamDate          *time.Time `json:"exam_date"`
-	Term              *int       `json:"term"`
-	Lecturers         []Lecturer `json:"lecturers"`
-	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
+	ID           int64      `json:"id"`
+	UserID       int64      `json:"user_id"`
+	Name         string     `json:"name"`
+	Note         *string    `json:"note"`
+	Type         string     `json:"type"`
+	Scope        string     `json:"scope"`
+	ExamDate     *time.Time `json:"exam_date"`
+	Term         *int       `json:"term"`
+	Lecturers    []Lecturer `json:"lecturers"`
+	ThumbnailURL *string    `json:"thumbnail_url"`
 }
 
 type CreateSubjectRequest struct {
-	Name              string     `json:"name"`
-	Note              *string    `json:"note"`
-	Type              string     `json:"type"`
-	Scope             string     `json:"scope"`
-	ExamDate          *time.Time `json:"exam_date"`
-	Term              *int       `json:"term"`
-	Lecturers         []Lecturer `json:"lecturers"`
-	LecturerAvatarURL *string    `json:"lecturer_avatar_url"`
+	Name         string     `json:"name"`
+	Note         *string    `json:"note"`
+	Type         string     `json:"type"`
+	Scope        string     `json:"scope"`
+	ExamDate     *time.Time `json:"exam_date"`
+	Term         *int       `json:"term"`
+	Lecturers    []Lecturer `json:"lecturers"`
+	ThumbnailURL *string    `json:"thumbnail_url"`
 }
 
 type UpdateSubjectRequest struct {
-	Name              *string     `json:"name"`
-	Note              *string     `json:"note"`
-	Type              *string     `json:"type"`
-	Scope             *string     `json:"scope"`
-	Lecturers         *[]Lecturer `json:"lecturers"`
-	LecturerAvatarURL *string     `json:"lecturer_avatar_url"`
-	ExamDate          *time.Time  `json:"exam_date"`
-	Term              *int        `json:"term"`
+	Name         *string     `json:"name"`
+	Note         *string     `json:"note"`
+	Type         *string     `json:"type"`
+	Scope        *string     `json:"scope"`
+	Lecturers    *[]Lecturer `json:"lecturers"`
+	ThumbnailURL *string     `json:"thumbnail_url"`
+	ExamDate     *time.Time  `json:"exam_date"`
+	Term         *int        `json:"term"`
 }
 
 var validScopes = map[string]bool{

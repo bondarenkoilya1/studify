@@ -25,7 +25,7 @@ const subjectSelectQuery = `
 	   scope,
 	   exam_date,
 	   term,
-	   lecturer_avatar_url
+	   thumbnail_url
 	FROM subjects
 `
 
@@ -35,10 +35,10 @@ func scanSubject(scanner interface {
 	subject := &Subject{}
 
 	var (
-		note              sql.NullString
-		examDate          sql.NullTime
-		term              sql.NullInt64
-		lecturerAvatarURL sql.NullString
+		note         sql.NullString
+		examDate     sql.NullTime
+		term         sql.NullInt64
+		thumbnailURL sql.NullString
 	)
 
 	if err := scanner.Scan(
@@ -50,7 +50,7 @@ func scanSubject(scanner interface {
 		&subject.Scope,
 		&examDate,
 		&term,
-		&lecturerAvatarURL,
+		&thumbnailURL,
 	); err != nil {
 		return nil, err
 	}
@@ -64,8 +64,8 @@ func scanSubject(scanner interface {
 		subject.Term = &value
 	}
 
-	if lecturerAvatarURL.Valid {
-		subject.LecturerAvatarURL = &lecturerAvatarURL.String
+	if thumbnailURL.Valid {
+		subject.ThumbnailURL = &thumbnailURL.String
 	}
 
 	subject.ExamDate = util.NullTimePtr(examDate)
@@ -161,7 +161,7 @@ func InsertSubject(
 	note *string,
 	subjectType string,
 	scope string,
-	lecturerAvatarURL *string,
+	thumbnailURL *string,
 	examDate *time.Time,
 	term *int,
 	lecturers []Lecturer,
@@ -179,7 +179,7 @@ func InsertSubject(
 		note,
 		subjectType,
 		scope,
-		lecturerAvatarURL,
+		thumbnailURL,
 		examDate,
 		term,
 	)
@@ -211,7 +211,7 @@ func insertSubjectTx(db DBTX,
 	note *string,
 	subjectType string,
 	scope string,
-	lecturerAvatarURL *string,
+	thumbnailURL *string,
 	examDate *time.Time,
 	term *int,
 ) (*Subject, error) {
@@ -224,7 +224,7 @@ func insertSubjectTx(db DBTX,
 	      scope,
 	      exam_date,
 	      term,
-	      lecturer_avatar_url
+	      thumbnail_url
 	   )
 	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	   RETURNING
@@ -236,7 +236,7 @@ func insertSubjectTx(db DBTX,
 	      scope,
 	      exam_date,
 	      term,
-	      lecturer_avatar_url;
+	      thumbnail_url;
 	`
 
 	subject, err := scanSubject(
@@ -249,7 +249,7 @@ func insertSubjectTx(db DBTX,
 			scope,
 			examDate,
 			toNullInt64(term),
-			lecturerAvatarURL,
+			thumbnailURL,
 		),
 	)
 	if err != nil {
@@ -309,7 +309,7 @@ func UpdateSubject(
 	note *string,
 	subjectType string,
 	scope string,
-	lecturerAvatarURL *string,
+	thumbnailURL *string,
 	examDate *time.Time,
 	term *int,
 ) error {
@@ -322,7 +322,7 @@ func UpdateSubject(
 	      scope = $4,
 	      exam_date = $5,
 	      term = $6,
-	      lecturer_avatar_url = $7
+	      thumbnail_url = $7
 	   WHERE id = $8 AND user_id = $9;
 	`
 
@@ -334,7 +334,7 @@ func UpdateSubject(
 		scope,
 		examDate,
 		toNullInt64(term),
-		lecturerAvatarURL,
+		thumbnailURL,
 		id,
 		userID,
 	)

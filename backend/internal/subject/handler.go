@@ -88,7 +88,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note,
 		req.Type,
 		req.Scope,
-		req.LecturerAvatarURL,
+		req.ThumbnailURL,
 		req.ExamDate,
 		req.Term,
 		req.Lecturers,
@@ -135,7 +135,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note,
 		req.Type,
 		req.Scope,
-		req.LecturerAvatarURL,
+		req.ThumbnailURL,
 		req.ExamDate,
 		req.Term,
 	); err != nil {
@@ -187,7 +187,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note == nil &&
 		req.Type == nil &&
 		req.Scope == nil &&
-		req.LecturerAvatarURL == nil &&
+		req.ThumbnailURL == nil &&
 		req.ExamDate == nil &&
 		req.Term == nil {
 		http.Error(w, "no fields to update", http.StatusBadRequest)
@@ -237,8 +237,8 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Scope = *req.Scope
 	}
 
-	if req.LecturerAvatarURL != nil {
-		subject.LecturerAvatarURL = req.LecturerAvatarURL
+	if req.ThumbnailURL != nil {
+		subject.ThumbnailURL = req.ThumbnailURL
 	}
 
 	if req.ExamDate != nil {
@@ -262,7 +262,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Note,
 		subject.Type,
 		subject.Scope,
-		subject.LecturerAvatarURL,
+		subject.ThumbnailURL,
 		subject.ExamDate,
 		subject.Term,
 	); err != nil {
@@ -322,7 +322,7 @@ func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	const (
@@ -372,7 +372,7 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dir := "./data/lecturer-avatars/"
+	dir := "./data/thumbnails/"
 
 	if err := ensureDir(dir); err != nil {
 		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
@@ -396,11 +396,11 @@ func (h *Handler) UploadLecturerAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type avatarResponse struct {
-		LecturerAvatarURL string `json:"lecturer_avatar_url"`
+	type thumbnail struct {
+		ThumbnailURL string `json:"thumbnail_url"`
 	}
 
-	writeJSON(w, http.StatusOK, avatarResponse{
-		LecturerAvatarURL: fullPath,
+	writeJSON(w, http.StatusOK, thumbnail{
+		ThumbnailURL: "/static/thumbnails/" + filename,
 	})
 }

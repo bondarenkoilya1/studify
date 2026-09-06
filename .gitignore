@@ -4,7 +4,7 @@
 
 backend/tmp
 backend/.air.toml
-backend/data/*.db
 backend/.publicEnv
+backend/data
 
 ai

@@ -38,10 +38,9 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h.User)
 			registerDashboardRoutes(r, h.Dashboard)
+			registerStaticRoutes(r)
 		})
 	})
-
-	//registerStaticRoutes(r)
 
 	return r
 }
@@ -78,12 +77,12 @@ func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {
 			r.With(middlewares.RequireJSON).Put("/", h.ReplaceSubject)
 			r.With(middlewares.RequireJSON).Patch("/", h.UpdateSubject)
 
+			r.Post("/thumbnail", h.UploadThumbnail)
+
 			// Tasks
 			r.Get("/tasks", t.GetSubjectTasks)
 		})
 
-		// Avatar
-		r.Post("/avatar/", h.UploadLecturerAvatar)
 	})
 }
 
@@ -139,7 +138,7 @@ func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
 	})
 }
 
-//func registerStaticRoutes(r chi.Router) {
-//	lecturerAvatarFiles := http.FileServer(http.Dir("./data/lecturer-avatars"))
-//	r.Handle("/static/lecturer-avatars/*", http.StripPrefix("/static/lecturer-avatars/", lecturerAvatarFiles))
-//}
+func registerStaticRoutes(r chi.Router) {
+	thumbnails := http.FileServer(http.Dir("data/thumbnails"))
+	r.Get("/static/*", http.StripPrefix("/api/static/", thumbnails).ServeHTTP)
+}
