@@ -29,7 +29,7 @@ export function Header() {
 
         {/* Right */}
         <div className="shrink-0">
-          <HeaderActions email={user?.email} />
+          <HeaderActions email={user?.email} avatarUrl={user?.avatarUrl} />
         </div>
       </div>
     </header>

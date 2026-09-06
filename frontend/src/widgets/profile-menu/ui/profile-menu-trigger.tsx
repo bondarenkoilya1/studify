@@ -1,12 +1,14 @@
 import { cn } from "@/shared/lib/cn";
+import { Avatar } from "@/shared/ui/avatar";
 
 interface Props {
   email: string;
+  avatarUrl?: string | null;
   isOpen: boolean;
   onClick: () => void;
 }
 
-export function ProfileMenuTrigger({ email, isOpen, onClick }: Props) {
+export function ProfileMenuTrigger({ email, avatarUrl, isOpen, onClick }: Props) {
   return (
     <button
       type="button"
@@ -21,18 +23,7 @@ export function ProfileMenuTrigger({ email, isOpen, onClick }: Props) {
         "focus-visible:outline-none",
       )}
     >
-      <div
-        className={cn(
-          "relative flex h-8 w-8 shrink-0 select-none items-center justify-center",
-          "overflow-hidden rounded-full border border-white/10",
-          "bg-linear-to-br from-zinc-700 via-zinc-900 to-black",
-          "text-xs font-semibold text-white shadow-inner",
-        )}
-      >
-        <div className="absolute -inset-4 bg-white/5 blur-xl" />
-
-        <span className="relative">{email.substring(0, 2).toUpperCase()}</span>
-      </div>
+      <Avatar email={email} avatarUrl={avatarUrl} size={32} />
 
       <span className="max-w-64 truncate font-medium text-studify-text">
         {email}

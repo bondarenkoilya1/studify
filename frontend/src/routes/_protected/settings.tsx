@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { Shield, User } from "lucide-react";
 import { useCurrentUser } from "@/entities/user";
 import { cn } from "@/shared/lib/cn";
+import { Avatar } from "@/shared/ui/avatar";
 
 export const Route = createFileRoute("/_protected/settings")({
   component: RouteComponent,
@@ -16,7 +17,7 @@ function RouteComponent() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <SettingsHeader email={data.email} id={data.id} />
+      <SettingsHeader email={data.email} avatarUrl={data.avatarUrl} id={data.id} />
 
       <div className="flex flex-col gap-6 md:flex-row">
         <SettingsSidebar />
@@ -29,17 +30,19 @@ function RouteComponent() {
   );
 }
 
-function SettingsHeader({ email, id }: { email: string; id: number }) {
+function SettingsHeader({
+  email,
+  avatarUrl,
+  id,
+}: {
+  email: string;
+  avatarUrl?: string | null;
+  id: number;
+}) {
   return (
     <div className="overflow-hidden rounded-2xl border bg-card p-6 text-card-foreground shadow-xs sm:p-8">
       <div className="flex items-center gap-5">
-        <div className="relative flex h-24 w-24 shrink-0 select-none items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-700 via-zinc-900 to-black text-3xl font-semibold text-white shadow-inner">
-          <div className="absolute -inset-4 bg-white/5 blur-xl" />
-
-          <span className="relative">
-            {email.substring(0, 2).toUpperCase()}
-          </span>
-        </div>
+        <Avatar email={email} avatarUrl={avatarUrl} size={96} className="text-3xl" />
 
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Настройки</h1>
