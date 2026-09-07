@@ -5,17 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
 	"net/http"
-	"os"
+	"strconv"
 	"studify/internal/httpx"
-	"studify/internal/util"
+	"studify/internal/media"
 
-	"github.com/chai2010/webp"
-	"github.com/google/uuid"
+	"github.com/go-chi/chi/v5"
 )
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
@@ -326,81 +324,55 @@ func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	const (
-		maxAvatarBytes = 2 << 20
-		maxWidth       = 2560
-		maxHeight      = 2560
-	)
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxAvatarBytes)
+	subjectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil || subjectID <= 0 {
+		http.Error(w, "invalid subject id", http.StatusBadRequest)
+		return
+	}
 
-	img, format, err := image.Decode(r.Body)
+	const maxThumbnailBytes = 2 << 20 // 2 MB
+	r.Body = http.MaxBytesReader(w, r.Body, maxThumbnailBytes)
+
+	constraints := media.ImageConstraints{
+		MaxWidth:  2560,
+		MaxHeight: 2560,
+		Quality:   85,
+	}
+
+	filename, err := media.SaveImageAsWebp(r.Body, constraints, "./data/thumbnails/")
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
-			http.Error(w, "Avatar is too large", http.StatusRequestEntityTooLarge)
+			http.Error(w, "thumbnail is too large (max 2MB)", http.StatusRequestEntityTooLarge)
 			return
 		}
 
-		http.Error(w, "Invalid image", http.StatusBadRequest)
+		switch {
+		case errors.Is(err, media.ErrInvalidFormat):
+			http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		case errors.Is(err, media.ErrDimensionsExceed), errors.Is(err, media.ErrDecodeFailed):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			log.Printf("failed to save thumbnail: %v", err)
+			http.Error(w, "failed to save thumbnail", http.StatusInternalServerError)
+		}
 		return
 	}
 
-	switch format {
-	case "png", "jpeg", "webp":
-	default:
-		http.Error(
-			w,
-			"Invalid file format. Use PNG/JPEG/WEBP",
-			http.StatusUnsupportedMediaType,
-		)
-		return
-	}
+	thumbnailURL := "/static/thumbnails/" + filename
 
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-
-	if width > maxWidth || height > maxHeight {
-		http.Error(
-			w,
-			fmt.Sprintf(
-				"File resolution is too large. Maximum resolution is %dx%d",
-				maxWidth,
-				maxHeight,
-			),
-			http.StatusRequestEntityTooLarge,
-		)
-		return
-	}
-
-	dir := "./data/"
-
-	if err = util.EnsureDir(dir); err != nil {
-		http.Error(w, "Wrong directory on the server", http.StatusInternalServerError)
-		return
-	}
-
-	filename := uuid.New().String() + ".webp"
-	fullPath := dir + filename
-
-	dst, err := os.Create(fullPath)
-	if err != nil {
-		http.Error(w, "Failed to create file", http.StatusInternalServerError)
-		return
-	}
-	defer dst.Close()
-
-	if err = webp.Encode(dst, img, &webp.Options{
-		Quality: 85,
-	}); err != nil {
-		http.Error(w, "Failed to save image", http.StatusInternalServerError)
-		return
-	}
-
-	thumbnailURL := "/static/" + filename
-
-	if err = InsertSubjectThumbnail(h.DB, 1, thumbnailURL, 1); err != nil {
-		http.Error(w, "Failed to insert thumbnail", http.StatusInternalServerError)
+	if err = InsertSubjectThumbnail(h.DB, subjectID, thumbnailURL, userID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "subject not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("failed to update subject thumbnail: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

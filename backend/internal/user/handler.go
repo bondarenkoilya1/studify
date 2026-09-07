@@ -5,20 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"image"
 	_ "image/jpeg"
 	_ "image/png"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 	"studify/internal"
 	"studify/internal/auth"
 	"studify/internal/httpx"
-	"studify/internal/util"
+	"studify/internal/media"
 
-	"github.com/chai2010/webp"
-	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -175,67 +171,35 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		log.Printf("failed to get user id: %v", err)
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	const (
-		maxAvatarBytes = 2 << 20
-		maxWidth       = 2560
-		maxHeight      = 2560
-	)
-
+	const maxAvatarBytes = 2 << 20 // 2 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxAvatarBytes)
 
-	img, format, err := image.Decode(r.Body)
+	constraints := media.ImageConstraints{
+		MaxWidth:  2560,
+		MaxHeight: 2560,
+		Quality:   85,
+	}
+
+	filename, err := media.SaveImageAsWebp(r.Body, constraints, "./data/users/")
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
-			http.Error(w, "avatar is too large", http.StatusRequestEntityTooLarge)
+			http.Error(w, "avatar is too large (max 2MB)", http.StatusRequestEntityTooLarge)
 			return
 		}
 
-		http.Error(w, "invalid image", http.StatusBadRequest)
-		return
-	}
-
-	switch format {
-	case "png", "jpeg", "webp":
-	default:
-		http.Error(w, "invalid file format. Use PNG, JPEG or WEBP", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	bounds := img.Bounds()
-	width := bounds.Dx()
-	height := bounds.Dy()
-
-	if width > maxWidth || height > maxHeight {
-		http.Error(w, fmt.Sprintf("file resolution is too large. Maximum resolution is %dx%d", maxWidth, maxHeight), http.StatusRequestEntityTooLarge)
-		return
-	}
-
-	dir := "./data/users/"
-	if err = util.EnsureDir(dir); err != nil {
-		log.Printf("failed to ensure dir: %v", err)
-		http.Error(w, "wrong directory on the server", http.StatusInternalServerError)
-		return
-	}
-
-	filename := uuid.New().String() + ".webp"
-	fullPath := dir + filename
-
-	dst, err := os.Create(fullPath)
-	if err != nil {
-		log.Printf("failed to create file: %v", err)
-		http.Error(w, "failed to create file", http.StatusInternalServerError)
-		return
-	}
-	defer dst.Close()
-
-	if err = webp.Encode(dst, img, &webp.Options{Quality: 85}); err != nil {
-		log.Printf("failed to encode webp: %v", err)
-		http.Error(w, "failed to save image", http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, media.ErrInvalidFormat):
+			http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		case errors.Is(err, media.ErrDimensionsExceed), errors.Is(err, media.ErrDecodeFailed):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			log.Printf("failed to save image: %v", err)
+			http.Error(w, "failed to save image", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -247,7 +211,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("failed to update user avatar: %v", err)
-		http.Error(w, "failed to update user avatar", http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
