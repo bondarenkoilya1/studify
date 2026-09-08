@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS subjects (
   user_id BIGINT NOT NULL REFERENCES  users(id) ON DELETE CASCADE,
 
   name TEXT NOT NULL,
+    UNIQUE (user_id, name),
+
   note VARCHAR(200),
 
   type TEXT NOT NULL DEFAULT 'university',
@@ -10,7 +12,6 @@ CREATE TABLE IF NOT EXISTS subjects (
 
   scope TEXT NOT NULL DEFAULT 'other',
     CHECK (scope IN ('technology', 'healthcare', 'humanities', 'business', 'social', 'science', 'other')),
-
 
   exam_date TIMESTAMPTZ,
   term SMALLINT CHECK (term BETWEEN 1 AND 16),
