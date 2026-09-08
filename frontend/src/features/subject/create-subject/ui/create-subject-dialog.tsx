@@ -141,9 +141,9 @@ export function CreateSubjectDialog({
 
       <DialogBody>
         <form onSubmit={form.submit} className="space-y-5">
-          {form.error && (
+          {form.formState.errors.root?.message && (
             <div className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600">
-              Не удалось создать предмет. Попробуйте ещё раз.
+              {form.formState.errors.root.message}
             </div>
           )}
 

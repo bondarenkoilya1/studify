@@ -93,7 +93,13 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		req.Lecturers,
 	)
 	if err != nil {
-		log.Printf("failed to insert subject: %v", err)
+		if errors.Is(err, ErrSubjectAlreadyExists) {
+			log.Printf("user %d attempted to create duplicate subject %q: %v", userID, req.Name, err)
+			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+			return
+		}
+
+		log.Printf("failed to insert subject for user %d: %v", userID, err)
 		http.Error(w, "failed to insert subject", http.StatusInternalServerError)
 		return
 	}
@@ -146,8 +152,13 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 			)
 			return
 		}
+		if errors.Is(err, ErrSubjectAlreadyExists) {
+			log.Printf("user %d attempted to replace subject %d with duplicate name %q: %v", userID, id, req.Name, err)
+			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+			return
+		}
 
-		log.Printf("failed to replace subject: %v", err)
+		log.Printf("failed to replace subject for user %d: %v", userID, err)
 		http.Error(w, "Failed to replace subject", http.StatusInternalServerError)
 		return
 	}
@@ -269,8 +280,13 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Subject not found", http.StatusNotFound)
 			return
 		}
+		if errors.Is(err, ErrSubjectAlreadyExists) {
+			log.Printf("user %d attempted to update subject %d with duplicate name %q: %v", userID, id, subject.Name, err)
+			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+			return
+		}
 
-		log.Printf("failed to update subject: %v", err)
+		log.Printf("failed to update subject for user %d: %v", userID, err)
 		http.Error(w, "Failed to update subject", http.StatusInternalServerError)
 		return
 	}

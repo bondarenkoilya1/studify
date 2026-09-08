@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type DefaultValues, useForm } from "react-hook-form";
 
+import { ApiError } from "@/shared/api/http/errors";
 import { createSubject } from "../api/create-subject";
 import { createSubjectSchema, type CreateSubjectFormValues } from "./schema";
 import type { SubjectInput } from "@/entities/subject";
@@ -39,8 +40,20 @@ function toSubjectInput(values: CreateSubjectFormValues): SubjectInput {
     examDate: values.examDate?.toISOString() ?? null,
     term: course * term,
     lecturers: values.lecturers,
-    lecturerAvatarUrl: values.lecturerAvatarUrl ?? null,
+    thumbnailUrl: values.lecturerAvatarUrl ?? null,
   };
+}
+
+function getSubjectErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.message) {
+    return error.message;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Не удалось создать предмет. Попробуйте ещё раз.";
 }
 
 export function useCreateSubjectForm(onSuccess?: () => void) {
@@ -54,12 +67,19 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
   const mutation = useMutation({
     mutationFn: createSubject,
 
+    onError: (error) => {
+      const message = getSubjectErrorMessage(error);
+      form.setError("root", { message });
+      console.error("Failed to create subject", error);
+    },
+
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["subjects"],
       });
 
       form.reset(defaultValues);
+      form.clearErrors("root");
       onSuccess?.();
     },
   });

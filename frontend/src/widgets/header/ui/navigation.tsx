@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/shared/lib/cn";
-import { Hammer, HammerIcon } from "lucide-react";
+import { Hammer } from "lucide-react";
 
 const linkClass = cn(
   "text-sm font-medium text-studify-muted transition-colors",
@@ -29,7 +29,7 @@ export function HeaderNavigation() {
         Дашборд
       </Link>
       <Link
-        to="/soon"
+        to="/"
         className={`${linkClass} group/nav flex items-center gap-2`}
         activeProps={{ className: "text-studify-text" }}
       >

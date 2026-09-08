@@ -2,17 +2,35 @@ package subject
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"studify/internal/util"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // todo: optimize with joins
+
+var ErrSubjectAlreadyExists = errors.New("subject already exists")
 
 type DBTX interface {
 	Exec(query string, args ...any) (sql.Result, error)
 	Query(query string, args ...any) (*sql.Rows, error)
 	QueryRow(query string, args ...any) *sql.Row
+}
+
+func normalizeUniqueSubjectError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return ErrSubjectAlreadyExists
+	}
+
+	return err
 }
 
 const subjectSelectQuery = `
@@ -253,7 +271,7 @@ func insertSubjectTx(db DBTX,
 		),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to insert subject: %w", err)
+		return nil, fmt.Errorf("failed to insert subject: %w", normalizeUniqueSubjectError(err))
 	}
 
 	return subject, nil
@@ -339,7 +357,7 @@ func UpdateSubject(
 		userID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update subject: %w", err)
+		return fmt.Errorf("failed to update subject: %w", normalizeUniqueSubjectError(err))
 	}
 
 	rowsAffected, err := result.RowsAffected()

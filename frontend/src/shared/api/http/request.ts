@@ -1,10 +1,38 @@
 import { publicEnv } from "@/shared/config";
-import { UnauthorizedError } from "./errors";
+import { ApiError, UnauthorizedError } from "./errors";
 import { isPlainObject } from "./is-plain-object";
 import { transformKeysCamelToSnake } from "./transform-keys";
 import { parseResponse } from "./parse-response";
 
 let refreshTokenPromise: Promise<Response> | null = null;
+
+async function getErrorMessage(response: Response): Promise<string> {
+  const text = await response.text();
+
+  if (!text) {
+    return `HTTP request failed with status ${response.status}`;
+  }
+
+  try {
+    const data = JSON.parse(text);
+
+    if (typeof data?.message === "string") {
+      return data.message;
+    }
+
+    if (typeof data?.error === "string") {
+      return data.error;
+    }
+
+    if (Array.isArray(data?.errors) && data.errors.length > 0) {
+      return String(data.errors[0]);
+    }
+  } catch {
+    // Fallback to raw text for non-JSON responses.
+  }
+
+  return text;
+}
 
 export async function request<T>(
   url: string,
@@ -57,9 +85,8 @@ export async function request<T>(
       const retryResponse = await execute();
 
       if (!retryResponse.ok) {
-        throw new Error(
-          `HTTP request failed with status ${retryResponse.status}`,
-        );
+        const message = await getErrorMessage(retryResponse);
+        throw new ApiError(retryResponse.status, message);
       }
 
       return parseResponse<T>(retryResponse);
@@ -69,7 +96,8 @@ export async function request<T>(
   }
 
   if (!response.ok) {
-    throw new Error(`HTTP request failed with status ${response.status}`);
+    const message = await getErrorMessage(response);
+    throw new ApiError(response.status, message);
   }
 
   return parseResponse<T>(response);
