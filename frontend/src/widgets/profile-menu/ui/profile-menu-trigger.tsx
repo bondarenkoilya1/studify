@@ -1,5 +1,5 @@
 import { cn } from "@/shared/lib/cn";
-import { Avatar } from "@/shared/ui/avatar";
+import { Avatar } from "@/widgets/avatar";
 
 interface Props {
   email: string;
@@ -8,7 +8,12 @@ interface Props {
   onClick: () => void;
 }
 
-export function ProfileMenuTrigger({ email, avatarUrl, isOpen, onClick }: Props) {
+export function ProfileMenuTrigger({
+  email,
+  avatarUrl,
+  isOpen,
+  onClick,
+}: Props) {
   return (
     <button
       type="button"
