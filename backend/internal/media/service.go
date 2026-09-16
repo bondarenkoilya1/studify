@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -59,7 +60,7 @@ func SaveImageAsWebp(r io.Reader, c ImageConstraints, dir string) (string, error
 	return filename, nil
 }
 
-func SavePDF(r io.Reader, sizeLimit int64, dir string) (string, error) {
+func SavePDF(r io.Reader, sizeLimit int64, dir string) (filename string, sizeBytes int64, contentType string, error error) {
 	reader := r
 	if sizeLimit > 0 {
 		reader = io.LimitReader(r, sizeLimit+1)
@@ -68,42 +69,45 @@ func SavePDF(r io.Reader, sizeLimit int64, dir string) (string, error) {
 	header := make([]byte, 512)
 	n, err := io.ReadFull(reader, header)
 	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {
-		return "", fmt.Errorf("read header: %w", err)
+		return "", 0, "", fmt.Errorf("read header: %w", err)
 	}
 
 	if n < len(pdfMagicHeader) || !bytes.HasPrefix(header[:n], pdfMagicHeader) {
-		return "", ErrInvalidPDFFormat
+		return "", 0, "", ErrInvalidPDFFormat
 	}
 
 	if err = os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("mkdir: %w", err)
+		return "", 0, "", fmt.Errorf("mkdir: %w", err)
 	}
 
-	filename := uuid.New().String() + ".pdf"
+	filename = uuid.New().String() + ".pdf"
 	fullPath := filepath.Join(dir, filename)
 
 	dst, err := os.Create(fullPath)
 	if err != nil {
-		return "", fmt.Errorf("create file: %w", err)
+		return "", 0, "", fmt.Errorf("create file: %w", err)
 	}
 	defer dst.Close()
 
 	if _, err = dst.Write(header[:n]); err != nil {
 		_ = os.Remove(fullPath)
-		return "", fmt.Errorf("write header: %w", err)
+		return "", 0, "", fmt.Errorf("write header: %w", err)
 	}
 
 	written, err := io.Copy(dst, reader)
 	if err != nil {
 		_ = os.Remove(fullPath)
-		return "", fmt.Errorf("copy stream: %w", err)
+		return "", 0, "", fmt.Errorf("copy stream: %w", err)
 	}
 
 	totalSize := int64(n) + written
 	if sizeLimit > 0 && totalSize > sizeLimit {
 		_ = os.Remove(fullPath)
-		return "", ErrPDFTooLarge
+		return "", 0, "", ErrPDFTooLarge
 	}
 
-	return filename, nil
+	contentType = http.DetectContentType(header[:n])
+	sizeBytes = int64(n) + written
+
+	return filename, sizeBytes, contentType, nil
 }

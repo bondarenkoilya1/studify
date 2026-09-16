@@ -432,3 +432,24 @@ func InsertSubjectThumbnail(db *sql.DB, subjectID int64, thumbnailURL string, us
 
 	return nil
 }
+
+func InsertSubjectFile(db *sql.DB, subjectID, userID int64, path, originalName, mimeType string, sizeBytes int64) (int64, error) {
+	query := `
+		INSERT INTO subjects_files (subject_id, path, original_name, mime_type, size_bytes)
+		SELECT s.id, $2, $3, $4, $5
+		FROM subjects s
+		WHERE s.id = $1 AND s.user_id = $6
+		RETURNING id;
+	`
+
+	var fileID int64
+
+	err := db.QueryRow(query, subjectID, path, originalName, mimeType, sizeBytes, userID).Scan(&fileID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, sql.ErrNoRows
+		}
+	}
+
+	return fileID, nil
+}

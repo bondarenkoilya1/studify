@@ -396,7 +396,7 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UploadPDF(w http.ResponseWriter, r *http.Request) {
-	file, _, err := r.FormFile("pdf")
+	file, header, err := r.FormFile("pdf")
 	if err != nil {
 		log.Printf("failed to get file: %v", err)
 		http.Error(w, "invalid data", http.StatusBadRequest)
@@ -406,9 +406,34 @@ func (h *Handler) UploadPDF(w http.ResponseWriter, r *http.Request) {
 
 	const maxPDFSize = 50 << 20 // 50 MB
 
-	filename, err := media.SavePDF(file, maxPDFSize, "./data/files")
+	filename, sizeBytes, contentType, err := media.SavePDF(file, maxPDFSize, "./data/files")
 	if err != nil {
+		log.Printf("failed to save file: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
 	}
 
-	writeJSON(w, http.StatusOK, fileResponse{FileURL: filename})
+	path := "/static/files/" + filename
+	originalFilename := header.Filename
+
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	subjectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil || subjectID <= 0 {
+		http.Error(w, "invalid subject id", http.StatusBadRequest)
+		return
+	}
+
+	_, err = InsertSubjectFile(h.DB, subjectID, userID, path, originalFilename, contentType, sizeBytes)
+	if err != nil {
+		log.Printf("failed to insert file data: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, fileResponse{FileURL: path})
 }
