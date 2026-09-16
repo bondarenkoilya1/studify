@@ -13,7 +13,7 @@ import { filterTasksByType } from "@/entities/task/model/filters";
 import { CreateTaskButton } from "@/features/task/create-task";
 import { useGetSubject } from "@/entities/subject";
 import { type File } from "@/entities/subject/model/types";
-import { toAbsoluteUrl } from "@/shared/utils";
+import { formatBytes, toAbsoluteUrl } from "@/shared/utils";
 
 export const Route = createFileRoute("/_protected/subjects/$id")({
   parseParams: (params) => ({
@@ -21,16 +21,6 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
   }),
   component: SubjectPage,
 });
-
-function formatBytes(bytes: number | string, decimals = 1) {
-  const size = Number(bytes);
-  if (!+size) return "0 Байт";
-  const k = 1024;
-  const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ["Байт", "КБ", "МБ", "ГБ"];
-  const i = Math.floor(Math.log(size) / Math.log(k));
-  return `${parseFloat((size / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
-}
 
 function SubjectFilesSidebar({ files }: { files: File[] }) {
   if (!files || files.length === 0) return null;
@@ -56,12 +46,10 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
                 rel="noreferrer"
                 className="group flex items-center gap-3 rounded-2xl border border-transparent p-3 transition-all duration-200 hover:bg-gray-50 hover:border-gray-100 cursor-pointer"
               >
-                {/* Иконка в стиле Apple (красная подложка для PDF) */}
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-500 transition-colors group-hover:bg-red-100">
                   <FileText strokeWidth={1.5} size={22} />
                 </div>
 
-                {/* Информация о файле */}
                 <div className="flex min-w-0 flex-1 flex-col justify-center">
                   <p className="truncate text-[14px] font-medium text-gray-900 leading-tight">
                     {file.name}
@@ -76,7 +64,6 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
                   </div>
                 </div>
 
-                {/* Иконка скачивания при наведении */}
                 <div className="text-gray-300 opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:text-gray-500">
                   <Download size={18} strokeWidth={2} />
                 </div>
