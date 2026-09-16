@@ -13,6 +13,7 @@ import { filterTasksByType } from "@/entities/task/model/filters";
 import { CreateTaskButton } from "@/features/task/create-task";
 import { useGetSubject } from "@/entities/subject";
 import { type File } from "@/entities/subject/model/types";
+import { toAbsoluteUrl } from "@/shared/utils";
 
 export const Route = createFileRoute("/_protected/subjects/$id")({
   parseParams: (params) => ({
@@ -43,14 +44,14 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
 
         <div className="mt-4 flex flex-col gap-2">
           {files.map((file, index) => {
-            // Поддержка как sizeBytes (из интерфейса), так и size_bytes (из сырого JSON)
             const rawSize = file.sizeBytes || (file as any).size_bytes || 0;
             const formattedSize = formatBytes(rawSize);
+            const url = toAbsoluteUrl(file.url);
 
             return (
               <a
                 key={index}
-                href={file.url}
+                href={url}
                 target="_blank"
                 rel="noreferrer"
                 className="group flex items-center gap-3 rounded-2xl border border-transparent p-3 transition-all duration-200 hover:bg-gray-50 hover:border-gray-100 cursor-pointer"

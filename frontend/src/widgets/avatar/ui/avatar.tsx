@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Camera, Loader2 } from "lucide-react";
-import { publicEnv } from "@/shared/config";
 import { cn } from "@/shared/lib/cn";
+import { toAbsoluteUrl } from "@/shared/utils";
 
 interface AvatarProps {
   email: string;
@@ -12,17 +12,6 @@ interface AvatarProps {
   disabled?: boolean;
   onFileSelect?: (file: File) => void;
   loading?: boolean;
-}
-
-function toAbsoluteAvatarUrl(avatarUrl: string): string {
-  if (/^https?:\/\//i.test(avatarUrl)) {
-    return avatarUrl;
-  }
-
-  const normalizedPath = avatarUrl.startsWith("/")
-    ? avatarUrl
-    : `/${avatarUrl}`;
-  return `${publicEnv.apiBaseUrl}${normalizedPath}`;
 }
 
 const APPLE_EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
@@ -51,7 +40,7 @@ export function Avatar({
     if (!avatarUrl || hasImageError) {
       return null;
     }
-    return toAbsoluteAvatarUrl(avatarUrl);
+    return toAbsoluteUrl(avatarUrl);
   }, [avatarUrl, hasImageError]);
 
   const initials = email.slice(0, 2).toUpperCase();
