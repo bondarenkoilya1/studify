@@ -117,7 +117,34 @@ func getLecturersBySubjectID(db *sql.DB, subjectID int64) ([]Lecturer, error) {
 	return lecturers, nil
 }
 
+func getFilesBySubjectID(db *sql.DB, subjectID int64) ([]File, error) {
+	rows, err := db.Query(`
+		SELECT path, original_name, mime_type, size_bytes
+		FROM subjects_files
+		WHERE subject_id = $1;
+	`, subjectID)
+	if err != nil {
+		return nil, fmt.Errorf("recieve files: %w", err)
+	}
+	defer rows.Close()
+
+	var files []File
+	for rows.Next() {
+		var f File
+		if err = rows.Scan(&f.Url, &f.OriginalName, &f.ContentType, &f.SizeBytes); err != nil {
+			return nil, fmt.Errorf("scan files: %w", err)
+		}
+		files = append(files, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read files rows: %w", err)
+	}
+
+	return files, nil
+}
+
 func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
+	// Subject itself
 	query := subjectSelectQuery + `
 	   WHERE id = $1 AND user_id = $2;
 	`
@@ -126,12 +153,21 @@ func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
 
+	// Lecturers
 	lecturers, err := getLecturersBySubjectID(db, id)
 	if err != nil {
 		return nil, err
 	}
 
 	subject.Lecturers = lecturers
+
+	// Files
+	files, err := getFilesBySubjectID(db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	subject.Files = files
 
 	return subject, nil
 }
@@ -165,7 +201,7 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 		subjects = append(subjects, *subject)
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("failed to read subjects rows: %w", err)
 	}
 
@@ -408,6 +444,8 @@ func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
 	return nil
 }
 
+// Thumbnails
+
 func InsertSubjectThumbnail(db *sql.DB, subjectID int64, thumbnailURL string, userID int64) error {
 	query := `
 		UPDATE subjects
@@ -432,6 +470,8 @@ func InsertSubjectThumbnail(db *sql.DB, subjectID int64, thumbnailURL string, us
 
 	return nil
 }
+
+// Subjects files
 
 func InsertSubjectFile(db *sql.DB, subjectID, userID int64, path, originalName, mimeType string, sizeBytes int64) (int64, error) {
 	query := `

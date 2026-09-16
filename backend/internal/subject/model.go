@@ -14,6 +14,13 @@ type Lecturer struct {
 	Position string `json:"position"`
 }
 
+type File struct {
+	OriginalName string `json:"name"`
+	Url          string `json:"url"`
+	SizeBytes    string `json:"size_bytes"`
+	ContentType  string `json:"content_type"`
+}
+
 type Subject struct {
 	ID           int64      `json:"id"`
 	UserID       int64      `json:"user_id"`
@@ -25,6 +32,7 @@ type Subject struct {
 	Term         *int       `json:"term"`
 	Lecturers    []Lecturer `json:"lecturers"`
 	ThumbnailURL *string    `json:"thumbnail_url"`
+	Files        []File     `json:"files"`
 }
 
 type CreateSubjectRequest struct {
