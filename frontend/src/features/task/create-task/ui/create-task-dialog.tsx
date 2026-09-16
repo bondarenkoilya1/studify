@@ -138,6 +138,7 @@ export function CreateTaskDialog({
                 <>
                   <DatePicker
                     value={field.value ? new Date(field.value) : undefined}
+
                     onChange={(date) =>
                       field.onChange(date?.toISOString() ?? null)
                     }

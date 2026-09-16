@@ -16,6 +16,16 @@ export function DatePicker({ value, onChange, className }: DatePickerProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  const defaultSessionMonth = (() => {
+    const now = new Date();
+
+    if (now.getMonth() < 5) {
+      return new Date(now.getFullYear(), 5, 1);
+    }
+
+    return new Date(now.getFullYear() + 1, 0, 1);
+  })();
+
   return (
     <Popover>
       <PopoverTrigger
@@ -50,6 +60,7 @@ export function DatePicker({ value, onChange, className }: DatePickerProps) {
           onSelect={onChange}
           locale={ru}
           disabled={{ before: today }}
+          defaultMonth={defaultSessionMonth}
         />
       </PopoverContent>
     </Popover>
