@@ -394,3 +394,21 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, thumbnail{ThumbnailURL: thumbnailURL})
 }
+
+func (h *Handler) UploadPDF(w http.ResponseWriter, r *http.Request) {
+	file, _, err := r.FormFile("pdf")
+	if err != nil {
+		log.Printf("failed to get file: %v", err)
+		http.Error(w, "invalid data", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	const maxPDFSize = 50 << 20 // 50 MB
+
+	filename, err := media.SavePDF(file, maxPDFSize, "./data/files")
+	if err != nil {
+	}
+
+	writeJSON(w, http.StatusOK, fileResponse{FileURL: filename})
+}

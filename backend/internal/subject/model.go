@@ -62,3 +62,7 @@ var validScopes = map[string]bool{
 type thumbnail struct {
 	ThumbnailURL string `json:"thumbnail_url"`
 }
+
+type fileResponse struct {
+	FileURL string `json:"file_url"`
+}

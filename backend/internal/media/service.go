@@ -75,7 +75,7 @@ func SavePDF(r io.Reader, sizeLimit int64, dir string) (string, error) {
 		return "", ErrInvalidPDFFormat
 	}
 
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err = os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("mkdir: %w", err)
 	}
 
@@ -88,7 +88,7 @@ func SavePDF(r io.Reader, sizeLimit int64, dir string) (string, error) {
 	}
 	defer dst.Close()
 
-	if _, err := dst.Write(header[:n]); err != nil {
+	if _, err = dst.Write(header[:n]); err != nil {
 		_ = os.Remove(fullPath)
 		return "", fmt.Errorf("write header: %w", err)
 	}

@@ -82,6 +82,7 @@ func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {
 			r.With(middlewares.RequireJSON).Patch("/", h.UpdateSubject)
 
 			r.Post("/thumbnail", h.UploadThumbnail)
+			r.Post("/pdf", h.UploadPDF)
 
 			// Tasks
 			r.Get("/tasks", t.GetSubjectTasks)
