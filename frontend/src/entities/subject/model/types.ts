@@ -18,6 +18,13 @@ export interface Lecturer {
   position: string;
 }
 
+export interface File {
+  name: string;
+  url: string;
+  sizeBytes: number;
+  contentType: string;
+}
+
 export interface Subject {
   id: number;
   userId: number;
@@ -29,6 +36,7 @@ export interface Subject {
   term: number | null;
   lecturers: Lecturer[];
   thumbnailUrl: string | null;
+  files: File[];
 }
 
 export interface SubjectInput {
