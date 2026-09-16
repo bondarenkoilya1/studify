@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { FileText, Download } from "lucide-react"; // Добавили иконки
+import { FileText, Search } from "lucide-react";
 
 import { useGetTasks } from "@/entities/task";
 import { TaskList } from "@/widgets/task-list";
@@ -65,7 +65,7 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
                 </div>
 
                 <div className="text-gray-300 opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:text-gray-500">
-                  <Download size={18} strokeWidth={2} />
+                  <Search size={18} strokeWidth={2} />
                 </div>
               </a>
             );

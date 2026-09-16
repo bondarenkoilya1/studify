@@ -37,7 +37,6 @@ function RouteComponent() {
 function SettingsHeader({
   email,
   avatarUrl,
-  id,
 }: {
   email: string;
   avatarUrl?: string | null;
@@ -60,13 +59,9 @@ function SettingsHeader({
             Управляйте аккаунтом и настройками.
           </p>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <p className="text-sm font-medium">{email}</p>
-
-            <span className="rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-              ID: {id}
-            </span>
-          </div>
+          <p className="flex flex-wrap items-center gap-2 pt-1 text-sm font-medium">
+            {email}
+          </p>
         </div>
       </div>
     </div>
