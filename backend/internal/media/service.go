@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"
@@ -60,7 +61,7 @@ func SaveImageAsWebp(r io.Reader, c ImageConstraints, dir string) (string, error
 	return filename, nil
 }
 
-func SavePDF(r io.Reader, sizeLimit int64, dir string) (filename string, sizeBytes int64, contentType string, error error) {
+func SaveFile(r io.Reader, sizeLimit int64, dir string) (filename string, sizeBytes int64, contentType string, err error) {
 	reader := r
 	if sizeLimit > 0 {
 		reader = io.LimitReader(r, sizeLimit+1)
@@ -72,15 +73,28 @@ func SavePDF(r io.Reader, sizeLimit int64, dir string) (filename string, sizeByt
 		return "", 0, "", fmt.Errorf("read header: %w", err)
 	}
 
-	if n < len(pdfMagicHeader) || !bytes.HasPrefix(header[:n], pdfMagicHeader) {
-		return "", 0, "", ErrInvalidPDFFormat
+	if n == 0 {
+		return "", 0, "", ErrFileEmpty
+	}
+
+	actualBytes := header[:n]
+	contentType = http.DetectContentType(actualBytes)
+	var extension string
+
+	if bytes.HasPrefix(actualBytes, []byte("%PDF-")) {
+		extension = ".pdf"
+		contentType = "application/pdf" // sometimes rewrites application/octet-stream
+	} else if strings.HasPrefix(contentType, "text/plain") {
+		extension = ".txt"
+	} else {
+		return "", 0, "", ErrInvalidFileFormat
 	}
 
 	if err = os.MkdirAll(dir, 0o755); err != nil {
 		return "", 0, "", fmt.Errorf("mkdir: %w", err)
 	}
 
-	filename = uuid.New().String() + ".pdf"
+	filename = uuid.New().String() + extension
 	fullPath := filepath.Join(dir, filename)
 
 	dst, err := os.Create(fullPath)
@@ -89,7 +103,7 @@ func SavePDF(r io.Reader, sizeLimit int64, dir string) (filename string, sizeByt
 	}
 	defer dst.Close()
 
-	if _, err = dst.Write(header[:n]); err != nil {
+	if _, err = dst.Write(actualBytes); err != nil {
 		_ = os.Remove(fullPath)
 		return "", 0, "", fmt.Errorf("write header: %w", err)
 	}
@@ -103,11 +117,8 @@ func SavePDF(r io.Reader, sizeLimit int64, dir string) (filename string, sizeByt
 	totalSize := int64(n) + written
 	if sizeLimit > 0 && totalSize > sizeLimit {
 		_ = os.Remove(fullPath)
-		return "", 0, "", ErrPDFTooLarge
+		return "", 0, "", ErrFileTooLarge
 	}
 
-	contentType = http.DetectContentType(header[:n])
-	sizeBytes = int64(n) + written
-
-	return filename, sizeBytes, contentType, nil
+	return filename, totalSize, contentType, nil
 }

@@ -408,8 +408,8 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, thumbnail{ThumbnailURL: thumbnailURL})
 }
 
-func (h *Handler) UploadPDF(w http.ResponseWriter, r *http.Request) {
-	file, header, err := r.FormFile("pdf")
+func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
+	file, header, err := r.FormFile("file")
 	if err != nil {
 		log.Printf("failed to get file: %v", err)
 		http.Error(w, "invalid data", http.StatusBadRequest)
@@ -419,7 +419,7 @@ func (h *Handler) UploadPDF(w http.ResponseWriter, r *http.Request) {
 
 	const maxPDFSize = 50 << 20 // 50 MB
 
-	filename, sizeBytes, contentType, err := media.SavePDF(file, maxPDFSize, "./data/files")
+	filename, sizeBytes, contentType, err := media.SaveFile(file, maxPDFSize, "./data/files")
 	if err != nil {
 		log.Printf("failed to save file: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
