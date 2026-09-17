@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"studify/internal/util"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // todo: optimize with joins
@@ -20,19 +18,6 @@ type DBTX interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
-func normalizeUniqueSubjectError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return ErrSubjectAlreadyExists
-	}
-
-	return err
-}
-
 const subjectSelectQuery = `
 	SELECT
 	   id,
@@ -41,6 +26,7 @@ const subjectSelectQuery = `
 	   note,
 	   type,
 	   scope,
+	   exam_type,
 	   exam_date,
 	   term,
 	   thumbnail_url
@@ -66,6 +52,7 @@ func scanSubject(scanner interface {
 		&note,
 		&subject.Type,
 		&subject.Scope,
+		&subject.ExamType,
 		&examDate,
 		&term,
 		&thumbnailURL,
@@ -144,7 +131,6 @@ func getFilesBySubjectID(db *sql.DB, subjectID int64) ([]File, error) {
 }
 
 func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
-	// Subject itself
 	query := subjectSelectQuery + `
 	   WHERE id = $1 AND user_id = $2;
 	`
@@ -153,20 +139,16 @@ func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
 	}
 
-	// Lecturers
 	lecturers, err := getLecturersBySubjectID(db, id)
 	if err != nil {
 		return nil, err
 	}
-
 	subject.Lecturers = lecturers
 
-	// Files
 	files, err := getFilesBySubjectID(db, id)
 	if err != nil {
 		return nil, err
 	}
-
 	subject.Files = files
 
 	return subject, nil
@@ -215,6 +197,7 @@ func InsertSubject(
 	note *string,
 	subjectType string,
 	scope string,
+	examType string,
 	thumbnailURL *string,
 	examDate *time.Time,
 	term *int,
@@ -233,6 +216,7 @@ func InsertSubject(
 		note,
 		subjectType,
 		scope,
+		examType,
 		thumbnailURL,
 		examDate,
 		term,
@@ -265,6 +249,7 @@ func insertSubjectTx(db DBTX,
 	note *string,
 	subjectType string,
 	scope string,
+	examType string,
 	thumbnailURL *string,
 	examDate *time.Time,
 	term *int,
@@ -276,11 +261,12 @@ func insertSubjectTx(db DBTX,
 	      note,
 	      type,
 	      scope,
+	      exam_type,
 	      exam_date,
 	      term,
 	      thumbnail_url
 	   )
-	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	   RETURNING
 	      id,
 	      user_id,
@@ -288,6 +274,7 @@ func insertSubjectTx(db DBTX,
 	      note,
 	      type,
 	      scope,
+	      exam_type,
 	      exam_date,
 	      term,
 	      thumbnail_url;
@@ -301,6 +288,7 @@ func insertSubjectTx(db DBTX,
 			note,
 			subjectType,
 			scope,
+			examType,
 			examDate,
 			toNullInt64(term),
 			thumbnailURL,
@@ -363,6 +351,7 @@ func UpdateSubject(
 	note *string,
 	subjectType string,
 	scope string,
+	examType string,
 	thumbnailURL *string,
 	examDate *time.Time,
 	term *int,
@@ -374,10 +363,11 @@ func UpdateSubject(
 	      note = $2,
 	      type = $3,
 	      scope = $4,
-	      exam_date = $5,
-	      term = $6,
-	      thumbnail_url = $7
-	   WHERE id = $8 AND user_id = $9;
+	      exam_type = $5,
+	      exam_date = $6,
+	      term = $7,
+	      thumbnail_url = $8
+	   WHERE id = $9 AND user_id = $10;
 	`
 
 	result, err := db.Exec(
@@ -386,6 +376,7 @@ func UpdateSubject(
 		note,
 		subjectType,
 		scope,
+		examType,
 		examDate,
 		toNullInt64(term),
 		thumbnailURL,
@@ -444,8 +435,6 @@ func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
 	return nil
 }
 
-// Thumbnails
-
 func InsertSubjectThumbnail(db *sql.DB, subjectID int64, thumbnailURL string, userID int64) error {
 	query := `
 		UPDATE subjects
@@ -470,8 +459,6 @@ func InsertSubjectThumbnail(db *sql.DB, subjectID int64, thumbnailURL string, us
 
 	return nil
 }
-
-// Subjects files
 
 func InsertSubjectFile(db *sql.DB, subjectID, userID int64, path, originalName, mimeType string, sizeBytes int64) (int64, error) {
 	query := `

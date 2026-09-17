@@ -87,6 +87,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note,
 		req.Type,
 		req.Scope,
+		req.ExamType,
 		req.ThumbnailURL,
 		req.ExamDate,
 		req.Term,
@@ -140,6 +141,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note,
 		req.Type,
 		req.Scope,
+		req.ExamType,
 		req.ThumbnailURL,
 		req.ExamDate,
 		req.Term,
@@ -197,6 +199,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		req.Note == nil &&
 		req.Type == nil &&
 		req.Scope == nil &&
+		req.ExamType == nil &&
 		req.ThumbnailURL == nil &&
 		req.ExamDate == nil &&
 		req.Term == nil {
@@ -247,6 +250,15 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Scope = *req.Scope
 	}
 
+	if req.ExamType != nil {
+		if !validExamTypes[*req.ExamType] {
+			http.Error(w, "invalid exam type", http.StatusBadRequest)
+			return
+		}
+
+		subject.ExamType = *req.ExamType
+	}
+
 	if req.ThumbnailURL != nil {
 		subject.ThumbnailURL = req.ThumbnailURL
 	}
@@ -272,6 +284,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.Note,
 		subject.Type,
 		subject.Scope,
+		subject.ExamType,
 		subject.ThumbnailURL,
 		subject.ExamDate,
 		subject.Term,

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -49,9 +51,27 @@ func validateCreateSubjectRequest(req *CreateSubjectRequest) error {
 		return errors.New("invalid subject scope")
 	}
 
-	if err := validateTerm(req.Term); err != nil {
-		return err
+	if req.ExamType == "" {
+		req.ExamType = "exam"
+	}
+
+	if !validExamTypes[req.ExamType] {
+		return errors.New("invalid exam type")
 	}
 
 	return nil
+}
+
+// DB
+func normalizeUniqueSubjectError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return ErrSubjectAlreadyExists
+	}
+
+	return err
 }

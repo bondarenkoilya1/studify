@@ -8,13 +8,15 @@ CREATE TABLE IF NOT EXISTS subjects (
   note VARCHAR(200),
 
   type TEXT NOT NULL DEFAULT 'university',
-    CHECK (type IN ('university', 'personal')),
-
   scope TEXT NOT NULL DEFAULT 'other',
-    CHECK (scope IN ('technology', 'healthcare', 'humanities', 'business', 'social', 'science', 'other')),
+  exam_type TEXT NOT NULL DEFAULT 'exam',
 
   exam_date TIMESTAMPTZ,
   term SMALLINT CHECK (term BETWEEN 1 AND 16),
 
-  thumbnail_url TEXT
+  thumbnail_url TEXT,
+
+  CHECK (type IN ('university', 'personal')),
+  CHECK (scope IN ('technology', 'healthcare', 'humanities', 'business', 'social', 'science', 'other')),
+  CHECK (exam_type IN ('exam', 'credit', 'coursework', 'project', 'other'))
 );

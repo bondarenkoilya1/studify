@@ -28,6 +28,7 @@ type Subject struct {
 	Note         *string    `json:"note"`
 	Type         string     `json:"type"`
 	Scope        string     `json:"scope"`
+	ExamType     string     `json:"exam_type"`
 	ExamDate     *time.Time `json:"exam_date"`
 	Term         *int       `json:"term"`
 	Lecturers    []Lecturer `json:"lecturers"`
@@ -40,6 +41,7 @@ type CreateSubjectRequest struct {
 	Note         *string    `json:"note"`
 	Type         string     `json:"type"`
 	Scope        string     `json:"scope"`
+	ExamType     string     `json:"exam_type"`
 	ExamDate     *time.Time `json:"exam_date"`
 	Term         *int       `json:"term"`
 	Lecturers    []Lecturer `json:"lecturers"`
@@ -51,6 +53,7 @@ type UpdateSubjectRequest struct {
 	Note         *string     `json:"note"`
 	Type         *string     `json:"type"`
 	Scope        *string     `json:"scope"`
+	ExamType     *string     `json:"exam_type"`
 	Lecturers    *[]Lecturer `json:"lecturers"`
 	ThumbnailURL *string     `json:"thumbnail_url"`
 	ExamDate     *time.Time  `json:"exam_date"`
@@ -64,6 +67,14 @@ var validScopes = map[string]bool{
 	"business":   true,
 	"social":     true,
 	"science":    true,
+	"other":      true,
+}
+
+var validExamTypes = map[string]bool{
+	"exam":       true,
+	"credit":     true,
+	"coursework": true,
+	"project":    true,
 	"other":      true,
 }
 
