@@ -106,7 +106,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidatePassword(body.NewPassword, auth.AuthActionRegister); err != nil {
+	if err := auth.ValidatePassword(body.NewPassword, auth.ActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

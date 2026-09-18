@@ -12,14 +12,14 @@ const (
 	minPasswordLength = 8
 )
 
-type AuthAction string
+type Action string
 
 const (
-	AuthActionRegister AuthAction = "register"
-	AuthActionLogin    AuthAction = "login"
+	ActionRegister Action = "register"
+	ActionLogin    Action = "login"
 )
 
-func ValidateCredentials(email, password string, action AuthAction) error {
+func ValidateCredentials(email, password string, action Action) error {
 	if err := ValidateEmail(email); err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ Password validation intentionally avoids composition rules such as requiring
 uppercase letters, digits, symbols, or banning spaces. Those rules often lead
 to predictable passwords.
 */
-func ValidatePassword(password string, action AuthAction) error {
+func ValidatePassword(password string, action Action) error {
 	if password == "" {
 		return ErrEmptyPassword
 	}
@@ -61,7 +61,7 @@ func ValidatePassword(password string, action AuthAction) error {
 		return ErrPasswordTooLong
 	}
 
-	if action != AuthActionRegister {
+	if action != ActionRegister {
 		return nil
 	}
 

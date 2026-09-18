@@ -106,7 +106,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidatePassword(request.NewPassword, auth.AuthActionRegister); err != nil {
+	if err := auth.ValidatePassword(request.NewPassword, auth.ActionRegister); err != nil {
 		log.Printf("failed to validate new password: %v", err)
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return

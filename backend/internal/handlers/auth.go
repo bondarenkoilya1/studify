@@ -46,7 +46,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidateCredentials(body.Email, body.Password, auth.AuthActionRegister); err != nil {
+	if err := auth.ValidateCredentials(body.Email, body.Password, auth.ActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -101,7 +101,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidateCredentials(body.Email, body.Password, auth.AuthActionLogin); err != nil {
+	if err := auth.ValidateCredentials(body.Email, body.Password, auth.ActionLogin); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
