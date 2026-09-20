@@ -3,7 +3,7 @@ package subject
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -14,7 +14,7 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	w.WriteHeader(status)
 
 	if err := json.NewEncoder(w).Encode(value); err != nil {
-		log.Printf("failed to encode JSON response: %v", err)
+		slog.Error("failed to encode JSON response", slog.String("error", err.Error()))
 	}
 }
 

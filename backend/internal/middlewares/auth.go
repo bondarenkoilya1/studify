@@ -3,7 +3,7 @@ package middlewares
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"studify/internal/auth"
 	"studify/internal/httpx"
@@ -18,7 +18,7 @@ func ValidateAuth(auth *auth.Service) func(http.Handler) http.Handler {
 				case errors.Is(err, http.ErrNoCookie):
 					http.Error(w, "unauthorized", http.StatusUnauthorized)
 				default:
-					log.Println(err)
+					slog.Error("failed to read cookie", slog.String("error", err.Error()))
 					http.Error(w, "failed to read cookie", http.StatusInternalServerError)
 				}
 				return

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"studify/internal/httpx"
@@ -36,7 +36,7 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get subject: %v", err)
+		slog.Error("failed to get subject", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get subject", http.StatusInternalServerError)
 		return
 	}
@@ -53,7 +53,7 @@ func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
 
 	subjects, err := GetSubjectsByUserID(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get subjects: %v", err)
+		slog.Error("failed to get subjects", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get subjects", http.StatusInternalServerError)
 		return
 	}
@@ -95,12 +95,19 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		if errors.Is(err, ErrSubjectAlreadyExists) {
-			log.Printf("user %d attempted to create duplicate subject %q: %v", userID, req.Name, err)
+			slog.Error("attempted to create duplicate subject",
+				slog.Any("user_id", userID),
+				slog.String("subject_name", req.Name),
+				slog.String("error", err.Error()),
+			)
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
 			return
 		}
 
-		log.Printf("failed to insert subject for user %d: %v", userID, err)
+		slog.Error("failed to insert subject",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "failed to insert subject", http.StatusInternalServerError)
 		return
 	}
@@ -155,19 +162,27 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, ErrSubjectAlreadyExists) {
-			log.Printf("user %d attempted to replace subject %d with duplicate name %q: %v", userID, id, req.Name, err)
+			slog.Error("attempted to replace subject with duplicate name",
+				slog.Any("user_id", userID),
+				slog.Any("subject_id", id),
+				slog.String("subject_name", req.Name),
+				slog.String("error", err.Error()),
+			)
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
 			return
 		}
 
-		log.Printf("failed to replace subject for user %d: %v", userID, err)
+		slog.Error("failed to replace subject",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "Failed to replace subject", http.StatusInternalServerError)
 		return
 	}
 
 	subject, err := GetSubjectByID(h.DB, id, userID)
 	if err != nil {
-		log.Printf("failed to get replaced subject: %v", err)
+		slog.Error("failed to get replaced subject", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get replaced subject", http.StatusInternalServerError)
 		return
 	}
@@ -214,7 +229,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get subject: %v", err)
+		slog.Error("failed to get subject", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get subject", http.StatusInternalServerError)
 		return
 	}
@@ -294,12 +309,20 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, ErrSubjectAlreadyExists) {
-			log.Printf("user %d attempted to update subject %d with duplicate name %q: %v", userID, id, subject.Name, err)
+			slog.Error("attempted to update subject with duplicate name",
+				slog.Any("user_id", userID),
+				slog.Any("subject_id", id),
+				slog.String("subject_name", subject.Name),
+				slog.String("error", err.Error()),
+			)
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
 			return
 		}
 
-		log.Printf("failed to update subject for user %d: %v", userID, err)
+		slog.Error("failed to update subject",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "Failed to update subject", http.StatusInternalServerError)
 		return
 	}
@@ -315,7 +338,7 @@ func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := DeleteSubjectsByUserID(h.DB, userID); err != nil {
-		log.Printf("failed to delete subjects: %v", err)
+		slog.Error("failed to delete subjects", slog.String("error", err.Error()))
 		http.Error(w, "Failed to delete subjects", http.StatusInternalServerError)
 		return
 	}
@@ -342,7 +365,7 @@ func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to delete subject: %v", err)
+		slog.Error("failed to delete subject", slog.String("error", err.Error()))
 		http.Error(w, "Failed to delete subject", http.StatusInternalServerError)
 		return
 	}
@@ -387,7 +410,7 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, media.ErrDimensionsExceed), errors.Is(err, media.ErrDecodeFailed):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		default:
-			log.Printf("failed to save thumbnail: %v", err)
+			slog.Error("failed to save thumbnail", slog.String("error", err.Error()))
 			http.Error(w, "failed to save thumbnail", http.StatusInternalServerError)
 		}
 		return
@@ -400,7 +423,7 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "subject not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to update subject thumbnail: %v", err)
+		slog.Error("failed to update subject thumbnail", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -411,7 +434,7 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		log.Printf("failed to get file: %v", err)
+		slog.Error("failed to get file", slog.String("error", err.Error()))
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
 	}
@@ -421,7 +444,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	filename, sizeBytes, contentType, err := media.SaveFile(file, maxPDFSize, "./data/files")
 	if err != nil {
-		log.Printf("failed to save file: %v", err)
+		slog.Error("failed to save file", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -443,7 +466,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	_, err = InsertSubjectFile(h.DB, subjectID, userID, path, originalFilename, contentType, sizeBytes)
 	if err != nil {
-		log.Printf("failed to insert file data: %v", err)
+		slog.Error("failed to insert file data", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 
 	"studify/internal/httpx"
@@ -31,7 +31,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get task: %v", err)
+		slog.Error("failed to get task", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get task", http.StatusInternalServerError)
 		return
 	}
@@ -39,7 +39,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(task); err != nil {
-		log.Printf("failed to encode task: %v", err)
+		slog.Error("failed to encode task", slog.String("error", err.Error()))
 	}
 }
 
@@ -52,7 +52,7 @@ func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := GetTasksByUserID(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get tasks: %v", err)
+		slog.Error("failed to get tasks", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
 		return
 	}
@@ -60,7 +60,7 @@ func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(tasks); err != nil {
-		log.Printf("failed to encode tasks: %v", err)
+		slog.Error("failed to encode tasks", slog.String("error", err.Error()))
 	}
 }
 
@@ -79,7 +79,7 @@ func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
 
 	tasks, err := GetTasksBySubjectID(h.DB, userID, subjectID)
 	if err != nil {
-		log.Printf("failed to get tasks by subject id: %v", err)
+		slog.Error("failed to get tasks by subject id", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
 		return
 	}
@@ -87,7 +87,7 @@ func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err = json.NewEncoder(w).Encode(tasks); err != nil {
-		log.Printf("failed to encode tasks: %v", err)
+		slog.Error("failed to encode tasks", slog.String("error", err.Error()))
 	}
 }
 
@@ -101,7 +101,7 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	var newTask Task
 
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		log.Printf("failed to decode task body: %v", err)
+		slog.Error("failed to decode task body", slog.String("error", err.Error()))
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -126,7 +126,7 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to insert task: %v", err)
+		slog.Error("failed to insert task", slog.String("error", err.Error()))
 		http.Error(w, "Failed to insert task", http.StatusInternalServerError)
 		return
 	}
@@ -135,7 +135,7 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(task); err != nil {
-		log.Printf("failed to encode task response: %v", err)
+		slog.Error("failed to encode task response", slog.String("error", err.Error()))
 	}
 }
 
@@ -184,7 +184,7 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to replace task: %v", err)
+		slog.Error("failed to replace task", slog.String("error", err.Error()))
 		http.Error(w, "Failed to replace task", http.StatusInternalServerError)
 		return
 	}
@@ -192,7 +192,7 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(task); err != nil {
-		log.Printf("failed to encode replaced task: %v", err)
+		slog.Error("failed to encode replaced task", slog.String("error", err.Error()))
 	}
 }
 
@@ -237,7 +237,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get task: %v", err)
+		slog.Error("failed to get task", slog.String("error", err.Error()))
 		http.Error(w, "Failed to get task", http.StatusInternalServerError)
 		return
 	}
@@ -303,7 +303,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to update task: %v", err)
+		slog.Error("failed to update task", slog.String("error", err.Error()))
 		http.Error(w, "Failed to update task", http.StatusInternalServerError)
 		return
 	}
@@ -311,7 +311,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(updatedTask); err != nil {
-		log.Printf("failed to encode task: %v", err)
+		slog.Error("failed to encode task", slog.String("error", err.Error()))
 	}
 }
 
@@ -323,7 +323,7 @@ func (h *Handler) DeleteUserTasks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := DeleteTasksByUserID(h.DB, userID); err != nil {
-		log.Printf("failed to delete tasks: %v", err)
+		slog.Error("failed to delete tasks", slog.String("error", err.Error()))
 		http.Error(w, "Failed to delete tasks", http.StatusInternalServerError)
 		return
 	}
@@ -354,7 +354,7 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to delete task: %v", err)
+		slog.Error("failed to delete task", slog.String("error", err.Error()))
 		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
 		return
 	}

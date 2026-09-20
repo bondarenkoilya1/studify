@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"studify/internal"
 	"studify/internal/auth"
@@ -53,7 +53,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	passwordHash, err := auth.HashPassword(body.Password)
 	if err != nil {
-		log.Printf("failed to hash password: %v", err)
+		slog.Error("failed to hash password", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -65,13 +65,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to register user: %v", err)
+		slog.Error("failed to register user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err := h.Auth.IssueTokens(internal.UserID(newUser.ID), w); err != nil {
-		log.Printf("failed to issue tokens: %v", err)
+		slog.Error("failed to issue tokens", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -80,7 +80,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		newUser.Email,
 		internal.UserID(newUser.ID),
 	); err != nil {
-		log.Printf("failed to send confirmation email: %v", err)
+		slog.Error("failed to send confirmation email", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -89,7 +89,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(newUser); err != nil {
-		log.Printf("failed to encode user to JSON: %v", err)
+		slog.Error("failed to encode user to JSON", slog.String("error", err.Error()))
 	}
 }
 
@@ -109,7 +109,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	currentUser, err := user.GetUserByEmail(h.DB, body.Email)
 	if err != nil {
 		if !errors.Is(err, user.ErrUserNotFound) {
-			log.Printf("failed to get user for login: %v", err)
+			slog.Error("failed to get user for login", slog.String("error", err.Error()))
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -129,7 +129,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	if currentUser.IsTOTPEnabled {
 		challengeToken, err := auth.GenerateAuthToken()
 		if err != nil {
-			log.Printf("failed to generate challenge token: %v", err)
+			slog.Error("failed to generate challenge token", slog.String("error", err.Error()))
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -143,7 +143,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 			time.Now().Add(config.ChallengeTokenTTL),
 		)
 		if err != nil {
-			log.Printf("failed to insert auth challenge: %v", err)
+			slog.Error("failed to insert auth challenge", slog.String("error", err.Error()))
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -155,14 +155,14 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			log.Printf("failed to encode response: %v", err)
+			slog.Error("failed to encode response", slog.String("error", err.Error()))
 		}
 
 		return
 	}
 
 	if err := h.Auth.IssueTokens(internal.UserID(currentUser.ID), w); err != nil {
-		log.Printf("failed to issue tokens: %v", err)
+		slog.Error("failed to issue tokens", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -171,7 +171,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(currentUser); err != nil {
-		log.Printf("failed to encode user to JSON: %v", err)
+		slog.Error("failed to encode user to JSON", slog.String("error", err.Error()))
 	}
 }
 
@@ -184,13 +184,13 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if body.ChallengeToken == "" {
-		log.Printf("challenge token is required")
+		slog.Error("challenge token is required")
 		http.Error(w, "challenge token is required", http.StatusBadRequest)
 		return
 	}
 
 	if body.Code == "" {
-		log.Printf("TOTP code is required")
+		slog.Error("TOTP code is required")
 		http.Error(w, "TOTP code is required", http.StatusBadRequest)
 		return
 	}
@@ -204,7 +204,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get auth challenge: %v", err)
+		slog.Error("failed to get auth challenge", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -221,7 +221,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get user for TOTP login: %v", err)
+		slog.Error("failed to get user for TOTP login", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -231,7 +231,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		ch.UserID,
 	)
 	if err != nil {
-		log.Printf("failed to get user TOTP key: %v", err)
+		slog.Error("failed to get user TOTP key", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -241,7 +241,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		h.Config.TOTPEncryptionKey,
 	)
 	if err != nil {
-		log.Printf("failed to decrypt user TOTP key: %v", err)
+		slog.Error("failed to decrypt user TOTP key", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -252,13 +252,13 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = challenge.DeleteAuthChallenge(h.DB, ch.ID); err != nil {
-		log.Printf("failed to delete auth challenge: %v", err)
+		slog.Error("failed to delete auth challenge", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = h.Auth.IssueTokens(internal.UserID(ch.UserID), w); err != nil {
-		log.Printf("failed to issue tokens: %v", err)
+		slog.Error("failed to issue tokens", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -267,7 +267,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	if err = json.NewEncoder(w).Encode(currentUser); err != nil {
-		log.Printf("failed to encode user to JSON: %v", err)
+		slog.Error("failed to encode user to JSON", slog.String("error", err.Error()))
 	}
 }
 
@@ -280,7 +280,7 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get refresh token cookie: %v", err)
+		slog.Error("failed to get refresh token cookie", slog.String("error", err.Error()))
 		h.Auth.ClearAuthCookies(w)
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -288,8 +288,7 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 
 	_, refreshTokenID, err := h.Auth.ParseRefreshToken(refreshTokenCookie.Value)
 	if err != nil {
-		log.Printf("failed to parse refresh token: %v", err)
-
+		slog.Error("failed to parse refresh token", slog.String("error", err.Error()))
 		h.Auth.ClearAuthCookies(w)
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -302,7 +301,7 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to revoke refresh token: %v", err)
+		slog.Error("failed to revoke refresh token", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -319,21 +318,21 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get refresh token cookie: %v", err)
+		slog.Error("failed to get refresh token cookie", slog.String("error", err.Error()))
 		h.rejectRefresh(w)
 		return
 	}
 
 	userID, refreshTokenID, err := h.Auth.ParseRefreshToken(refreshTokenCookie.Value)
 	if err != nil {
-		log.Printf("failed to parse refresh token: %v", err)
+		slog.Error("failed to parse refresh token", slog.String("error", err.Error()))
 		h.rejectRefresh(w)
 		return
 	}
 
 	tx, err := h.DB.BeginTx(r.Context(), nil)
 	if err != nil {
-		log.Printf("failed to begin refresh token transaction: %v", err)
+		slog.Error("failed to begin refresh token transaction", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -344,7 +343,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		string(refreshTokenID),
 	)
 	if err != nil {
-		log.Printf("failed to get refresh token by token ID: %v", err)
+		slog.Error("failed to get refresh token by token ID", slog.String("error", err.Error()))
 		h.rejectRefresh(w)
 		return
 	}
@@ -355,48 +354,44 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if !isValid {
-		log.Printf("refresh token hash mismatch for token ID %q", refreshTokenID)
+		slog.Error("refresh token hash mismatch", slog.Any("token_id", refreshTokenID))
 		h.rejectRefresh(w)
 		return
 	}
 
 	if internal.UserID(refreshToken.UserID) != userID {
-		log.Printf(
-			"refresh token user ID mismatch: db user ID %d, jwt user ID %d",
-			refreshToken.UserID,
-			userID,
+		slog.Error("refresh token user ID mismatch",
+			slog.Any("db_user_id", refreshToken.UserID),
+			slog.Any("jwt_user_id", userID),
 		)
-
 		h.rejectRefresh(w)
 		return
 	}
 
 	if auth.TokenID(refreshToken.TokenID) != refreshTokenID {
-		log.Printf(
-			"refresh token ID mismatch: db token ID %q, jwt token ID %q",
-			refreshToken.TokenID,
-			refreshTokenID,
+		slog.Error("refresh token ID mismatch",
+			slog.String("db_token_id", refreshToken.TokenID),
+			slog.Any("jwt_token_id", refreshTokenID),
 		)
-
 		h.rejectRefresh(w)
 		return
 	}
 
 	if refreshToken.RevokedAt != nil {
-		log.Printf("refresh token is revoked: token ID %q", refreshTokenID)
+		slog.Error("refresh token is revoked", slog.Any("token_id", refreshTokenID))
 		h.rejectRefresh(w)
 		return
 	}
 
 	if !refreshToken.ExpiresAt.After(time.Now()) {
-		log.Printf("refresh token is expired: token ID %q", refreshTokenID)
+		slog.Error("refresh token is expired", slog.Any("token_id", refreshTokenID))
 		h.rejectRefresh(w)
 		return
 	}
 
 	newRefreshToken, newRefreshTokenID, err := h.Auth.GenerateRefreshToken(userID)
 	if err != nil {
-		log.Printf("failed to generate refresh token: %v", err)
+		slog.Error("failed to generate refresh token", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -411,7 +406,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		time.Now().Add(config.RefreshTokenTTL),
 	)
 	if err != nil {
-		log.Printf("failed to insert refresh token: %v", err)
+		slog.Error("failed to insert refresh token", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -422,30 +417,30 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		string(newRefreshTokenID),
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("refresh token was already revoked: token ID %q", refreshTokenID)
+			slog.Error("refresh token was already revoked", slog.Any("token_id", refreshTokenID))
 			h.rejectRefresh(w)
 			return
 		}
 
-		log.Printf("failed to replace refresh token: %v", err)
+		slog.Error("failed to replace refresh token", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = tx.Commit(); err != nil {
-		log.Printf("failed to commit refresh token transaction: %v", err)
+		slog.Error("failed to commit refresh token transaction", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = h.Auth.SetAccessTokenCookies(userID, w); err != nil {
-		log.Printf("failed to set access token cookie: %v", err)
+		slog.Error("failed to set access token cookie", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = h.Auth.SetRefreshTokenCookies(newRefreshToken, w); err != nil {
-		log.Printf("failed to set refresh token cookie: %v", err)
+		slog.Error("failed to set refresh token cookie", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -461,26 +456,26 @@ func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	token := chi.URLParam(r, "token")
 	if token == "" {
-		log.Printf("failed to get token from url params")
+		slog.Error("failed to get token from url params")
 		http.Error(w, "missing token", http.StatusBadRequest)
 		return
 	}
 
 	tokenRecord, err := emailconfirm.ValidateConfirmationToken(h.DB, auth.Token(token))
 	if err != nil {
-		log.Printf("failed to validate confirmation token: %v", err)
+		slog.Error("failed to validate confirmation token", slog.String("error", err.Error()))
 		http.Error(w, "invalid confirmation token", http.StatusBadRequest)
 		return
 	}
 
 	if err = user.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
-		log.Printf("failed to verify user email: %v", err)
+		slog.Error("failed to verify user email", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = emailconfirm.DeleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
-		log.Printf("failed to delete confirmation token from db: %v", err)
+		slog.Error("failed to delete confirmation token from db", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -496,7 +491,7 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		log.Printf("failed to get current user: %v", err)
+		slog.Error("failed to get current user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -505,7 +500,7 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 		currentUser.Email,
 		internal.UserID(currentUser.ID),
 	); err != nil {
-		log.Printf("failed to send confirmation email: %v", err)
+		slog.Error("failed to send confirmation email", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

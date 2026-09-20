@@ -3,7 +3,7 @@ package reset_password
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"studify/internal"
 	"studify/internal/auth"
@@ -29,7 +29,7 @@ type token struct {
 func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	body := email{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		log.Printf("failed to decode request body: %v", err)
+		slog.Error("failed to decode request body", slog.String("error", err.Error()))
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -41,14 +41,14 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 
 	currentUser, err := user.GetUserByEmail(h.DB, body.Email)
 	if err != nil {
-		log.Printf("failed to get user by email: %v", err)
+		slog.Error("failed to get user by email", slog.String("error", err.Error()))
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
 
 	token, err := createResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
 	if err != nil {
-		log.Printf("failed to create reset password token: %v", err)
+		slog.Error("failed to create reset password token", slog.String("error", err.Error()))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -56,7 +56,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	link := fmt.Sprintf("%s/reset-password?token=%s", h.Config.AppURL, token)
 
 	if err = h.Mailer.SendPasswordResetEmail("noreply@studify.com", body.Email, link); err != nil {
-		log.Printf("failed to send password reset email: %v", err)
+		slog.Error("failed to send password reset email", slog.String("error", err.Error()))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -68,7 +68,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Request) {
 	body := token{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		log.Printf("failed to decode request body: %v", err)
+		slog.Error("failed to decode request body", slog.String("error", err.Error()))
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -113,26 +113,26 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	tokenRecord, err := validateResetPasswordToken(h.DB, auth.Token(body.Token))
 	if err != nil {
-		log.Printf("invalid or expired token: %v", err)
+		slog.Error("invalid or expired token", slog.String("error", err.Error()))
 		http.Error(w, "invalid or expired token", http.StatusBadRequest)
 		return
 	}
 
 	hash, err := auth.HashPassword(body.NewPassword)
 	if err != nil {
-		log.Printf("failed to hash password: %v", err)
+		slog.Error("failed to hash password", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = user.UpdateUserPassword(h.DB, tokenRecord.UserID, hash); err != nil {
-		log.Printf("failed to update user password: %v", err)
+		slog.Error("failed to update user password", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = DeleteResetPasswordToken(h.DB, tokenRecord.UserID); err != nil {
-		log.Printf("failed to delete reset token: %v", err)
+		slog.Error("failed to delete reset token", slog.String("error", err.Error()))
 	}
 
 	w.WriteHeader(http.StatusNoContent)

@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"studify/internal"
 	"studify/internal/user"
@@ -17,21 +17,21 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get current user: %v", err)
+		slog.Error("failed to get current user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	key, err := GenerateTOTPKey(currentUser.Email, h.Config.AppName)
 	if err != nil {
-		log.Printf("failed to generate TOTP key: %v", err)
+		slog.Error("failed to generate TOTP key", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	qr, err := GenerateTOTPQRCode(key)
 	if err != nil {
-		log.Printf("failed to generate TOTP QR-code: %v", err)
+		slog.Error("failed to generate TOTP QR-code", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -44,20 +44,20 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 
 	encryptedSecret, err := EncryptTOTPKey(secret, h.Config.TOTPEncryptionKey) // For sending to the DB to be more secure
 	if err != nil {
-		log.Printf("failed to encrypt TOTP key: %v", err)
+		slog.Error("failed to encrypt TOTP key", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = UpdateUserTOTPSecret(h.DB, currentUser.ID, encryptedSecret); err != nil {
-		log.Printf("failed to set totp secret at users table: %v", err)
+		slog.Error("failed to set totp secret at users table", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("failed to encode response")
+		slog.Error("failed to encode response", slog.String("error", err.Error()))
 		return
 	}
 }
@@ -69,33 +69,33 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get current user: %v", err)
+		slog.Error("failed to get current user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	body := Passcode{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		log.Printf("failed to decode request body: %v", err)
+		slog.Error("failed to decode request body", slog.String("error", err.Error()))
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	if err = validateTOTP(h.DB, internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
-			log.Printf("failed to validate TOTP: %v", err)
+			slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
 			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
 			return
 		}
 
-		log.Printf("failed to validate TOTP: %v", err)
+		slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
 		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
 		return
 	}
 
 	codes, err := enableTOTP(h.DB, internal.UserID(currentUser.ID))
 	if err != nil {
-		log.Printf("failed to enable TOTP: %v", err)
+		slog.Error("failed to enable TOTP", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -104,7 +104,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("failed to encode response")
+		slog.Error("failed to encode response", slog.String("error", err.Error()))
 		return
 	}
 }
@@ -116,26 +116,26 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get current user: %v", err)
+		slog.Error("failed to get current user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	body := Passcode{}
 	if err = json.NewDecoder(r.Body).Decode(&body); err != nil {
-		log.Printf("failed to decode request body: %v", err)
+		slog.Error("failed to decode request body", slog.String("error", err.Error()))
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	if err = validateTOTP(h.DB, internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
-			log.Printf("failed to validate TOTP: %v", err)
+			slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
 			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
 			return
 		}
 
-		log.Printf("failed to validate TOTP: %v", err)
+		slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
 		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
 		return
 	}
@@ -150,13 +150,13 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get current user: %v", err)
+		slog.Error("failed to get current user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = DisableUserTOTP(h.DB, currentUser.ID); err != nil {
-		log.Printf("failed to disable user TOTP: %v", err)
+		slog.Error("failed to disable user TOTP", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

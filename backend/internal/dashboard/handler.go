@@ -2,7 +2,7 @@ package dashboard
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"studify/internal/httpx"
@@ -17,35 +17,50 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	totalSubjects, err := GetSubjectsCount(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get dashboard subjects count for user %d: %v", userID, err)
+		slog.Error("failed to get dashboard subjects count",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalTasks, err := GetTasksCount(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get dashboard tasks count for user %d: %v", userID, err)
+		slog.Error("failed to get dashboard tasks count",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalCompletedTasks, err := GetCompletedTasksCount(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get dashboard completed tasks count for user %d: %v", userID, err)
+		slog.Error("failed to get dashboard completed tasks count",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalOngoingTasks, err := GetOngoingTasksCount(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get dashboard ongoing tasks count for user %d: %v", userID, err)
+		slog.Error("failed to get dashboard ongoing tasks count",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	totalNotCompletedTasks, err := GetNotCompletedTasksCount(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get dashboard not completed tasks count for user %d: %v", userID, err)
+		slog.Error("failed to get dashboard not completed tasks count",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -60,14 +75,20 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	nearestDeadlineTask, err := GetNearestDeadlineTask(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get nearest deadline task for user %d: %v", userID, err)
+		slog.Error("failed to get nearest deadline task",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	overdueTasks, err := GetOverdueTasks(h.DB, userID)
 	if err != nil {
-		log.Printf("failed to get overdue tasks for user %d: %v", userID, err)
+		slog.Error("failed to get overdue tasks",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -86,8 +107,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("failed to encode dashboard response for user %d: %v", userID, err)
+		slog.Error("failed to encode dashboard response",
+			slog.Any("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 	}
 }
-
-// Todo: Gather some sql request into a single one
