@@ -3,7 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/reset_password"
@@ -39,7 +41,13 @@ func newApplication() (*application, error) {
 
 	mailer := mail.NewMailer("mailpit:1025")
 
-	authService := auth.NewService(cfg.JWTAccessSecret, cfg.JWTRefreshSecret, cfg.Issuer, cfg.IsProduction(), db)
+	authService := auth.NewService(
+		cfg.JWTAccessSecret,
+		cfg.JWTRefreshSecret,
+		cfg.Issuer,
+		cfg.IsProduction(),
+		db,
+	)
 
 	emailService := &email.Service{
 		DB:     db,
@@ -95,6 +103,8 @@ func (a *application) close() error {
 }
 
 func run() error {
+	initLogger()
+
 	app, err := newApplication()
 	if err != nil {
 		return err
@@ -121,4 +131,20 @@ func openDB(databaseURL string) (*sql.DB, error) {
 
 	db.Close()
 	return nil, fmt.Errorf("connect to database: %w", pingErr)
+}
+
+func initLogger() {
+	var h slog.Handler
+	env := os.Getenv("ENV")
+
+	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
+
+	if env == "prod" {
+		opts.Level = slog.LevelInfo
+		h = slog.NewJSONHandler(os.Stdout, opts)
+	} else {
+		h = slog.NewTextHandler(os.Stdout, opts)
+	}
+
+	slog.SetDefault(slog.New(h))
 }
