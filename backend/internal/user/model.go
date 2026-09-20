@@ -19,11 +19,15 @@ type User struct {
 	AvatarURL       *string `json:"avatar_url"`
 }
 
-type EmailRequest struct {
+type emailRequest struct {
 	NewEmail string `json:"new_email"`
 }
 
-type PasswordRequest struct {
+type passwordRequest struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
+}
+
+type avatarResponse struct {
+	AvatarURL string `json:"avatar_url"`
 }

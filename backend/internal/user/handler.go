@@ -7,7 +7,7 @@ import (
 	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 	"studify/internal"
@@ -18,10 +18,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AvatarResponse struct {
-	AvatarURL string `json:"avatar_url"`
-}
-
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := CurrentUser(r, h.DB)
 	if err != nil {
@@ -29,19 +25,19 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get current user: %v", err)
+		slog.Error("failed to get current user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(user); err != nil {
-		log.Printf("failed to encode current user to JSON: %v", err)
+		slog.Error("failed to encode current user to JSON", slog.String("error", err.Error()))
 	}
 }
 
 func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
-	body := EmailRequest{}
+	body := emailRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -59,7 +55,7 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get current user: %v", err)
+		slog.Error("failed to get current user", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -71,27 +67,27 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 
 	newUser, err := UpdateUserEmail(h.DB, user.ID, body.NewEmail)
 	if err != nil {
-		log.Printf("failed to update user email: %v", err)
+		slog.Error("failed to update user email", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = h.EmailService.SendConfirmationEmail(newUser.Email, internal.UserID(newUser.ID)); err != nil {
-		log.Printf("failed to send confirmation email: %v", err)
+		slog.Error("failed to send confirmation email", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(newUser); err != nil {
-		log.Printf("failed to encode current user to JSON: %v", err)
+		slog.Error("failed to encode current user to JSON", slog.String("error", err.Error()))
 	}
 }
 
 func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
-	request := PasswordRequest{}
+	request := passwordRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		log.Printf("failed to decode password update request: %v", err)
+		slog.Error("failed to decode password update request", slog.String("error", err.Error()))
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -107,14 +103,14 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := auth.ValidatePassword(request.NewPassword, auth.ActionRegister); err != nil {
-		log.Printf("failed to validate new password: %v", err)
+		slog.Error("failed to validate new password", slog.String("error", err.Error()))
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
 	}
 
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		log.Printf("failed to get user id: %v", err)
+		slog.Error("failed to get user id", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -126,7 +122,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to get user password hash: %v", err)
+		slog.Error("failed to get user password hash", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -140,14 +136,14 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to compare password hash: %v", err)
+		slog.Error("failed to compare password hash", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	newPasswordHash, err := auth.HashPassword(request.NewPassword)
 	if err != nil {
-		log.Printf("failed to hash new password: %v", err)
+		slog.Error("failed to hash new password", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -158,7 +154,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("failed to update user password: %v", err)
+		slog.Error("failed to update user password", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -197,7 +193,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, media.ErrDimensionsExceed), errors.Is(err, media.ErrDecodeFailed):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		default:
-			log.Printf("failed to save image: %v", err)
+			slog.Error("failed to save image", slog.String("error", err.Error()))
 			http.Error(w, "failed to save image", http.StatusInternalServerError)
 		}
 		return
@@ -210,21 +206,21 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to update user avatar: %v", err)
+		slog.Error("failed to update user avatar", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(AvatarResponse{AvatarURL: avatarURL}); err != nil {
-		log.Printf("failed to encode avatar response: %v", err)
+	if err = json.NewEncoder(w).Encode(avatarResponse{AvatarURL: avatarURL}); err != nil {
+		slog.Error("failed to encode avatar response", slog.String("error", err.Error()))
 	}
 }
 
 func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		log.Printf("failed to get user id: %v", err)
+		slog.Error("failed to get user id", slog.String("error", err.Error()))
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
@@ -234,7 +230,7 @@ func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to delete user avatar: %v", err)
+		slog.Error("failed to delete user avatar", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
