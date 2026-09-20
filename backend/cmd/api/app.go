@@ -20,6 +20,7 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/lmittmann/tint"
 )
 
 type application struct {
@@ -137,13 +138,15 @@ func initLogger() {
 	var h slog.Handler
 	env := os.Getenv("ENV")
 
-	opts := &slog.HandlerOptions{Level: slog.LevelDebug}
-
 	if env == "prod" {
-		opts.Level = slog.LevelInfo
-		h = slog.NewJSONHandler(os.Stdout, opts)
+		h = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})
 	} else {
-		h = slog.NewTextHandler(os.Stdout, opts)
+		h = tint.NewTextHandler(os.Stdout, &tint.Options{
+			Level:      slog.LevelInfo,
+			TimeFormat: time.Kitchen,
+		})
 	}
 
 	slog.SetDefault(slog.New(h))
