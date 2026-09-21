@@ -12,14 +12,15 @@ import (
 	"studify/internal/user"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
 func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
+	r.Use(middlewares.RequestID)
+	r.Use(middlewares.RequestLogger)
+
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   corsOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
