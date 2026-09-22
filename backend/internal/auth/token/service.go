@@ -1,12 +1,14 @@
-package auth
+package token
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"studify/internal"
 	"studify/internal/config"
-	"studify/internal/database/tokens"
 	"time"
 )
 
@@ -18,6 +20,8 @@ type Service struct {
 	DB            *sql.DB
 }
 
+type Token string
+
 func NewService(accessSecret, refreshSecret, issuer string, secureCookies bool, DB *sql.DB) *Service {
 	return &Service{
 		accessSecret:  accessSecret,
@@ -28,6 +32,21 @@ func NewService(accessSecret, refreshSecret, issuer string, secureCookies bool, 
 	}
 }
 
+func GenerateAuthToken() (Token, error) {
+	bytes := make([]byte, 32)
+
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	return Token(base64.RawURLEncoding.EncodeToString(bytes)), nil
+}
+
+func HashAuthToken(token Token) []byte {
+	sum := sha256.Sum256([]byte(token))
+	return sum[:]
+}
+
 func (s *Service) IssueTokens(userID internal.UserID, w http.ResponseWriter) error {
 	refreshToken, refreshTokenID, err := s.GenerateRefreshToken(userID)
 	if err != nil {
@@ -36,7 +55,7 @@ func (s *Service) IssueTokens(userID internal.UserID, w http.ResponseWriter) err
 
 	refreshTokenHash := HashRefreshToken(refreshToken)
 
-	_, err = tokens.InsertRefreshToken(
+	_, err = InsertRefreshToken(
 		s.DB,
 		int64(userID),
 		string(refreshTokenID),

@@ -9,10 +9,10 @@ import (
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/reset_password"
+	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/dashboard"
 	"studify/internal/email"
-	"studify/internal/handlers"
 	"studify/internal/mail"
 	"studify/internal/subject"
 	"studify/internal/task"
@@ -29,6 +29,20 @@ type application struct {
 	router http.Handler
 }
 
+type Handler struct {
+	DB            *sql.DB
+	Token         *token.Service
+	Config        *config.Config
+	EmailService  *email.Service
+	Auth          *auth.Handler
+	Subject       *subject.Handler
+	Task          *task.Handler
+	Dashboard     *dashboard.Handler
+	Mfa           *mfa.Handler
+	User          *user.Handler
+	ResetPassword *reset_password.Handler
+}
+
 func newApplication() (*application, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -42,7 +56,7 @@ func newApplication() (*application, error) {
 
 	mailer := mail.NewMailer("mailpit:1025")
 
-	authService := auth.NewService(
+	tokenService := token.NewService(
 		cfg.JWTAccessSecret,
 		cfg.JWTRefreshSecret,
 		cfg.Issuer,
@@ -56,6 +70,13 @@ func newApplication() (*application, error) {
 		Config: cfg,
 	}
 
+	authHandler := &auth.Handler{
+		DB:           db,
+		Token:        tokenService,
+		Config:       cfg,
+		EmailService: emailService,
+	}
+
 	subjectHandler := &subject.Handler{DB: db}
 
 	taskHandler := &task.Handler{DB: db}
@@ -65,7 +86,7 @@ func newApplication() (*application, error) {
 	mfaHandler := &mfa.Handler{
 		DB:     db,
 		Config: cfg,
-		Auth:   authService,
+		Token:  tokenService,
 	}
 
 	userHandler := &user.Handler{
@@ -79,11 +100,12 @@ func newApplication() (*application, error) {
 		Config: cfg,
 	}
 
-	h := &handlers.Handler{
+	h := &Handler{
 		DB:            db,
-		Auth:          authService,
+		Token:         tokenService,
 		Config:        cfg,
 		EmailService:  emailService,
+		Auth:          authHandler,
 		Subject:       subjectHandler,
 		Task:          taskHandler,
 		Dashboard:     dashboardHandler,

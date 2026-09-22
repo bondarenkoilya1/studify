@@ -1,6 +1,7 @@
-package auth
+package credentials
 
 import (
+	"errors"
 	"fmt"
 	"net/mail"
 	"unicode/utf8"
@@ -10,6 +11,14 @@ const (
 	maxEmailLength    = 254
 	maxPasswordLength = 72
 	minPasswordLength = 8
+)
+
+var (
+	ErrEmptyEmail      = errors.New("email is empty")
+	ErrEmptyPassword   = errors.New("password is empty")
+	ErrInvalidEmail    = errors.New("invalid email")
+	ErrPasswordTooLong = errors.New("password is too long")
+	ErrEmailTooLong    = errors.New("email is too long")
 )
 
 type Action string

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"studify/internal"
-	"studify/internal/auth"
+	"studify/internal/auth/token"
 	"studify/internal/config"
 	"time"
 )
@@ -13,13 +13,13 @@ import (
 func createResetPasswordToken(
 	db *sql.DB,
 	userID internal.UserID,
-) (auth.Token, error) {
-	token, err := auth.GenerateAuthToken()
+) (token.Token, error) {
+	authToken, err := token.GenerateAuthToken()
 	if err != nil {
 		return "", fmt.Errorf("generate reset password token: %w", err)
 	}
 
-	tokenHash := auth.HashAuthToken(token)
+	tokenHash := token.HashAuthToken(authToken)
 	expiresAt := time.Now().Add(config.ResetPasswordTokenTTL)
 
 	if err = DeleteResetPasswordToken(db, int64(userID)); err != nil && !errors.Is(err, ErrNotFound) {
@@ -35,14 +35,14 @@ func createResetPasswordToken(
 		return "", err
 	}
 
-	return token, nil
+	return authToken, nil
 }
 
 func validateResetPasswordToken(
 	db *sql.DB,
-	token auth.Token,
+	authToken token.Token,
 ) (*Record, error) {
-	tokenHash := auth.HashAuthToken(token)
+	tokenHash := token.HashAuthToken(authToken)
 
 	resetToken, err := GetResetPasswordTokenByHash(db, tokenHash)
 	if err != nil {

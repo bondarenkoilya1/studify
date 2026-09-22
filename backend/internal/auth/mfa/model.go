@@ -3,14 +3,14 @@ package mfa
 import (
 	"database/sql"
 	"errors"
-	"studify/internal/auth"
+	"studify/internal/auth/token"
 	"studify/internal/config"
 )
 
 type Handler struct {
 	DB     *sql.DB
 	Config *config.Config
-	Auth   *auth.Service
+	Token  *token.Service
 }
 
 var (

@@ -2,6 +2,7 @@ package task
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"studify/internal/util"
 	"time"
@@ -246,7 +247,7 @@ func InsertTask(
 		&task.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
 
@@ -351,7 +352,7 @@ func UpdateTask(
 		&task.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
 

@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"studify/internal"
-	"studify/internal/auth"
+	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/media"
 
@@ -102,7 +102,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidatePassword(request.NewPassword, auth.ActionRegister); err != nil {
+	if err := credentials.ValidatePassword(request.NewPassword, credentials.ActionRegister); err != nil {
 		slog.Error("failed to validate new password", slog.String("error", err.Error()))
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
@@ -141,7 +141,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newPasswordHash, err := auth.HashPassword(request.NewPassword)
+	newPasswordHash, err := credentials.HashPassword(request.NewPassword)
 	if err != nil {
 		slog.Error("failed to hash new password", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)

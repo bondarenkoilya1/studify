@@ -2,10 +2,10 @@ package main
 
 import (
 	"net/http"
+	"studify/internal/auth"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/reset_password"
 	"studify/internal/dashboard"
-	"studify/internal/handlers"
 	"studify/internal/middlewares"
 	"studify/internal/subject"
 	"studify/internal/task"
@@ -15,7 +15,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
+func newRouter(h *Handler, corsOrigins []string) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.RequestID)
@@ -30,10 +30,14 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 	}))
 
 	r.Route("/api", func(r chi.Router) {
-		registerAuthRoutes(r, h)
+		r.Route("/auth", func(r chi.Router) {
+			registerLoginRoutes(r, h.Auth)
+			registerMfaRoutes(r, h.Mfa)
+			registerPasswordResetRoutes(r, h.ResetPassword)
+		})
 
 		r.Group(func(r chi.Router) {
-			r.Use(middlewares.ValidateAuth(h.Auth))
+			r.Use(middlewares.ValidateAuth(h.Token))
 
 			registerSubjectRoutes(r, h.Subject, h.Task)
 			registerTaskRoutes(r, h.Task)
@@ -43,15 +47,16 @@ func newRouter(h *handlers.Handler, corsOrigins []string) http.Handler {
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(middlewares.ValidateAuth(h.Auth))
+		r.Use(middlewares.ValidateAuth(h.Token))
 		registerStaticRoutes(r)
 	})
 
 	return r
 }
 
-func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
-	r.Route("/auth", func(r chi.Router) {
+// todo: fix, rename .etc
+func registerLoginRoutes(r chi.Router, h *auth.Handler) {
+	r.Route("/", func(r chi.Router) {
 		r.Post("/logout", h.LogoutUser)
 
 		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
@@ -60,13 +65,10 @@ func registerAuthRoutes(r chi.Router, h *handlers.Handler) {
 		r.Post("/refresh", h.RefreshTokens)
 
 		r.Route("/confirm", func(r chi.Router) {
-			r.Use(middlewares.ValidateAuth(h.Auth))
+			r.Use(middlewares.ValidateAuth(h.Token))
 			r.Post("/resend", h.ResendConfirmationMail)
 			r.Post("/{token}", h.ConfirmEmail)
 		})
-
-		registerMfaRoutes(r, h.Mfa)
-		registerPasswordResetRoutes(r, h.ResetPassword)
 	})
 }
 
@@ -128,7 +130,7 @@ func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
 
 func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 	r.Route("/totp", func(r chi.Router) {
-		r.Use(middlewares.ValidateAuth(h.Auth))
+		r.Use(middlewares.ValidateAuth(h.Token))
 
 		r.Route("/setup", func(r chi.Router) {
 			r.Post("/", h.GenerateTOTP)

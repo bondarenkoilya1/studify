@@ -173,10 +173,10 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*task.Task, error) {
 	LIMIT 1;
 `
 
-	var task task.Task
+	var t task.Task
 	var deadline sql.NullTime
 
-	err := db.QueryRow(query, userID).Scan(&task.ID, &task.Name, &task.Description, &deadline, &task.Status, &task.SubjectID)
+	err := db.QueryRow(query, userID).Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.Status, &t.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -184,7 +184,7 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*task.Task, error) {
 
 		return nil, fmt.Errorf("failed to get nearest deadline task: %w", err)
 	}
-	task.Deadline = util.NullTimePtr(deadline)
+	t.Deadline = util.NullTimePtr(deadline)
 
-	return &task, nil
+	return &t, nil
 }

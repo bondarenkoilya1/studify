@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"net/http"
 	"studify/internal"
-	"studify/internal/auth"
+	"studify/internal/auth/credentials"
+	"studify/internal/auth/token"
 	"studify/internal/user"
 )
 
@@ -20,7 +21,7 @@ type changePasswordRequest struct {
 	NewPasswordConfirmed string `json:"new_password_confirmed"`
 }
 
-type token struct {
+type tokenResponse struct {
 	Token string `json:"password_reset_token"`
 }
 
@@ -46,14 +47,14 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := createResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
+	resetToken, err := createResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
 	if err != nil {
 		slog.Error("failed to create reset password token", slog.String("error", err.Error()))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	link := fmt.Sprintf("%s/reset-password?token=%s", h.Config.AppURL, token)
+	link := fmt.Sprintf("%s/reset-password?token=%s", h.Config.AppURL, resetToken)
 
 	if err = h.Mailer.SendPasswordResetEmail("noreply@studify.com", body.Email, link); err != nil {
 		slog.Error("failed to send password reset email", slog.String("error", err.Error()))
@@ -66,7 +67,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 
 // VerifyResetPasswordToken gets token via JSON and validates it relevancy
 func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Request) {
-	body := token{}
+	body := tokenResponse{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		slog.Error("failed to decode request body", slog.String("error", err.Error()))
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -78,7 +79,7 @@ func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_, err := validateResetPasswordToken(h.DB, auth.Token(body.Token))
+	_, err := validateResetPasswordToken(h.DB, token.Token(body.Token))
 	if err != nil {
 		http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
 		return
@@ -106,19 +107,19 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := auth.ValidatePassword(body.NewPassword, auth.ActionRegister); err != nil {
+	if err := credentials.ValidatePassword(body.NewPassword, credentials.ActionRegister); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	tokenRecord, err := validateResetPasswordToken(h.DB, auth.Token(body.Token))
+	tokenRecord, err := validateResetPasswordToken(h.DB, token.Token(body.Token))
 	if err != nil {
 		slog.Error("invalid or expired token", slog.String("error", err.Error()))
 		http.Error(w, "invalid or expired token", http.StatusBadRequest)
 		return
 	}
 
-	hash, err := auth.HashPassword(body.NewPassword)
+	hash, err := credentials.HashPassword(body.NewPassword)
 	if err != nil {
 		slog.Error("failed to hash password", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
