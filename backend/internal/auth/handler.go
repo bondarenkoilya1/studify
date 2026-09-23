@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"studify/internal"
-	"studify/internal/auth/challenge"
 	"studify/internal/auth/credentials"
 	"studify/internal/auth/emailconfirm"
 	"studify/internal/auth/mfa"
@@ -120,7 +119,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 		hash := token.HashAuthToken(challengeToken)
 
-		_, err = challenge.InsertAuthChallenge(
+		_, err = token.InsertAuthChallenge(
 			h.DB,
 			currentUser.ID,
 			hash,
@@ -181,9 +180,9 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 
 	hash := token.HashAuthToken(token.Token(body.ChallengeToken))
 
-	ch, err := challenge.GetAuthChallengeByTokenHash(h.DB, hash)
+	ch, err := token.GetAuthChallengeByTokenHash(h.DB, hash)
 	if err != nil {
-		if errors.Is(err, challenge.ErrNotFound) {
+		if errors.Is(err, token.ErrChallengeTokenNotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
 			return
 		}
@@ -235,7 +234,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = challenge.DeleteAuthChallenge(h.DB, ch.ID); err != nil {
+	if err = token.DeleteAuthChallenge(h.DB, ch.ID); err != nil {
 		slog.Error("failed to delete auth challenge", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

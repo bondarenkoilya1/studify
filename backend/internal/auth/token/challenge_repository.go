@@ -1,4 +1,4 @@
-package challenge
+package token
 
 import (
 	"database/sql"
@@ -8,6 +8,14 @@ import (
 )
 
 const tokenType = "auth_challenge"
+
+type Record struct {
+	ID        int64
+	UserID    int64
+	TokenHash []byte
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
 
 func InsertAuthChallenge(
 	db *sql.DB,
@@ -69,7 +77,7 @@ func GetAuthChallengeByTokenHash(
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, ErrChallengeTokenNotFound
 		}
 
 		return nil, fmt.Errorf("get auth challenge by token hash: %w", err)
@@ -96,7 +104,7 @@ func DeleteAuthChallenge(db *sql.DB, id int64) error {
 	}
 
 	if rows == 0 {
-		return ErrNotFound
+		return ErrChallengeTokenNotFound
 	}
 
 	return nil
