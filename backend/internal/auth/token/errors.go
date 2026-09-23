@@ -9,4 +9,7 @@ var (
 	ErrEmptyTokenID        = errors.New("empty token id")
 
 	ErrChallengeTokenNotFound = errors.New("auth challenge not found")
+
+	ErrEmailConfirmationNotFound     = errors.New("email confirmation token not found")
+	ErrEmailConfirmationTokenExpired = errors.New("confirmation token has expired")
 )

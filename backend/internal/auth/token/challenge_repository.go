@@ -7,9 +7,7 @@ import (
 	"time"
 )
 
-const tokenType = "auth_challenge"
-
-type Record struct {
+type AuthChallengeRecord struct {
 	ID        int64
 	UserID    int64
 	TokenHash []byte
@@ -22,20 +20,20 @@ func InsertAuthChallenge(
 	userID int64,
 	tokenHash []byte,
 	expiresAt time.Time,
-) (*Record, error) {
+) (*AuthChallengeRecord, error) {
 	query := `
 		INSERT INTO auth_tokens (user_id, token_hash, type, expires_at)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, user_id, token_hash, expires_at, created_at;
 	`
 
-	var ch Record
+	var ch AuthChallengeRecord
 
 	err := db.QueryRow(
 		query,
 		userID,
 		tokenHash,
-		tokenType,
+		authChallengeTokenType,
 		expiresAt,
 	).Scan(
 		&ch.ID,
@@ -54,7 +52,7 @@ func InsertAuthChallenge(
 func GetAuthChallengeByTokenHash(
 	db *sql.DB,
 	tokenHash []byte,
-) (*Record, error) {
+) (*AuthChallengeRecord, error) {
 	query := `
 		SELECT id, user_id, token_hash, expires_at, created_at
 		FROM auth_tokens
@@ -62,12 +60,12 @@ func GetAuthChallengeByTokenHash(
 		  AND type = $2;
 	`
 
-	var ch Record
+	var ch AuthChallengeRecord
 
 	err := db.QueryRow(
 		query,
 		tokenHash,
-		tokenType,
+		authChallengeTokenType,
 	).Scan(
 		&ch.ID,
 		&ch.UserID,
@@ -93,7 +91,7 @@ func DeleteAuthChallenge(db *sql.DB, id int64) error {
 		  AND type = $2;
 	`
 
-	result, err := db.Exec(query, id, tokenType)
+	result, err := db.Exec(query, id, authChallengeTokenType)
 	if err != nil {
 		return fmt.Errorf("delete auth challenge: %w", err)
 	}
@@ -117,7 +115,7 @@ func DeleteAuthChallengesByUserID(db *sql.DB, userID int64) error {
 		  AND type = $2;
 	`
 
-	if _, err := db.Exec(query, userID, tokenType); err != nil {
+	if _, err := db.Exec(query, userID, authChallengeTokenType); err != nil {
 		return fmt.Errorf("delete auth challenges by user id: %w", err)
 	}
 
@@ -131,7 +129,7 @@ func DeleteExpiredAuthChallenges(db *sql.DB) (int64, error) {
 		  AND expires_at < now();
 	`
 
-	result, err := db.Exec(query, tokenType)
+	result, err := db.Exec(query, authChallengeTokenType)
 	if err != nil {
 		return 0, fmt.Errorf("delete expired auth challenges: %w", err)
 	}

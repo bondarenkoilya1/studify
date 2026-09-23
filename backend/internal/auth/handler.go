@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"studify/internal"
 	"studify/internal/auth/credentials"
-	"studify/internal/auth/emailconfirm"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/token"
 	"studify/internal/config"
@@ -443,7 +442,7 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRecord, err := emailconfirm.ValidateConfirmationToken(h.DB, token.Token(confirmToken))
+	tokenRecord, err := token.ValidateConfirmationToken(h.DB, token.Token(confirmToken))
 	if err != nil {
 		slog.Error("failed to validate confirmation token", slog.String("error", err.Error()))
 		http.Error(w, "invalid confirmation token", http.StatusBadRequest)
@@ -456,7 +455,7 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = emailconfirm.DeleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
+	if err = token.DeleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
 		slog.Error("failed to delete confirmation token from db", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

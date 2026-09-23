@@ -1,4 +1,4 @@
-package emailconfirm
+package token
 
 import (
 	"database/sql"
@@ -7,12 +7,17 @@ import (
 	"time"
 )
 
-const tokenType = "email_confirmation"
+type EmailConfirmationRecord struct {
+	UserID    int64
+	TokenHash []byte
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
 
 func GetConfirmationTokenByUserID(
 	db *sql.DB,
 	userID int64,
-) (*Record, error) {
+) (*EmailConfirmationRecord, error) {
 	query := `
 		SELECT
 			user_id,
@@ -24,12 +29,12 @@ func GetConfirmationTokenByUserID(
 		  AND type = $2;
 	`
 
-	token := &Record{}
+	token := &EmailConfirmationRecord{}
 
 	err := db.QueryRow(
 		query,
 		userID,
-		tokenType,
+		emailConfirmTokenType,
 	).Scan(
 		&token.UserID,
 		&token.TokenHash,
@@ -39,7 +44,7 @@ func GetConfirmationTokenByUserID(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, ErrEmailConfirmationNotFound
 		}
 
 		return nil, fmt.Errorf(
@@ -54,7 +59,7 @@ func GetConfirmationTokenByUserID(
 func GetConfirmationTokenByHash(
 	db *sql.DB,
 	tokenHash []byte,
-) (*Record, error) {
+) (*EmailConfirmationRecord, error) {
 	query := `
 		SELECT
 			user_id,
@@ -66,12 +71,12 @@ func GetConfirmationTokenByHash(
 		  AND type = $2;
 	`
 
-	token := &Record{}
+	token := &EmailConfirmationRecord{}
 
 	err := db.QueryRow(
 		query,
 		tokenHash,
-		tokenType,
+		emailConfirmTokenType,
 	).Scan(
 		&token.UserID,
 		&token.TokenHash,
@@ -81,7 +86,7 @@ func GetConfirmationTokenByHash(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, ErrEmailConfirmationNotFound
 		}
 
 		return nil, fmt.Errorf(
@@ -113,7 +118,7 @@ func InsertConfirmationToken(
 		query,
 		userID,
 		tokenHash,
-		tokenType,
+		emailConfirmTokenType,
 		expiresAt,
 	)
 
@@ -140,7 +145,7 @@ func DeleteConfirmationToken(
 	result, err := db.Exec(
 		query,
 		userID,
-		tokenType,
+		emailConfirmTokenType,
 	)
 	if err != nil {
 		return fmt.Errorf(
@@ -158,7 +163,7 @@ func DeleteConfirmationToken(
 	}
 
 	if rowsAffected == 0 {
-		return ErrNotFound
+		return ErrEmailConfirmationNotFound
 	}
 
 	return nil

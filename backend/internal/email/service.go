@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"studify/internal"
-	"studify/internal/auth/emailconfirm"
+	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/mail"
 )
@@ -16,7 +16,7 @@ type Service struct {
 }
 
 func (e *Service) SendConfirmationEmail(email string, userID internal.UserID) error {
-	token, err := emailconfirm.CreateConfirmationToken(e.DB, userID)
+	emailConfirmationToken, err := token.CreateConfirmationToken(e.DB, userID)
 	if err != nil {
 		return fmt.Errorf("create confirmation link: %w", err)
 	}
@@ -24,7 +24,7 @@ func (e *Service) SendConfirmationEmail(email string, userID internal.UserID) er
 	link := fmt.Sprintf(
 		"%s/confirm/%s",
 		e.Config.AppURL,
-		token,
+		emailConfirmationToken,
 	)
 
 	if err = e.Mailer.SendConfirmationEmail("noreply@studify.com", email, link); err != nil {

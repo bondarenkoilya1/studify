@@ -1,10 +1,9 @@
-package emailconfirm
+package token
 
 import (
 	"database/sql"
 	"fmt"
 	"studify/internal"
-	"studify/internal/auth/token"
 	"studify/internal/config"
 	"time"
 )
@@ -12,13 +11,13 @@ import (
 func CreateConfirmationToken(
 	db *sql.DB,
 	userID internal.UserID,
-) (token.Token, error) {
-	authToken, err := token.GenerateAuthToken()
+) (Token, error) {
+	authToken, err := GenerateAuthToken()
 	if err != nil {
 		return "", fmt.Errorf("generate confirmation token: %w", err)
 	}
 
-	tokenHash := token.HashAuthToken(authToken)
+	tokenHash := HashAuthToken(authToken)
 
 	expiresAt := time.Now().Add(config.ConfirmationTokenTTL)
 
@@ -31,9 +30,9 @@ func CreateConfirmationToken(
 
 func ValidateConfirmationToken(
 	db *sql.DB,
-	authToken token.Token,
-) (*Record, error) {
-	tokenHash := token.HashAuthToken(authToken)
+	authToken Token,
+) (*EmailConfirmationRecord, error) {
+	tokenHash := HashAuthToken(authToken)
 
 	confirmationToken, err := GetConfirmationTokenByHash(db, tokenHash)
 	if err != nil {
@@ -41,7 +40,7 @@ func ValidateConfirmationToken(
 	}
 
 	if time.Now().After(confirmationToken.ExpiresAt) {
-		return nil, ErrConfirmationTokenExpired
+		return nil, ErrEmailConfirmationTokenExpired
 	}
 
 	return confirmationToken, nil
