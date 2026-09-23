@@ -1,4 +1,4 @@
-package reset_password
+package token
 
 import (
 	"database/sql"
@@ -7,12 +7,17 @@ import (
 	"time"
 )
 
-const tokenType = "password_reset"
+type ResetPasswordTokenRecord struct {
+	UserID    int64
+	TokenHash []byte
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
 
 func GetResetPasswordTokenByHash(
 	db *sql.DB,
 	tokenHash []byte,
-) (*Record, error) {
+) (*ResetPasswordTokenRecord, error) {
 	query := `
 		SELECT
 			user_id,
@@ -24,12 +29,12 @@ func GetResetPasswordTokenByHash(
 		  AND type = $2;
 	`
 
-	token := &Record{}
+	token := &ResetPasswordTokenRecord{}
 
 	err := db.QueryRow(
 		query,
 		tokenHash,
-		tokenType,
+		resetPasswordTokenType,
 	).Scan(
 		&token.UserID,
 		&token.TokenHash,
@@ -39,7 +44,7 @@ func GetResetPasswordTokenByHash(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+			return nil, ErrResetPasswordTokenNotFound
 		}
 
 		return nil, fmt.Errorf(
@@ -71,7 +76,7 @@ func InsertResetPasswordToken(
 		query,
 		userID,
 		tokenHash,
-		tokenType,
+		resetPasswordTokenType,
 		expiresAt,
 	)
 
@@ -95,7 +100,7 @@ func DeleteResetPasswordToken(
 		  AND type = $2;
 	`
 
-	result, err := db.Exec(query, userID, tokenType)
+	result, err := db.Exec(query, userID, resetPasswordTokenType)
 	if err != nil {
 		return fmt.Errorf(
 			"delete password reset token: %w",
@@ -112,7 +117,7 @@ func DeleteResetPasswordToken(
 	}
 
 	if rowsAffected == 0 {
-		return ErrNotFound
+		return ErrResetPasswordTokenNotFound
 	}
 
 	return nil

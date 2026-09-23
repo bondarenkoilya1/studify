@@ -17,7 +17,7 @@ func CreateConfirmationToken(
 		return "", fmt.Errorf("generate confirmation token: %w", err)
 	}
 
-	tokenHash := HashAuthToken(authToken)
+	tokenHash := HashToken(authToken)
 
 	expiresAt := time.Now().Add(config.ConfirmationTokenTTL)
 
@@ -32,7 +32,7 @@ func ValidateConfirmationToken(
 	db *sql.DB,
 	authToken Token,
 ) (*EmailConfirmationRecord, error) {
-	tokenHash := HashAuthToken(authToken)
+	tokenHash := HashToken(authToken)
 
 	confirmationToken, err := GetConfirmationTokenByHash(db, tokenHash)
 	if err != nil {

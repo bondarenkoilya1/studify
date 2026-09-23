@@ -116,7 +116,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		hash := token.HashAuthToken(challengeToken)
+		hash := token.HashToken(challengeToken)
 
 		_, err = token.InsertAuthChallenge(
 			h.DB,
@@ -177,7 +177,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash := token.HashAuthToken(token.Token(body.ChallengeToken))
+	hash := token.HashToken(token.Token(body.ChallengeToken))
 
 	ch, err := token.GetAuthChallengeByTokenHash(h.DB, hash)
 	if err != nil {

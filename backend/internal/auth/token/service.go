@@ -42,7 +42,7 @@ func GenerateAuthToken() (Token, error) {
 	return Token(base64.RawURLEncoding.EncodeToString(bytes)), nil
 }
 
-func HashAuthToken(token Token) []byte {
+func HashToken(token Token) []byte {
 	sum := sha256.Sum256([]byte(token))
 	return sum[:]
 }

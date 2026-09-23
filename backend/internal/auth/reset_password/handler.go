@@ -1,6 +1,7 @@
 package reset_password
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -8,6 +9,8 @@ import (
 	"studify/internal"
 	"studify/internal/auth/credentials"
 	"studify/internal/auth/token"
+	"studify/internal/config"
+	"studify/internal/mail"
 	"studify/internal/user"
 )
 
@@ -23,6 +26,12 @@ type changePasswordRequest struct {
 
 type tokenResponse struct {
 	Token string `json:"password_reset_token"`
+}
+
+type Handler struct {
+	DB     *sql.DB
+	Mailer *mail.Mailer
+	Config *config.Config
 }
 
 // RequestPasswordReset get user email and send generated link with token so user can
@@ -47,7 +56,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resetToken, err := createResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
+	resetToken, err := token.CreateResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
 	if err != nil {
 		slog.Error("failed to create reset password token", slog.String("error", err.Error()))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -79,7 +88,7 @@ func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	_, err := validateResetPasswordToken(h.DB, token.Token(body.Token))
+	_, err := token.ValidateResetPasswordToken(h.DB, token.Token(body.Token))
 	if err != nil {
 		http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
 		return
@@ -112,7 +121,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRecord, err := validateResetPasswordToken(h.DB, token.Token(body.Token))
+	tokenRecord, err := token.ValidateResetPasswordToken(h.DB, token.Token(body.Token))
 	if err != nil {
 		slog.Error("invalid or expired token", slog.String("error", err.Error()))
 		http.Error(w, "invalid or expired token", http.StatusBadRequest)
@@ -132,7 +141,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = DeleteResetPasswordToken(h.DB, tokenRecord.UserID); err != nil {
+	if err = token.DeleteResetPasswordToken(h.DB, tokenRecord.UserID); err != nil {
 		slog.Error("failed to delete reset token", slog.String("error", err.Error()))
 	}
 

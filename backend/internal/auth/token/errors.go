@@ -12,4 +12,9 @@ var (
 
 	ErrEmailConfirmationNotFound     = errors.New("email confirmation token not found")
 	ErrEmailConfirmationTokenExpired = errors.New("confirmation token has expired")
+
+	ErrResetPasswordTokenNotFound = errors.New("password reset token not found")
+	ErrResetPasswordTokenExpired  = errors.New(
+		"reset password token expired",
+	)
 )
