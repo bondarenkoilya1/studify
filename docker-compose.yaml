@@ -4,6 +4,7 @@ volumes:
   mailpit_data:
   frontend_node_modules:
   prometheus_data:
+  grafana_data:
 
 services:
   postgres:
@@ -122,3 +123,17 @@ services:
       - --storage.tsdb.retention.time=15d
     ports:
       - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    environment:
+      - "GF_SECURITY_ADMIN_USER=admin"
+      - "GF_SECURITY_ADMIN_PASSWORD=admin"
+    depends_on:
+      - prometheus

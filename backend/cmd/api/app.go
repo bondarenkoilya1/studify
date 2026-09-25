@@ -55,7 +55,7 @@ func newMetrics(reg prometheus.Registerer) *Metrics {
 	return &Metrics{
 		requestsTotal: promauto.With(reg).NewCounterVec(
 			prometheus.CounterOpts{
-				Name: "studify_request_total",
+				Name: "studify_requests_total",
 				Help: "Total processed requests",
 			},
 			[]string{"method", "route", "status"},
