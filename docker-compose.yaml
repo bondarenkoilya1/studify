@@ -1,3 +1,10 @@
+volumes:
+  postgres_data:
+  backend_tmp:
+  mailpit_data:
+  frontend_node_modules:
+  prometheus_data:
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -103,8 +110,15 @@ services:
     depends_on:
       - backend
 
-volumes:
-  postgres_data:
-  backend_tmp:
-  mailpit_data:
-  frontend_node_modules:
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yaml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "9090:9090"

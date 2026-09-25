@@ -13,13 +13,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func newRouter(h *Handler, corsOrigins []string) http.Handler {
+func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Metrics) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middlewares.RequestID)
 	r.Use(middlewares.RequestLogger)
+	r.Use(middlewares.Metrics(m.requestsTotal, m.requestsDuration))
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   corsOrigins,
@@ -28,6 +31,8 @@ func newRouter(h *Handler, corsOrigins []string) http.Handler {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {

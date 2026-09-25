@@ -21,6 +21,9 @@ import (
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/lmittmann/tint"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type application struct {
@@ -43,7 +46,32 @@ type Handler struct {
 	ResetPassword *reset_password.Handler
 }
 
-func newApplication() (*application, error) {
+type Metrics struct {
+	requestsTotal    *prometheus.CounterVec
+	requestsDuration *prometheus.HistogramVec
+}
+
+func newMetrics(reg prometheus.Registerer) *Metrics {
+	return &Metrics{
+		requestsTotal: promauto.With(reg).NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "studify_request_total",
+				Help: "Total processed requests",
+			},
+			[]string{"method", "route", "status"},
+		),
+		requestsDuration: promauto.With(reg).NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    "studify_http_request_duration_seconds",
+				Help:    "HTTP request latency in seconds",
+				Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5},
+			},
+			[]string{"method", "route"},
+		),
+	}
+}
+
+func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
@@ -117,7 +145,7 @@ func newApplication() (*application, error) {
 	return &application{
 		addr:   cfg.ServerAddr,
 		db:     db,
-		router: newRouter(h, cfg.CORSOrigins),
+		router: newRouter(h, cfg.CORSOrigins, reg, m),
 	}, nil
 }
 
@@ -127,8 +155,9 @@ func (a *application) close() error {
 
 func run() error {
 	initLogger()
+	reg, m := initPrometheus()
 
-	app, err := newApplication()
+	app, err := newApplication(reg, m)
 	if err != nil {
 		return err
 	}
@@ -172,4 +201,15 @@ func initLogger() {
 	}
 
 	slog.SetDefault(slog.New(h))
+}
+
+func initPrometheus() (*prometheus.Registry, *Metrics) {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+	m := newMetrics(reg)
+
+	return reg, m
 }

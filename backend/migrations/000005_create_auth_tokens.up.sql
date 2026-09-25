@@ -15,6 +15,9 @@ CREATE TABLE auth_tokens (
     ))
 );
 
+CREATE UNIQUE INDEX auth_tokens_by_hash
+    ON auth_tokens (token_hash);
+
 CREATE UNIQUE INDEX one_email_confirmation_token_per_user
     ON auth_tokens (user_id)
     WHERE type = 'email_confirmation';
@@ -22,9 +25,6 @@ CREATE UNIQUE INDEX one_email_confirmation_token_per_user
 CREATE UNIQUE INDEX one_password_reset_token_per_user
     ON auth_tokens (user_id)
     WHERE type = 'password_reset';
-
-CREATE UNIQUE INDEX auth_tokens_by_hash
-    ON auth_tokens (token_hash);
 
 CREATE INDEX auth_challenges_by_user_id
     ON auth_tokens (user_id)

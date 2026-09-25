@@ -55,7 +55,7 @@ func RequestLogger(next http.Handler) http.Handler {
 
 		rw := &responseWriter{ResponseWriter: w}
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(rw, r)
 
 		status := rw.statusCode
 		if status == 0 {
