@@ -1,0 +1,170 @@
+@baseUrl = http://localhost:8080
+@subjectId = 2
+
+
+### Create subject 1
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Computer Networks",
+  "note": "TCP/IP, DNS, routing and network protocols",
+  "type": "university",
+  "scope": "technology",
+  "exam_type": "exam",
+  "exam_date": "2026-12-20T09:00:00Z",
+  "course": 3,
+  "term": 1
+}
+
+
+### Create subject 2
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Database Systems",
+  "note": "PostgreSQL, normalization and transactions",
+  "type": "university",
+  "scope": "technology",
+  "exam_type": "credit",
+  "exam_date": "2026-12-15T09:00:00Z",
+  "course": 3,
+  "term": 1
+}
+
+
+### Create subject 3
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Operating Systems",
+  "note": "Processes, memory, filesystems and scheduling",
+  "type": "university",
+  "scope": "technology",
+  "exam_type": "exam",
+  "exam_date": "2026-12-22T09:00:00Z",
+  "course": 3,
+  "term": 1
+}
+
+
+### Create subject 4
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "English",
+  "note": "Technical English and communication",
+  "type": "university",
+  "scope": "humanities",
+  "exam_type": "credit",
+  "exam_date": "2026-12-10T09:00:00Z",
+  "course": 3,
+  "term": 1
+}
+
+
+### Create subject 5
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Physical Education",
+  "note": "Running and general physical training",
+  "type": "university",
+  "scope": "healthcare",
+  "exam_type": "credit",
+  "exam_date": "2026-12-18T09:00:00Z",
+  "course": 3,
+  "term": 1
+}
+
+
+### Create subject 6
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Microeconomics",
+  "note": "Markets, supply, demand and competition",
+  "type": "university",
+  "scope": "business",
+  "exam_type": "exam",
+  "exam_date": "2026-12-19T09:00:00Z",
+  "course": 2,
+  "term": 2
+}
+
+
+### Create subject 7
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Sociology",
+  "note": "Social structures, groups and institutions",
+  "type": "university",
+  "scope": "social",
+  "exam_type": "coursework",
+  "exam_date": "2027-01-15T09:00:00Z",
+  "course": 2,
+  "term": 2
+}
+
+
+### Create subject 8
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Physics",
+  "note": "Mechanics, thermodynamics and electromagnetism",
+  "type": "university",
+  "scope": "science",
+  "exam_type": "exam",
+  "exam_date": "2027-01-20T09:00:00Z",
+  "course": 2,
+  "term": 2
+}
+
+
+### Create subject 9
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Personal Finance",
+  "note": "Budgeting, investing and financial planning",
+  "type": "personal",
+  "scope": "business",
+  "exam_type": "other",
+  "course": null,
+  "term": null
+}
+
+
+### Create subject 10
+POST {{baseUrl}}/api/subjects/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "French Culture",
+  "note": "History, literature and French political thought",
+  "type": "personal",
+  "scope": "humanities",
+  "exam_type": "other",
+  "course": null,
+  "term": null
+}

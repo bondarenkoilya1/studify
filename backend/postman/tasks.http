@@ -1,93 +1,15 @@
 @baseUrl = http://localhost:8080
-# If BACKEND_HOST_PORT is not 8080, update baseUrl.
 @taskId = 1
 
 ### Get all tasks
 GET {{baseUrl}}/api/tasks/
 Accept: application/json
 
+
 ### Get one task
 GET {{baseUrl}}/api/tasks/{{taskId}}
 Accept: application/json
 
-### Setup: create 10 tasks
-# Run subjects.http setup first so subject_id values exist.
-POST {{baseUrl}}/api/tasks/
-Content-Type: application/json
-Accept: application/json
-
-[
-  {
-    "name": "Read chapters 1-3",
-    "description": "Mark key definitions for the seminar discussion.",
-    "deadline": "2026-06-03T00:00:00Z",
-    "status": "completed",
-    "subject_id": 1
-  },
-  {
-    "name": "Solve linear algebra worksheet",
-    "description": "Focus on eigenvectors and matrix diagonalization.",
-    "deadline": "2026-06-05T00:00:00Z",
-    "status": "ongoing",
-    "subject_id": 1
-  },
-  {
-    "name": "Prepare mechanics lab report",
-    "description": "Include graphs, measurements, and error analysis.",
-    "deadline": "2026-06-08T00:00:00Z",
-    "status": "not_completed",
-    "subject_id": 2
-  },
-  {
-    "name": "Implement REST API exercise",
-    "description": "Cover handlers, persistence, and request validation.",
-    "deadline": "2026-06-10T00:00:00Z",
-    "status": "ongoing",
-    "subject_id": 3
-  },
-  {
-    "name": "Review database normalization",
-    "description": "Summarize 1NF, 2NF, 3NF, and tradeoffs.",
-    "deadline": "2026-06-12T00:00:00Z",
-    "status": "not_completed",
-    "subject_id": 4
-  },
-  {
-    "name": "Draft economics case study",
-    "description": "Prepare first draft with source references.",
-    "deadline": "2026-06-14T00:00:00Z",
-    "status": "not_completed",
-    "subject_id": 5
-  },
-  {
-    "name": "Complete psychology reading notes",
-    "description": "Extract important terms and experiment examples.",
-    "deadline": "2026-06-15T00:00:00Z",
-    "status": "completed",
-    "subject_id": 6
-  },
-  {
-    "name": "Practice Spanish speaking prompts",
-    "description": "Record answers and review pronunciation.",
-    "deadline": "2026-06-17T00:00:00Z",
-    "status": "ongoing",
-    "subject_id": 7
-  },
-  {
-    "name": "Prepare art history slide outline",
-    "description": "Group slides by period and visual theme.",
-    "deadline": "2026-06-19T00:00:00Z",
-    "status": "not_completed",
-    "subject_id": 8
-  },
-  {
-    "name": "Final review checklist",
-    "description": "List weak topics and schedule review blocks.",
-    "deadline": "2026-06-21T00:00:00Z",
-    "status": "not_completed",
-    "subject_id": 1
-  }
-]
 
 ### Replace one task
 PUT {{baseUrl}}/api/tasks/{{taskId}}
@@ -95,12 +17,18 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "name": "Read chapters 1-47",
-  "description": "Expanded reading scope before exam week.",
-  "deadline": "2026-06-04T00:00:00Z",
+  "name": "Review TCP/IP fundamentals",
+  "type": "exam",
+  "description": "Expanded review of TCP/IP, DNS, routing and network protocols.",
+  "estimated_time": 120,
+  "scheduled_at": "2026-10-10T18:00:00Z",
+  "deadline": "2026-12-15T18:00:00Z",
   "status": "ongoing",
+  "difficulty": "high",
+  "priority": "high",
   "subject_id": 1
 }
+
 
 ### Update one task
 PATCH {{baseUrl}}/api/tasks/{{taskId}}
@@ -108,12 +36,15 @@ Content-Type: application/json
 Accept: application/json
 
 {
-  "status": "completed"
+  "status": "completed",
+  "priority": "low"
 }
+
 
 ### Delete one task
 DELETE {{baseUrl}}/api/tasks/{{taskId}}
 Accept: application/json
+
 
 ### Delete all tasks
 DELETE {{baseUrl}}/api/tasks/

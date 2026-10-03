@@ -1,0 +1,181 @@
+@baseUrl = http://localhost:8080
+
+### Task 1 — Computer Networks
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Review TCP/IP fundamentals",
+  "type": "exam",
+  "description": "Review TCP/IP layers, addressing, routing and core network protocols.",
+  "estimated_time": 90,
+  "scheduled_at": "2026-10-10T18:00:00Z",
+  "deadline": "2026-12-15T18:00:00Z",
+  "status": "ongoing",
+  "difficulty": "medium",
+  "priority": "high",
+  "subject_id": 1
+}
+
+### Task 2 — Database Systems
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Practice PostgreSQL queries",
+  "type": "credit",
+  "description": "Practice SELECT, JOIN, GROUP BY, subqueries and transactions in PostgreSQL.",
+  "estimated_time": 120,
+  "scheduled_at": "2026-10-11T17:00:00Z",
+  "deadline": "2026-12-12T18:00:00Z",
+  "status": "not_completed",
+  "difficulty": "medium",
+  "priority": "medium",
+  "subject_id": 2
+}
+
+### Task 3 — Operating Systems
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Study process scheduling",
+  "type": "exam",
+  "description": "Review process states, scheduling algorithms, context switching and synchronization.",
+  "estimated_time": 150,
+  "scheduled_at": "2026-10-12T18:00:00Z",
+  "deadline": "2026-12-20T18:00:00Z",
+  "status": "not_completed",
+  "difficulty": "high",
+  "priority": "high",
+  "subject_id": 3
+}
+
+### Task 4 — English
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Prepare English presentation",
+  "type": "credit",
+  "description": "Prepare slides and speaking notes for the English presentation.",
+  "estimated_time": 60,
+  "scheduled_at": "2026-10-13T16:00:00Z",
+  "deadline": "2026-12-10T18:00:00Z",
+  "status": "completed",
+  "difficulty": "low",
+  "priority": "medium",
+  "subject_id": 4
+}
+
+### Task 5 — Physical Education
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Complete physical training plan",
+  "type": "credit",
+  "description": "Complete the required training session and record the results.",
+  "estimated_time": 75,
+  "scheduled_at": "2026-10-14T17:00:00Z",
+  "deadline": "2026-12-18T18:00:00Z",
+  "status": "ongoing",
+  "difficulty": "medium",
+  "priority": "medium",
+  "subject_id": 5
+}
+
+### Task 6 — Microeconomics
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Solve microeconomics exercises",
+  "type": "exam",
+  "description": "Solve exercises covering supply, demand, elasticity and market equilibrium.",
+  "estimated_time": 90,
+  "scheduled_at": "2026-10-15T18:00:00Z",
+  "deadline": "2026-12-19T18:00:00Z",
+  "status": "not_completed",
+  "difficulty": "medium",
+  "priority": "high",
+  "subject_id": 6
+}
+
+### Task 7 — Sociology
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Write sociology coursework outline",
+  "type": "coursework",
+  "description": "Define the research question, structure the coursework and collect initial sources.",
+  "estimated_time": 120,
+  "scheduled_at": "2026-10-16T18:00:00Z",
+  "deadline": "2027-01-10T18:00:00Z",
+  "status": "not_completed",
+  "difficulty": "high",
+  "priority": "high",
+  "subject_id": 7
+}
+
+### Task 8 — Physics
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Review mechanics",
+  "type": "exam",
+  "description": "Review kinematics, Newton's laws, momentum and basic mechanics problems.",
+  "estimated_time": 180,
+  "scheduled_at": "2026-10-17T15:00:00Z",
+  "deadline": "2027-01-20T18:00:00Z",
+  "status": "not_completed",
+  "difficulty": "high",
+  "priority": "medium",
+  "subject_id": 8
+}
+
+### Task 9 — Personal Finance
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Build monthly budget",
+  "type": "other",
+  "description": "Create a monthly budget with income, fixed expenses and spending categories.",
+  "estimated_time": 45,
+  "scheduled_at": "2026-10-18T12:00:00Z",
+  "deadline": "2026-10-20T18:00:00Z",
+  "status": "completed",
+  "difficulty": "low",
+  "priority": "low",
+  "subject_id": 9
+}
+
+### Task 10 — French Culture
+POST {{baseUrl}}/api/tasks/
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Read introduction to French culture",
+  "type": "other",
+  "description": "Read the introductory material and write down the main cultural concepts.",
+  "estimated_time": 120,
+  "scheduled_at": "2026-10-19T14:00:00Z",
+  "deadline": "2026-10-25T18:00:00Z",
+  "status": "ongoing",
+  "difficulty": "medium",
+  "priority": "low",
+  "subject_id": 10
+}

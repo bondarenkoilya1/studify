@@ -1,5 +1,4 @@
 @baseUrl = http://localhost:8080
-# If BACKEND_HOST_PORT is not 8080, update baseUrl.
 @email = maxonchik@gmail.com
 @updatedEmail = maxonchik5@gmail.com
 @password = veryverystrong
