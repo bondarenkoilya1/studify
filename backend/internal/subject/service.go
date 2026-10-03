@@ -18,13 +18,25 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	}
 }
 
+func validateCourse(course *int) error {
+	if course == nil {
+		return nil
+	}
+
+	if *course < 1 || *course > 6 {
+		return errors.New("course must be between 1 and 6")
+	}
+
+	return nil
+}
+
 func validateTerm(term *int) error {
 	if term == nil {
 		return nil
 	}
 
-	if *term < 1 || *term > 16 {
-		return errors.New("term must be between 1 and 16")
+	if *term < 1 || *term > 4 {
+		return errors.New("term must be between 1 and 4")
 	}
 
 	return nil

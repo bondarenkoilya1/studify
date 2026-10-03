@@ -23,15 +23,15 @@ const baseSubjectSchema = {
   course: z
     .number()
     .int("Курс должен быть целым числом")
-    .min(1, "Курс должен быть от 1 до 2")
-    .max(2, "Курс должен быть от 1 до 2")
+    .min(1, "Курс должен быть от 1 до 6")
+    .max(6, "Курс должен быть от 1 до 6")
     .nullable()
     .optional(),
   term: z
     .number()
-    .int("Term должен быть целым числом")
-    .min(1, "Term должен быть от 1 до 2")
-    .max(2, "Term должен быть от 1 до 2")
+    .int("Семестр должен быть целым числом")
+    .min(1, "Семестр должен быть от 1 до 4")
+    .max(4, "Семестр должен быть от 1 до 4")
     .nullable()
     .optional(),
   lecturerAvatarUrl: z.string().nullable().optional(),

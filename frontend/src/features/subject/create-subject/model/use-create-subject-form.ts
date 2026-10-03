@@ -29,16 +29,14 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
 };
 
 function toSubjectInput(values: CreateSubjectFormValues): SubjectInput {
-  const course = values.course ?? 1;
-  const term = values.term ?? 1;
-
   return {
     name: values.name,
     note: values.note,
     type: values.type,
     scope: values.scope,
     examDate: values.examDate?.toISOString() ?? null,
-    term: course * term,
+    course: values.course ?? 1,
+    term: values.term ?? 1,
     lecturers: values.lecturers,
     thumbnailUrl: values.lecturerAvatarUrl ?? null,
   };

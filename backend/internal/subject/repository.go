@@ -28,6 +28,7 @@ const subjectSelectQuery = `
 	   scope,
 	   exam_type,
 	   exam_date,
+	   course,
 	   term,
 	   thumbnail_url
 	FROM subjects
@@ -41,6 +42,7 @@ func scanSubject(scanner interface {
 	var (
 		note         sql.NullString
 		examDate     sql.NullTime
+		course       sql.NullInt64
 		term         sql.NullInt64
 		thumbnailURL sql.NullString
 	)
@@ -54,6 +56,7 @@ func scanSubject(scanner interface {
 		&subject.Scope,
 		&subject.ExamType,
 		&examDate,
+		&course,
 		&term,
 		&thumbnailURL,
 	); err != nil {
@@ -62,6 +65,12 @@ func scanSubject(scanner interface {
 
 	if note.Valid {
 		subject.Note = &note.String
+	}
+
+	// todo: Check new go 1.26
+	if course.Valid {
+		value := int(course.Int64)
+		subject.Course = &value
 	}
 
 	if term.Valid {
@@ -200,6 +209,7 @@ func InsertSubject(
 	examType string,
 	thumbnailURL *string,
 	examDate *time.Time,
+	course *int,
 	term *int,
 	lecturers []Lecturer,
 ) (*Subject, error) {
@@ -219,6 +229,7 @@ func InsertSubject(
 		examType,
 		thumbnailURL,
 		examDate,
+		course,
 		term,
 	)
 	if err != nil {
@@ -252,6 +263,7 @@ func insertSubjectTx(db DBTX,
 	examType string,
 	thumbnailURL *string,
 	examDate *time.Time,
+	course *int,
 	term *int,
 ) (*Subject, error) {
 	query := `
@@ -263,10 +275,11 @@ func insertSubjectTx(db DBTX,
 	      scope,
 	      exam_type,
 	      exam_date,
+	      course,
 	      term,
 	      thumbnail_url
 	   )
-	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	   RETURNING
 	      id,
 	      user_id,
@@ -276,6 +289,7 @@ func insertSubjectTx(db DBTX,
 	      scope,
 	      exam_type,
 	      exam_date,
+	      course,
 	      term,
 	      thumbnail_url;
 	`
@@ -290,6 +304,7 @@ func insertSubjectTx(db DBTX,
 			scope,
 			examType,
 			examDate,
+			toNullInt64(course),
 			toNullInt64(term),
 			thumbnailURL,
 		),
@@ -354,6 +369,7 @@ func UpdateSubject(
 	examType string,
 	thumbnailURL *string,
 	examDate *time.Time,
+	course *int,
 	term *int,
 ) error {
 	query := `
@@ -365,9 +381,10 @@ func UpdateSubject(
 	      scope = $4,
 	      exam_type = $5,
 	      exam_date = $6,
-	      term = $7,
-	      thumbnail_url = $8
-	   WHERE id = $9 AND user_id = $10;
+	      course = $7,
+	      term = $8,
+	      thumbnail_url = $9
+	   WHERE id = $10 AND user_id = $11;
 	`
 
 	result, err := db.Exec(
@@ -378,6 +395,7 @@ func UpdateSubject(
 		scope,
 		examType,
 		examDate,
+		toNullInt64(course),
 		toNullInt64(term),
 		thumbnailURL,
 		id,

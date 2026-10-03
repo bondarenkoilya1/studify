@@ -33,6 +33,7 @@ export interface Subject {
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
+  course: number | null;
   term: number | null;
   lecturers: Lecturer[];
   thumbnailUrl: string | null;
@@ -45,6 +46,7 @@ export interface SubjectInput {
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
+  course: number | null;
   term: number | null;
   lecturers: Lecturer[];
   thumbnailUrl: string | null;

@@ -12,11 +12,16 @@ CREATE TABLE IF NOT EXISTS subjects (
   exam_type TEXT NOT NULL DEFAULT 'exam',
 
   exam_date TIMESTAMPTZ,
-  term SMALLINT CHECK (term BETWEEN 1 AND 16),
+  course SMALLINT,
+  term SMALLINT,
 
   thumbnail_url TEXT,
 
   CHECK (type IN ('university', 'personal')),
   CHECK (scope IN ('technology', 'healthcare', 'humanities', 'business', 'social', 'science', 'other')),
-  CHECK (exam_type IN ('exam', 'credit', 'coursework', 'project', 'other'))
+  CHECK (exam_type IN ('exam', 'credit', 'coursework', 'project', 'other')),
+  CHECK (course BETWEEN 1 AND 6),
+  CHECK (term BETWEEN 1 AND 4)
 );
+
+-- Refactor table by specifying exactly some  field for university and other for personal. OR*

@@ -32,17 +32,23 @@ export const LECTURER_POSITIONS = [
   "assistant",
 ] as const;
 
-export const COURSE_OPTIONS = [1, 2] as const;
-export const TERM_OPTIONS = [1, 2] as const;
+export const COURSE_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
+export const TERM_OPTIONS = [1, 2, 3, 4] as const;
 
 export const COURSE_LABELS: Record<number, string> = {
   1: "1-й курс",
   2: "2-й курс",
+  3: "3-й курс",
+  4: "4-й курс",
+  5: "5-й курс",
+  6: "6-й курс",
 };
 
 export const TERM_LABELS: Record<number, string> = {
-  1: "1-й term",
-  2: "2-й term",
+  1: "1-й семестр",
+  2: "2-й семестр",
+  3: "3-й семестр",
+  4: "4-й семестр",
 };
 
 export const LECTURER_POSITION_LABELS: Record<LecturerPosition, string> = {

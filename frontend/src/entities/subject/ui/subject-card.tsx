@@ -3,12 +3,12 @@ import { CalendarDays, GraduationCap, type LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 import { DeleteSubjectButton } from "@/features/subject/delete-subject";
-import type { Subject } from "@/entities/subject";
 import {
   LECTURER_POSITIONS,
   LECTURER_POSITION_LABELS,
   SCOPE_LABELS,
 } from "@/features/subject/create-subject/model/constants";
+import type { Subject } from "@/entities/subject";
 import {
   SCOPE_DOT_COLORS,
   SCOPE_GRADIENTS,
@@ -16,6 +16,22 @@ import {
 import { publicEnv } from "@/shared/config";
 
 const MAX_LECTURER_ROWS = 2;
+
+export const COURSE_COLORS: Record<number, string> = {
+  1: "bg-blue-50 text-blue-700",
+  2: "bg-emerald-50 text-emerald-700",
+  3: "bg-violet-50 text-violet-700",
+  4: "bg-amber-50 text-amber-700",
+  5: "bg-rose-50 text-rose-700",
+  6: "bg-cyan-50 text-cyan-700",
+};
+
+export const TERM_COLORS: Record<number, string> = {
+  1: "bg-sky-50 text-sky-700",
+  2: "bg-indigo-50 text-indigo-700",
+  3: "bg-fuchsia-50 text-fuchsia-700",
+  4: "bg-orange-50 text-orange-700",
+};
 
 const hashIndex = (val: string | number, max: number) =>
   Math.abs(
@@ -43,13 +59,14 @@ function MetaRow({
 
 export function SubjectCard({ subject }: { subject: Subject }) {
   const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
+
   const gradient = gradients[hashIndex(subject.id, gradients.length)];
 
   const isUniversity = subject.type === "university";
-  const course = subject.term ? Math.ceil(subject.term / 2) : null;
-  const termLabel = subject.term
-    ? `${course} Курс • ${subject.term} Семестр`
-    : null;
+
+  // API may return null for an empty collection.
+  // Keep the UI safe even before the backend contract is fixed.
+  const lecturers = subject.lecturers ?? [];
 
   const examDate = subject.examDate
     ? new Date(subject.examDate).toLocaleDateString("ru-RU", {
@@ -61,11 +78,12 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
   const lecturerGroups = isUniversity
     ? LECTURER_POSITIONS.flatMap((pos) => {
-        const names = subject.lecturers
-          .filter((l) => l.position === pos)
-          .map((l) => l.name)
+        const names = lecturers
+          .filter((lecturer) => lecturer.position === pos)
+          .map((lecturer) => lecturer.name)
           .filter(Boolean)
           .join(", ");
+
         return names
           ? [{ pos, label: LECTURER_POSITION_LABELS[pos], names }]
           : [];
@@ -74,6 +92,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
   const visibleLecturers = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
   const hiddenCount = lecturerGroups.length - visibleLecturers.length;
+
   const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
 
   const thumbUrl = subject.thumbnailUrl
@@ -85,7 +104,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
       <Link
         to="/subjects/$id"
         params={{ id: subject.id }}
-        className="flex h-full flex-col p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 rounded-[22px]"
+        className="flex h-full flex-col rounded-[22px] p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
       >
         {/* Header */}
         <div className="flex min-h-11 items-center gap-3.5 pr-8">
@@ -102,6 +121,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
               {subject.name.slice(0, 2).toUpperCase()}
             </div>
           )}
+
           <h3
             title={subject.name}
             className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-neutral-900"
@@ -130,6 +150,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
                 title={`${label}: ${names}`}
               >
                 <span className="text-neutral-400">{label}: </span>
+
                 <span className="font-medium text-neutral-700">{names}</span>
               </MetaRow>
             ))}
@@ -148,21 +169,43 @@ export function SubjectCard({ subject }: { subject: Subject }) {
           </div>
         )}
 
-        {/* Footer Badges */}
+        {/* Footer */}
         <div className="mt-auto flex items-center gap-2 pt-4">
-          <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600">
+          <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600">
             {isUniversity ? "Университет" : "Личный"}
           </span>
-          {termLabel && (
-            <span className="truncate rounded-full bg-violet-50 px-2.5 py-0.5 text-[11px] font-medium text-violet-700">
-              {termLabel}
+
+          {subject.course && subject.term && (
+            <span className="flex shrink-0 overflow-hidden rounded-full border border-black/[0.04] text-[11px] font-medium">
+              <span
+                className={`px-2.5 py-0.5 ${
+                  COURSE_COLORS[subject.course] ??
+                  "bg-neutral-100 text-neutral-600"
+                }`}
+              >
+                {subject.course} курс
+              </span>
+
+              <span
+                className={`border-l border-black/[0.06] px-2.5 py-0.5 ${
+                  TERM_COLORS[subject.term] ?? "bg-neutral-100 text-neutral-600"
+                }`}
+              >
+                {subject.term} семестр
+              </span>
             </span>
           )}
-          <span className="ml-auto flex items-center gap-1.5 text-[11px] font-medium text-neutral-500">
+
+          <span className="ml-auto flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-neutral-500">
             <span
-              className={`size-1.5 shrink-0 rounded-full ${SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400"}`}
+              className={`size-1.5 shrink-0 rounded-full ${
+                SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400"
+              }`}
             />
-            {SCOPE_LABELS[subject.scope] ?? subject.scope}
+
+            <span className="truncate">
+              {SCOPE_LABELS[subject.scope] ?? subject.scope}
+            </span>
           </span>
         </div>
       </Link>

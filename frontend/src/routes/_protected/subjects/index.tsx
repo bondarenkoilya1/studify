@@ -17,11 +17,10 @@ export const Route = createFileRoute("/_protected/subjects/")({
   component: SubjectsPage,
 });
 
-export function SubjectsPage() {
+function SubjectsPage() {
   const { data = [], isPending, error } = useGetSubjects();
 
   const [isCreateSubjectOpen, setIsCreateSubjectOpen] = useState(false);
-
   const [selectedType, setSelectedType] = useState<SubjectFilter>("all");
 
   const filteredSubjects = useMemo(() => {
@@ -77,10 +76,9 @@ export function SubjectsPage() {
           type="button"
           onClick={() => setSelectedType("all")}
           className={`
-            rounded-full px-3.5 py-1.5
+            cursor-pointer rounded-full px-3.5 py-1.5
             text-[12.5px] font-medium
             transition-all duration-200
-            cursor-pointer
             ${
               selectedType === "all"
                 ? "bg-gray-900 text-white shadow-sm"
@@ -98,10 +96,9 @@ export function SubjectsPage() {
             type="button"
             onClick={() => setSelectedType(type)}
             className={`
-              rounded-full px-3.5 py-1.5
+              cursor-pointer rounded-full px-3.5 py-1.5
               text-[12.5px] font-medium
               transition-all duration-200
-              cursor-pointer
               ${
                 selectedType === type
                   ? "bg-gray-900 text-white shadow-sm"

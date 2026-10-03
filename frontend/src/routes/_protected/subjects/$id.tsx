@@ -23,23 +23,32 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
 });
 
 function SubjectFilesSidebar({ files }: { files: File[] }) {
-  if (!files || files.length === 0) return null;
+  if (!files || files.length === 0) {
+    return null;
+  }
 
   return (
     <aside className="w-full shrink-0 lg:w-[320px]">
-      <div className="rounded-[20px] bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100">
+      <div className="rounded-[20px] border border-gray-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <h2 className="text-[17px] font-semibold tracking-tight text-gray-900">
           Материалы курса
         </h2>
 
         <div className="mt-4 flex flex-col gap-2">
           {files.map((file, index) => {
-            const rawSize = file.sizeBytes || (file as any).size_bytes || 0;
+            const rawSize =
+              file.sizeBytes ||
+              (file as { size_bytes?: number }).size_bytes ||
+              0;
+
             const formattedSize = formatBytes(rawSize);
             const url = toAbsoluteUrl(file.url);
 
             const contentType =
-              file.contentType || (file as any).content_type || "";
+              file.contentType ||
+              (file as { content_type?: string }).content_type ||
+              "";
+
             const isText =
               contentType === "text/plain" ||
               file.name.toLowerCase().endsWith(".txt");
@@ -57,7 +66,7 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex items-center gap-3 rounded-2xl border border-transparent p-3 transition-all duration-200 hover:bg-gray-50 hover:border-gray-100 cursor-pointer"
+                className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-transparent p-3 transition-all duration-200 hover:border-gray-100 hover:bg-gray-50"
               >
                 <div
                   className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${iconWrapperClass}`}
@@ -66,20 +75,22 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col justify-center">
-                  <p className="truncate text-[14px] font-medium text-gray-900 leading-tight">
+                  <p className="truncate text-[14px] font-medium leading-tight text-gray-900">
                     {file.name}
                   </p>
+
                   <div className="mt-1 flex items-center gap-1.5">
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-gray-500 uppercase">
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                       {label}
                     </span>
+
                     <span className="text-[12px] text-gray-400">
                       {formattedSize}
                     </span>
                   </div>
                 </div>
 
-                <div className="text-gray-300 opacity-0 transition-all duration-200 group-hover:opacity-100 group-hover:text-gray-500">
+                <div className="text-gray-300 opacity-0 transition-all duration-200 group-hover:text-gray-500 group-hover:opacity-100">
                   <Search size={18} strokeWidth={2} />
                 </div>
               </a>
@@ -93,6 +104,7 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
 
 function SubjectPage() {
   const { id } = Route.useParams();
+
   const { data: tasks } = useGetTasks(id);
   const { types } = useTasksMetadata(id);
   const subject = useGetSubject(id);
@@ -109,13 +121,13 @@ function SubjectPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
-      <div className="mx-auto flex max-w-[1024px] flex-col gap-8 px-5 py-12 lg:flex-row sm:px-8">
-        <main className="flex-1 w-full max-w-[640px]">
+      <div className="mx-auto flex max-w-[1024px] flex-col gap-8 px-5 py-12 sm:px-8 lg:flex-row">
+        <main className="w-full max-w-[640px] flex-1">
           <header>
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-gray-900">
-                  {subject?.name}
+                  {subject.name}
                 </h1>
 
                 <p className="mt-1 text-[14px] text-gray-400">
@@ -163,6 +175,7 @@ function SubjectPage() {
                     `}
                   >
                     {TYPE_LABELS[type]}
+
                     <span className="ml-1.5 opacity-60">{count}</span>
                   </button>
                 ))}
@@ -175,7 +188,7 @@ function SubjectPage() {
           </div>
         </main>
 
-        <SubjectFilesSidebar files={subject?.files || []} />
+        <SubjectFilesSidebar files={subject.files || []} />
       </div>
     </div>
   );

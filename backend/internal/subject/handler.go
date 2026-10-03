@@ -90,6 +90,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		req.ExamType,
 		req.ThumbnailURL,
 		req.ExamDate,
+		req.Course,
 		req.Term,
 		req.Lecturers,
 	)
@@ -151,6 +152,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		req.ExamType,
 		req.ThumbnailURL,
 		req.ExamDate,
+		req.Course,
 		req.Term,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -217,6 +219,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		req.ExamType == nil &&
 		req.ThumbnailURL == nil &&
 		req.ExamDate == nil &&
+		req.Course == nil &&
 		req.Term == nil {
 		http.Error(w, "no fields to update", http.StatusBadRequest)
 		return
@@ -282,6 +285,15 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.ExamDate = req.ExamDate
 	}
 
+	if req.Course != nil {
+		if err := validateCourse(req.Course); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		subject.Course = req.Course
+	}
+
 	if req.Term != nil {
 		if err := validateTerm(req.Term); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -302,6 +314,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		subject.ExamType,
 		subject.ThumbnailURL,
 		subject.ExamDate,
+		subject.Course,
 		subject.Term,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

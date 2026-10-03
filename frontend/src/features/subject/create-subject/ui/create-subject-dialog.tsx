@@ -48,27 +48,14 @@ const initialLecturers = [
   },
 ];
 
-// Единый focus-ring токен для всех интерактивных элементов формы —
-// кастомные radio-кнопки, инпуты, селекты. Если этого не сделать,
-// у каждого компонента будет свой ring/opacity и это подсознательно
-// читается как "несколько разных UI-китов в одной форме".
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20";
 
-// Единственная точка правды для текста ошибки под полем.
-// Раньше в разных местах было text-[13px]/text-[12px], mt-1.5/без него —
-// эти расхождения незаметны по отдельности, но глаз считывает
-// их совокупность как "неаккуратно". Один компонент = один стиль везде.
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="mt-1.5 text-[13px] text-red-500">{message}</p>;
 }
 
-// Схлопывающийся контейнер для полей, которые есть только у типа
-// "university". grid-template-rows 0fr → 1fr — единственный способ
-// анимировать "auto" высоту чистым CSS, без measure-hacks и без
-// доп. библиотек. overflow-hidden на внутреннем div обязателен —
-// иначе контент будет виден поверх схлопнутой области во время анимации.
 function Collapse({
   open,
   children,
@@ -320,7 +307,10 @@ export function CreateSubjectDialog({
 
                         <SelectContent>
                           {TERM_OPTIONS.map((termOption) => (
-                            <SelectItem key={termOption} value={String(termOption)}>
+                            <SelectItem
+                              key={termOption}
+                              value={String(termOption)}
+                            >
                               {TERM_LABELS[termOption]}
                             </SelectItem>
                           ))}

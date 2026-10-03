@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+// todo: decide int either int64 or 32, 16, 8
+
 type Handler struct {
 	DB *sql.DB
 }
@@ -30,7 +32,8 @@ type Subject struct {
 	Scope        string     `json:"scope"`
 	ExamType     string     `json:"exam_type"`
 	ExamDate     *time.Time `json:"exam_date"`
-	Term         *int       `json:"term"`
+	Course       *int       `json:"course"` // Pointer because it can be not specified
+	Term         *int       `json:"term"`   // Pointer because it can be not specified
 	Lecturers    []Lecturer `json:"lecturers"`
 	ThumbnailURL *string    `json:"thumbnail_url"`
 	Files        []File     `json:"files"`
@@ -43,6 +46,7 @@ type CreateSubjectRequest struct {
 	Scope        string     `json:"scope"`
 	ExamType     string     `json:"exam_type"`
 	ExamDate     *time.Time `json:"exam_date"`
+	Course       *int       `json:"course"`
 	Term         *int       `json:"term"`
 	Lecturers    []Lecturer `json:"lecturers"`
 	ThumbnailURL *string    `json:"thumbnail_url"`
@@ -57,6 +61,7 @@ type UpdateSubjectRequest struct {
 	Lecturers    *[]Lecturer `json:"lecturers"`
 	ThumbnailURL *string     `json:"thumbnail_url"`
 	ExamDate     *time.Time  `json:"exam_date"`
+	Course       *int        `json:"course"`
 	Term         *int        `json:"term"`
 }
 
