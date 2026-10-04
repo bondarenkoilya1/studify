@@ -3,7 +3,6 @@
 .env
 
 backend/tmp
-backend/.air.toml
 backend/.env
 backend/data
 
