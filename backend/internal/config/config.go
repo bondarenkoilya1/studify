@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 )
@@ -71,6 +72,18 @@ func Load() (*Config, error) {
 	if cfg.Env == "" {
 		cfg.Env = "dev"
 	}
+
+	smtpHost := os.Getenv("SMTP_HOST")
+	if smtpHost == "" {
+		smtpHost = "localhost"
+	}
+
+	smtpPort := os.Getenv("SMTP_PORT")
+	if smtpPort == "" {
+		smtpPort = "1025"
+	}
+
+	cfg.SMTPAddr = net.JoinHostPort(smtpHost, smtpPort)
 
 	if len(cfg.CORSOrigins) == 0 {
 		cfg.CORSOrigins = []string{

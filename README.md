@@ -1,9 +1,8 @@
 # Studify
 
 Studify is a Go REST API for managing users, subjects, study tasks, and dashboard
-statistics. PostgreSQL stores application data. A minimal frontend placeholder
-is kept only so the complete Docker Compose stack can start while the client is
-rebuilt.
+statistics. PostgreSQL stores application data. The React frontend lives in
+`frontend/` and runs in the same Docker Compose stack.
 
 ## Backend stack
 
@@ -27,7 +26,7 @@ rebuilt.
 │   ├── internal/utils/     # auth, validation, and helpers
 │   ├── migrations/         # PostgreSQL migrations
 │   └── postman/            # runnable HTTP request examples
-├── frontend/               # empty Vite placeholder for Docker
+├── frontend/               # React + Vite client
 ├── API.md                  # API contract
 ├── SETUP.md                # local setup and commands
 └── docker-compose.yaml
@@ -38,17 +37,18 @@ rebuilt.
 Requirements: Docker with the Compose plugin and `psql`.
 
 ```bash
-make publicEnv
+make env
 ```
 
-Set non-empty secrets in `.publicEnv`:
+Fill the required secrets in `.env`:
 
-```publicEnv
+```env
 JWT_ACCESS_SECRET=replace-with-a-random-secret
 JWT_REFRESH_SECRET=replace-with-a-different-random-secret
+TOTP_ENCRYPTION_KEY=output-of-openssl-rand-base64-32
 ```
 
-Start PostgreSQL, the backend, Swagger UI, and the empty frontend placeholder:
+Start the stack and apply the migrations:
 
 ```bash
 make docker-up
@@ -60,7 +60,10 @@ Default addresses:
 - API: `http://localhost:8080`
 - Swagger UI: `http://localhost:8081`
 - OpenAPI specification: `backend/docs/openapi.yaml`
-- frontend placeholder: `http://localhost:5173`
+- frontend: `http://localhost:5173`
+- Mailpit (caught emails): `http://localhost:8025`
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3000` (`admin` / `admin`)
 - PostgreSQL: `localhost:4444`
 
 See [SETUP.md](./SETUP.md) for configuration and operational commands. See
