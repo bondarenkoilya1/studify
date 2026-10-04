@@ -1,5 +1,5 @@
-ifneq (,$(wildcard .publicEnv))
-include .publicEnv
+ifneq (,$(wildcard .env))
+include .env
 export
 endif
 
@@ -19,16 +19,17 @@ endif
 MIGRATIONS_DIR = backend/migrations
 POSTGRES_DSN = postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:$(POSTGRES_HOST_PORT)/$(POSTGRES_DB)?sslmode=disable
 
-.PHONY: publicEnv check-docker-publicEnv docker-up docker-down docker-ps docker-logs migrate-up migrate-down backend-run backend-test
+.PHONY: env check-docker-env docker-up docker-down docker-ps docker-logs migrate-up migrate-down backend-run backend-test
 
-publicEnv:
-	test -f .publicEnv || cp .publicEnv.example .publicEnv
+env:
+	test -f .env || cp .env.example .env
 
-check-docker-publicEnv:
-	@test -n "$(JWT_ACCESS_SECRET)" || (echo "JWT_ACCESS_SECRET is required in .publicEnv"; exit 1)
-	@test -n "$(JWT_REFRESH_SECRET)" || (echo "JWT_REFRESH_SECRET is required in .publicEnv"; exit 1)
+check-docker-env:
+	@test -n "$(JWT_ACCESS_SECRET)" || (echo "JWT_ACCESS_SECRET is required in .env"; exit 1)
+	@test -n "$(JWT_REFRESH_SECRET)" || (echo "JWT_REFRESH_SECRET is required in .env"; exit 1)
+	@test -n "$(TOTP_ENCRYPTION_KEY)" || (echo "TOTP_ENCRYPTION_KEY is required in .env (generate: openssl rand -base64 32)"; exit 1)
 
-docker-up: check-docker-publicEnv
+docker-up: check-docker-env
 	docker compose up --build -d
 
 docker-down:

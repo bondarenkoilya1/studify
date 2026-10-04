@@ -13,6 +13,7 @@ type Config struct {
 	AppURL            string
 	Env               string
 	CORSOrigins       []string
+	SMTPAddr          string
 }
 
 const (

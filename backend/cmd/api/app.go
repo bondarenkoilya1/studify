@@ -82,7 +82,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		return nil, err
 	}
 
-	mailer := mail.NewMailer("mailpit:1025")
+	mailer := mail.NewMailer(cfg.SMTPAddr)
 
 	tokenService := token.NewService(
 		cfg.JWTAccessSecret,
