@@ -4,18 +4,26 @@
 
 - Docker with the Compose plugin
 - `psql` for running migrations from the root Makefile
-- Go, only when running or checking the backend outside Docker
+- Go 1.26, only when running or checking the backend outside Docker
 
 ## Docker Compose
 
 Create the root environment file:
 
 ```bash
-make publicEnv
+make env
 ```
 
-`JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be non-empty. Use different,
-random values. All supported root variables are listed in `.publicEnv.example`.
+Fill the required values in `.env`. All supported root variables are listed in
+`.env.example`.
+
+- `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be non-empty. Use different,
+  random values.
+- `TOTP_ENCRYPTION_KEY` must be base64 that decodes to exactly 32 bytes:
+
+```bash
+openssl rand -base64 32
+```
 
 Start the stack:
 
@@ -26,8 +34,16 @@ make docker-up
 This starts:
 
 - PostgreSQL on `POSTGRES_HOST_PORT` (`4444` by default);
-- the Go API on `BACKEND_HOST_PORT` (`8080` by default);
-- an empty Vite placeholder on `FRONTEND_HOST_PORT` (`5173` by default).
+- the Go API with hot reload (`air`, configured in `backend/.air.toml`) on
+  `BACKEND_HOST_PORT` (`8080` by default);
+- the React frontend on `FRONTEND_HOST_PORT` (`5173` by default);
+- Swagger UI on `SWAGGER_HOST_PORT` (`8081` by default);
+- Mailpit, which catches every email the API sends, on `MAILPIT_WEB_PORT`
+  (`8025` by default);
+- Prometheus on `PROMETHEUS_HOST_PORT` (`9090` by default), scraping
+  `backend:8080/metrics`;
+- Grafana on `GRAFANA_HOST_PORT` (`3000` by default), login `admin` / `admin`.
+  Dashboard JSON files go in `grafana/provisioning/dashboards/json/`.
 
 Apply the database migrations after PostgreSQL is healthy:
 
@@ -44,33 +60,28 @@ make docker-down
 make migrate-down
 ```
 
-`docker-down` preserves the PostgreSQL named volume. To remove stored data,
-explicitly remove the Compose volume separately.
+`docker-down` preserves the named volumes. To remove stored data, run
+`docker compose down -v`.
 
 ## Backend outside Docker
 
-Create `backend/.publicEnv` from `backend/.publicEnv.example` and fill every required value:
+Create `backend/.env` from `backend/.env.example` and fill every required value:
 
 ```bash
-cp backend/.publicEnv.example backend/.publicEnv
+cp backend/.env.example backend/.env
 ```
 
-Example:
-
-```publicEnv
-JWT_ACCESS_SECRET=replace-with-a-random-secret
-JWT_REFRESH_SECRET=replace-with-a-different-random-secret
-ISSUER=studify
-DATABASE_URL=postgres://studify:studify@localhost:4444/studify?sslmode=disable
-SERVER_ADDR=:8080
-ENV=dev
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-```
-
-`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `ISSUER`, and `DATABASE_URL` are
-required. `SERVER_ADDR` defaults to `:8080`, `ENV` defaults to `dev`, and
-`CORS_ALLOWED_ORIGINS` defaults to
+`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `TOTP_ENCRYPTION_KEY`, `ISSUER`,
+`APP_NAME`, `APP_URL`, and `DATABASE_URL` are required. `SERVER_ADDR` defaults
+to `:8080`, `ENV` defaults to `dev`, `SMTP_HOST` / `SMTP_PORT` default to
+`localhost` / `1025`, and `CORS_ALLOWED_ORIGINS` defaults to
 `http://localhost:5173,http://localhost:3000`.
+
+PostgreSQL and Mailpit can still run in Docker:
+
+```bash
+docker compose up -d postgres mailpit
+```
 
 Run or check the backend:
 
@@ -81,7 +92,7 @@ make -C backend fmt-check
 make -C backend vet
 ```
 
-The backend Makefile loads `backend/.publicEnv` automatically when it exists.
+The backend Makefile loads `backend/.env` automatically when it exists.
 
 ## Migrations
 
