@@ -162,7 +162,8 @@ func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*User, error) {
 	query := `
 		UPDATE users
 		SET
-		    email = $1
+		    email = $1,
+			is_email_verified = false
 		WHERE id = $2
 		RETURNING id, email, is_email_verified;
 	`
@@ -203,7 +204,7 @@ func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
 	return nil
 }
 
-// UpdateUserAvatar обновляет путь к аватарке пользователя
+// UpdateUserAvatar updates path string for user avatar
 func UpdateUserAvatar(db *sql.DB, id int64, avatarURL string) error {
 	query := `
 		UPDATE users

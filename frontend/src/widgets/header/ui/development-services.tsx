@@ -1,6 +1,6 @@
 import { cn } from "@/shared/lib/cn";
 import { navItems } from "../config/nav-items";
-import { ExternalLink, MailCheck, ShieldCheck } from "lucide-react";
+import { MailCheck, ShieldCheck } from "lucide-react";
 
 interface Props {
   isEmailVerified: boolean;
@@ -28,10 +28,6 @@ export function DevelopmentServices({ isEmailVerified, isTotpEnabled }: Props) {
           >
             <Icon className="size-3.5" strokeWidth={2} />
             <span>{service.label}</span>
-            <ExternalLink
-              className="size-3 opacity-0 transition-opacity group-hover:opacity-50"
-              strokeWidth={2}
-            />
           </a>
         );
       })}

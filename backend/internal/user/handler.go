@@ -1,10 +1,8 @@
 package user
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
 	"log/slog"
@@ -37,6 +35,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
+	// Receive and compare emails
 	body := emailRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -65,6 +64,7 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Update, here transaction should start (in repo)
 	newUser, err := UpdateUserEmail(h.DB, user.ID, body.NewEmail)
 	if err != nil {
 		slog.Error("failed to update user email", slog.String("error", err.Error()))
@@ -236,22 +236,4 @@ func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func CurrentUser(r *http.Request, db *sql.DB) (*User, error) {
-	userID, err := httpx.GetUserID(r)
-	if err != nil {
-		return nil, err
-	}
-
-	currentUser, err := GetUserByID(db, userID)
-	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return nil, ErrUserNotFound
-		}
-
-		return nil, fmt.Errorf("get current user: %w", err)
-	}
-
-	return currentUser, nil
 }

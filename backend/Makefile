@@ -37,3 +37,6 @@ clean:
 
 deps:
 	go mod tidy
+
+migration:
+	migrate create -ext sql -dir migrations -seq $(name)
