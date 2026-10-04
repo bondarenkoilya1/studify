@@ -12,6 +12,7 @@ export type LecturerPosition =
   | "practical_instructor"
   | "lab_instructor"
   | "assistant";
+export type ExamType = "exam" | "credit" | "coursework" | "project" | "other";
 
 export interface Lecturer {
   name: string;
@@ -33,6 +34,7 @@ export interface Subject {
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
+  examType: ExamType | null;
   course: number | null;
   term: number | null;
   lecturers: Lecturer[];
@@ -46,6 +48,7 @@ export interface SubjectInput {
   type: SubjectType;
   scope: SubjectScope;
   examDate: string | null;
+  examType: ExamType | null;
   course: number | null;
   term: number | null;
   lecturers: Lecturer[];

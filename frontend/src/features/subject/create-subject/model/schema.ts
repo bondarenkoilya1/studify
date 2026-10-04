@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LECTURER_POSITIONS, SUBJECT_SCOPES } from "./constants";
+import { EXAM_TYPES, LECTURER_POSITIONS, SUBJECT_SCOPES } from "./constants";
 
 const lecturerSchema = z.object({
   name: z
@@ -42,6 +42,7 @@ export const createSubjectSchema = z.discriminatedUnion("type", [
     ...baseSubjectSchema,
     type: z.literal("university"),
     examDate: z.date({ message: "Укажите дату экзамена" }),
+    examType: z.enum(EXAM_TYPES, { message: "Укажите тип экзамена" }),
     lecturers: z
       .array(lecturerSchema)
       .min(1, "Добавьте хотя бы одного преподавателя"),
@@ -51,6 +52,7 @@ export const createSubjectSchema = z.discriminatedUnion("type", [
     ...baseSubjectSchema,
     type: z.literal("personal"),
     examDate: z.date().optional(),
+    examType: z.enum(EXAM_TYPES).optional(),
     lecturers: z.array(lecturerSchema),
   }),
 ]);

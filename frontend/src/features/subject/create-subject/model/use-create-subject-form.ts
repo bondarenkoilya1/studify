@@ -14,30 +14,25 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
   scope: "other",
   course: 1,
   term: 1,
-  lecturers: [
-    {
-      name: "",
-      position: "lecturer",
-    },
-    {
-      name: "",
-      position: "practical_instructor",
-    },
-  ],
+  lecturers: [{ name: "", position: "lecturer" }],
   lecturerAvatarUrl: null,
   examDate: undefined,
+  examType: "exam",
 };
 
 function toSubjectInput(values: CreateSubjectFormValues): SubjectInput {
+  const isUniversity = values.type === "university";
+
   return {
     name: values.name,
     note: values.note,
     type: values.type,
     scope: values.scope,
-    examDate: values.examDate?.toISOString() ?? null,
-    course: values.course ?? 1,
-    term: values.term ?? 1,
-    lecturers: values.lecturers,
+    examDate: isUniversity ? (values.examDate?.toISOString() ?? null) : null,
+    examType: isUniversity ? values.examType : null,
+    course: isUniversity ? (values.course ?? 1) : null,
+    term: isUniversity ? (values.term ?? 1) : null,
+    lecturers: isUniversity ? values.lecturers : [],
     thumbnailUrl: values.lecturerAvatarUrl ?? null,
   };
 }

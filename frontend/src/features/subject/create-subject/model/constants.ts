@@ -57,3 +57,12 @@ export const LECTURER_POSITION_LABELS: Record<LecturerPosition, string> = {
   lab_instructor: "Преподаватель лабораторных",
   assistant: "Ассистент",
 };
+
+export const EXAM_TYPES = [
+  "exam",
+  "credit",
+  "coursework",
+  "project",
+  "other",
+] as const;
+export type ExamType = (typeof EXAM_TYPES)[number];
