@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { toast } from "@/shared/ui/sonner";
 import { z } from "zod";
 
 import { verifyResetPasswordToken } from "@/features/auth/login-by-email/api/reset-password/verify-reset-password-token";
@@ -59,17 +58,7 @@ function ResetPasswordPage() {
     formState: { errors },
     submit,
     isSubmitting,
-  } = useResetPassword(token ?? "");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await submit();
-      setIsSuccess(true);
-    } catch {
-      toast.error("Не удалось сменить пароль");
-    }
-  };
+  } = useResetPassword(token ?? "", () => setIsSuccess(true));
 
   if (isValidating) {
     return (
@@ -118,7 +107,7 @@ function ResetPasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="max-w-md w-full space-y-4">
+      <form onSubmit={submit} className="max-w-md w-full space-y-4">
         <FormField htmlFor="new_password" label="Новый пароль">
           <Input
             id="new_password"
