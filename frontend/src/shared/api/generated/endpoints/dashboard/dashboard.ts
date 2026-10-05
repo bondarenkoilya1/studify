@@ -105,7 +105,7 @@ export const getGetDashboardStatusQueryOptions = <
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getDashboardStatus>>
-  > = ({ signal }) => getDashboardStatus({ signal, ...requestOptions });
+  > = () => getDashboardStatus(requestOptions);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getDashboardStatus>>,
@@ -257,7 +257,7 @@ export const getGetDashboardStatusSuspenseQueryOptions = <
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getDashboardStatus>>
-  > = ({ signal }) => getDashboardStatus({ signal, ...requestOptions });
+  > = () => getDashboardStatus(requestOptions);
 
   return queryOptionsBuilder({
     queryKey,

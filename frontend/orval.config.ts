@@ -29,6 +29,9 @@ export default defineConfig({
         query: {
           useSuspenseQuery: true,
           useInvalidate: true,
+          // Route loaders share queries with components; an abort signal lets
+          // an unmounting observer cancel the loader's fetch with CancelledError.
+          signal: false,
         },
       },
     },

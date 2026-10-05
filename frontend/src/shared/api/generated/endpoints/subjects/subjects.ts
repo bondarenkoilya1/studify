@@ -117,9 +117,9 @@ export const getGetUserSubjectsQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetUserSubjectsQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserSubjects>>> = ({
-    signal,
-  }) => getUserSubjects({ signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUserSubjects>>
+  > = () => getUserSubjects(requestOptions);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getUserSubjects>>,
@@ -269,9 +269,9 @@ export const getGetUserSubjectsSuspenseQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetUserSubjectsQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserSubjects>>> = ({
-    signal,
-  }) => getUserSubjects({ signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getUserSubjects>>
+  > = () => getUserSubjects(requestOptions);
 
   return queryOptionsBuilder({
     queryKey,
@@ -650,9 +650,8 @@ export const getGetSubjectQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetSubjectQueryKey(id);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubject>>> = ({
-    signal,
-  }) => getSubject(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubject>>> = () =>
+    getSubject(id, requestOptions);
 
   return {
     queryKey,
@@ -827,9 +826,8 @@ export const getGetSubjectSuspenseQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetSubjectQueryKey(id);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubject>>> = ({
-    signal,
-  }) => getSubject(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubject>>> = () =>
+    getSubject(id, requestOptions);
 
   return queryOptionsBuilder({
     queryKey,
@@ -1400,9 +1398,9 @@ export const getGetSubjectTasksQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetSubjectTasksQueryKey(id);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubjectTasks>>> = ({
-    signal,
-  }) => getSubjectTasks(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSubjectTasks>>
+  > = () => getSubjectTasks(id, requestOptions);
 
   return {
     queryKey,
@@ -1575,9 +1573,9 @@ export const getGetSubjectTasksSuspenseQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetSubjectTasksQueryKey(id);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSubjectTasks>>> = ({
-    signal,
-  }) => getSubjectTasks(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSubjectTasks>>
+  > = () => getSubjectTasks(id, requestOptions);
 
   return queryOptionsBuilder({
     queryKey,

@@ -11,9 +11,9 @@ import {
  */
 export const currentUserQuery = queryOptions({
   queryKey: getGetCurrentUserQueryKey(),
-  queryFn: async ({ signal }) => {
+  queryFn: async () => {
     try {
-      return await getCurrentUser({ signal });
+      return await getCurrentUser();
     } catch (error) {
       if (isUnauthorizedError(error)) {
         return null;

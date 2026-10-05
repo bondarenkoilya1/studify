@@ -14,6 +14,7 @@ import {
 import { getTaskTypeCounts } from "@/entities/task/model/task-type-counts";
 import { CreateTaskButton } from "@/features/task/create-task";
 import {
+  ApiError,
   getGetSubjectQueryOptions,
   getGetSubjectTasksQueryOptions,
   type SubjectFile,
@@ -35,19 +36,20 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
     },
     stringify: ({ id }) => ({ id: String(id) }),
   },
-  loader: ({ context: { queryClient }, params: { id } }) =>
-    Promise.all([
-      queryClient.ensureQueryData(getGetSubjectQueryOptions(id)),
-      queryClient.ensureQueryData(getGetSubjectTasksQueryOptions(id)),
-    ]),
-  pendingComponent: () => (
-    <div className="flex h-64 items-center justify-center">Загрузка...</div>
-  ),
-  errorComponent: () => (
-    <div className="flex h-64 items-center justify-center text-destructive">
-      Не удалось загрузить предмет. Попробуйте обновить страницу.
-    </div>
-  ),
+  loader: async ({ context: { queryClient }, params: { id } }) => {
+    try {
+      await Promise.all([
+        queryClient.ensureQueryData(getGetSubjectQueryOptions(id)),
+        queryClient.ensureQueryData(getGetSubjectTasksQueryOptions(id)),
+      ]);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        throw notFound();
+      }
+
+      throw error;
+    }
+  },
   component: SubjectPage,
 });
 

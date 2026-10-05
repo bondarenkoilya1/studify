@@ -109,9 +109,8 @@ export const getGetUserTasksQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetUserTasksQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserTasks>>> = ({
-    signal,
-  }) => getUserTasks({ signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserTasks>>> = () =>
+    getUserTasks(requestOptions);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getUserTasks>>,
@@ -245,9 +244,8 @@ export const getGetUserTasksSuspenseQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetUserTasksQueryKey();
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserTasks>>> = ({
-    signal,
-  }) => getUserTasks({ signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserTasks>>> = () =>
+    getUserTasks(requestOptions);
 
   return queryOptionsBuilder({
     queryKey,
@@ -624,9 +622,8 @@ export const getGetTaskQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetTaskQueryKey(id);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTask>>> = ({
-    signal,
-  }) => getTask(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTask>>> = () =>
+    getTask(id, requestOptions);
 
   return {
     queryKey,
@@ -799,9 +796,8 @@ export const getGetTaskSuspenseQueryOptions = <
 
   const queryKey = queryOptions?.queryKey ?? getGetTaskQueryKey(id);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTask>>> = ({
-    signal,
-  }) => getTask(id, { signal, ...requestOptions });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTask>>> = () =>
+    getTask(id, requestOptions);
 
   return queryOptionsBuilder({
     queryKey,
