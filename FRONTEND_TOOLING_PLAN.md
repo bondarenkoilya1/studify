@@ -9,6 +9,19 @@ react-hook-form с zod, Tailwind v4, shadcn и oxlint. Менять фреймв
 
 Связанный разбор ошибок: [FRONTEND_REVIEW.md](FRONTEND_REVIEW.md).
 
+## Статус на 2026-10-05
+
+| Шаг | Статус |
+| --- | --- |
+| Генерация API-клиента | ✅ orval, `bun run gen:api`, мутатор `shared/api/fetcher.ts` |
+| sonner вместо react-toastify | ✅ |
+| Лоадеры маршрутов | 🟡 страница предмета; глобальные экраны загрузки и ошибки есть у роутера |
+| Глобальная обработка ошибок React Query | ⬜ |
+| Строгий TypeScript | ⬜ |
+| Один пакетный менеджер (bun) | ⬜ `package-lock.json` ещё в репозитории |
+| Токены дизайна и shadcn | ⬜ |
+| Vitest, MSW, Playwright, CI | ⬜ |
+
 ## 1. Генерировать API-клиент из OpenAPI — самая большая отдача
 
 `backend/docs/openapi.yaml` теперь точно описывает бэкенд. Если генерировать из
@@ -16,8 +29,9 @@ react-hook-form с zod, Tailwind v4, shadcn и oxlint. Менять фреймв
 разбора фронта: `note: string` при `null`, `sizeBytes` строкой и обходы вида
 `file.size_bytes`.
 
-- **Инструмент:** `@hey-api/openapi-ts` с плагином TanStack Query. Он генерирует
-  типы, функции запросов и готовые `queryOptions` и `mutationOptions`.
+- **Инструмент:** orval с клиентом `react-query` (изначально в плане стоял
+  `@hey-api/openapi-ts`). Он генерирует типы, функции запросов, хуки,
+  `queryOptions` и хелперы инвалидации.
 - **Попутно:** убрать самописное преобразование snake_case ↔ camelCase и
   работать с полями как в API. Это меньше магии и меньше рассинхрона.
 - **Скрипт:** `bun run gen:api`. Изменил бэкенд — перегенерировал — TypeScript
