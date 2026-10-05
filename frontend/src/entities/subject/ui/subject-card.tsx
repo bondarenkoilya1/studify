@@ -8,12 +8,12 @@ import {
   LECTURER_POSITION_LABELS,
   SCOPE_LABELS,
 } from "@/features/subject/create-subject/model/constants";
-import type { Subject } from "@/entities/subject";
+import type { Subject } from "@/shared/api";
 import {
   SCOPE_DOT_COLORS,
   SCOPE_GRADIENTS,
 } from "@/entities/subject/model/presentation";
-import { publicEnv } from "@/shared/config";
+import { toAbsoluteUrl } from "@/shared/utils";
 
 const MAX_LECTURER_ROWS = 2;
 
@@ -68,8 +68,8 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   // Keep the UI safe even before the backend contract is fixed.
   const lecturers = subject.lecturers ?? [];
 
-  const examDate = subject.examDate
-    ? new Date(subject.examDate).toLocaleDateString("ru-RU", {
+  const examDate = subject.exam_date
+    ? new Date(subject.exam_date).toLocaleDateString("ru-RU", {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -95,8 +95,8 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
   const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
 
-  const thumbUrl = subject.thumbnailUrl
-    ? `${publicEnv.apiBaseUrl.replace(/\/$/, "")}/${subject.thumbnailUrl.replace(/^\//, "")}`
+  const thumbUrl = subject.thumbnail_url
+    ? toAbsoluteUrl(subject.thumbnail_url)
     : null;
 
   return (

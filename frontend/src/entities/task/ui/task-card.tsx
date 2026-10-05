@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
-import type { Task } from "@/entities/task";
-import type { TaskDifficulty } from "@/entities/task/model/types";
+import type { Task, TaskDifficulty } from "@/shared/api";
 import {
   DIFFICULTY_LABELS,
   DIFFICULTY_LEVEL,
@@ -91,7 +90,7 @@ export function TaskCard({ task }: TaskCardProps) {
     task.description && task.description.length > 140,
   );
 
-  const showScheduledAt = !deadline && Boolean(task.scheduledAt);
+  const showScheduledAt = !deadline && Boolean(task.scheduled_at);
 
   return (
     <article
@@ -207,7 +206,7 @@ export function TaskCard({ task }: TaskCardProps) {
           <span>{DIFFICULTY_LABELS[task.difficulty]}</span>
         </span>
 
-        {task.estimatedTime !== null && (
+        {task.estimated_time !== null && (
           <span
             className="
               flex items-center gap-1.5
@@ -219,7 +218,7 @@ export function TaskCard({ task }: TaskCardProps) {
               sm:group-hover:opacity-100
             "
           >
-            <Clock className="h-3.5 w-3.5 shrink-0" />~{task.estimatedTime} min
+            <Clock className="h-3.5 w-3.5 shrink-0" />~{task.estimated_time} min
           </span>
         )}
 
@@ -236,7 +235,7 @@ export function TaskCard({ task }: TaskCardProps) {
             "
           >
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            {new Date(task.scheduledAt!).toLocaleDateString("en-US", {
+            {new Date(task.scheduled_at!).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
             })}

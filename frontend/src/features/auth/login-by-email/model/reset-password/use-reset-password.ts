@@ -5,7 +5,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordFormValues,
 } from "./reset-password.schema";
-import { resetPassword } from "../../api/reset-password/reset-password";
+import { resetPassword } from "@/shared/api";
 
 export function useResetPassword(token: string, onSuccess?: () => void) {
   const form = useForm<ResetPasswordFormValues>({
@@ -19,11 +19,7 @@ export function useResetPassword(token: string, onSuccess?: () => void) {
   // handleSubmit swallows errors thrown here, so the result is handled inside.
   const submit = form.handleSubmit(async (values) => {
     try {
-      await resetPassword({
-        passwordResetToken: token,
-        newPassword: values.new_password,
-        newPasswordConfirmed: values.new_password_confirmed,
-      });
+      await resetPassword({ ...values, password_reset_token: token });
       onSuccess?.();
     } catch {
       toast.error("Не удалось сменить пароль");

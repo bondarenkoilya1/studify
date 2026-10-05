@@ -5,7 +5,7 @@ import { UnverifiedEmailCard } from "./unverified-email-card";
 export function EmailVerificationSection() {
   const { data: user } = useCurrentUser();
 
-  const isVerified = user?.isEmailVerified ?? false;
+  const isVerified = user?.is_email_verified ?? false;
 
   return (
     <section className="space-y-3">

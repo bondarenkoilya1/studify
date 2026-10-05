@@ -1,18 +1,17 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
+import { startSession } from "@/entities/user";
+import { useLoginTOTP, useLoginUser, type User } from "@/shared/api";
 import {
   LoginCredentialsSchema,
   LoginTotpSchema,
   type LoginCredentialsFormData,
   type LoginTotpFormData,
 } from "./schema";
-
-import { loginByEmail } from "../api/login-by-email";
-import { verifyLoginTotp } from "../api/verify-login-totp";
 import { isLoginChallenge } from "./auth-response";
 
 export function useLoginForm() {
@@ -30,49 +29,43 @@ export function useLoginForm() {
     resolver: zodResolver(LoginTotpSchema),
   });
 
-  const completeLogin = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: ["user"],
-    });
-
+  const completeLogin = async (user: User) => {
+    startSession(queryClient, user);
     await navigate({ to: "/subjects" });
   };
 
-  const loginMutation = useMutation({
-    mutationFn: loginByEmail,
+  const loginMutation = useLoginUser({
+    mutation: {
+      onSuccess: async (response) => {
+        if (isLoginChallenge(response)) {
+          setChallengeToken(response.challenge_token);
+          setStep("totp");
+          return;
+        }
 
-    onSuccess: async (response) => {
-      if (isLoginChallenge(response)) {
-        setChallengeToken(response.challengeToken);
-        setStep("totp");
-
-        return;
-      }
-
-      await completeLogin();
-    },
-
-    onError: () => {
-      credentialsForm.setError("root", {
-        message: "Invalid email or password",
-      });
+        await completeLogin(response);
+      },
+      onError: () => {
+        credentialsForm.setError("root", {
+          message: "Invalid email or password",
+        });
+      },
     },
   });
 
-  const totpMutation = useMutation({
-    mutationFn: verifyLoginTotp,
-
-    onSuccess: completeLogin,
-
-    onError: () => {
-      totpForm.setError("root", {
-        message: "Invalid authentication code",
-      });
+  const totpMutation = useLoginTOTP({
+    mutation: {
+      onSuccess: completeLogin,
+      onError: () => {
+        totpForm.setError("root", {
+          message: "Invalid authentication code",
+        });
+      },
     },
   });
 
   const submitCredentials = credentialsForm.handleSubmit((data) => {
-    loginMutation.mutate(data);
+    loginMutation.mutate({ data });
   });
 
   const submitTotp = totpForm.handleSubmit((data) => {
@@ -85,8 +78,7 @@ export function useLoginForm() {
     }
 
     totpMutation.mutate({
-      challenge_token: challengeToken,
-      code: data.totpCode,
+      data: { challenge_token: challengeToken, code: data.totpCode },
     });
   });
 

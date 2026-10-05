@@ -1,4 +1,4 @@
-import type { Subject } from "@/entities/subject";
+import type { Subject } from "@/shared/api";
 import { SubjectCard } from "@/entities/subject/ui/subject-card";
 
 interface SubjectListProps {

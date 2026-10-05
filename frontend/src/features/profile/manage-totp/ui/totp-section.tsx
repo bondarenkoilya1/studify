@@ -2,23 +2,37 @@ import { ShieldCheck, Smartphone, KeyRound } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 import { useCurrentUser } from "@/entities/user";
-import { useGenerateTotp } from "../model/use-generate-totp";
+import { useGenerateTOTP } from "@/shared/api";
+import { toast } from "@/shared/ui/sonner";
 import { TotpEnabled } from "./totp-enabled";
 import { TotpEmailVerificationRequired } from "./totp-email-verification-required";
 import { CopyButton } from "@/shared/ui/copy-button";
 import { TotpSetupConfirmationForm } from "./totp-setup-confirmation-form";
 
 export function TotpSection() {
-  const { handleGenerate, qrCode, textKey } = useGenerateTotp();
   const { data } = useCurrentUser();
 
-  if (!data?.isEmailVerified) {
+  if (!data?.is_email_verified) {
     return <TotpEmailVerificationRequired />;
   }
 
-  if (data.isTotpEnabled) {
+  if (data.is_totp_enabled) {
     return <TotpEnabled />;
   }
+
+  return <TotpSetup />;
+}
+
+// Unmounts once TOTP is enabled, which discards the generated secret.
+function TotpSetup() {
+  const generate = useGenerateTOTP({
+    mutation: {
+      onError: () => toast.error("Failed to start authenticator setup."),
+    },
+  });
+
+  const qrCode = generate.data?.qr_code;
+  const textKey = generate.data?.text_key;
 
   const isSetupStarted = Boolean(qrCode || textKey);
 
@@ -52,7 +66,11 @@ export function TotpSection() {
         </div>
 
         {!isSetupStarted && (
-          <Button onClick={handleGenerate} className="shrink-0">
+          <Button
+            onClick={() => generate.mutate()}
+            disabled={generate.isPending}
+            className="shrink-0"
+          >
             <Smartphone className="mr-2 size-4" />
             Set up authenticator
           </Button>

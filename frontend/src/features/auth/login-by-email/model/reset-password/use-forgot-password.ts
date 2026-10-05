@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/shared/ui/sonner";
-import { forgotPassword } from "../../api/reset-password/forgot-password";
+import { requestPasswordReset } from "@/shared/api";
 import {
   type ForgotPasswordFormValues,
   forgotPasswordSchema,
@@ -16,7 +16,7 @@ export function useForgotPassword(onSuccess?: () => void) {
   // handleSubmit swallows errors thrown here, so the result is handled inside.
   const submit = form.handleSubmit(async (values) => {
     try {
-      await forgotPassword(values.email);
+      await requestPasswordReset(values);
       toast.success("Ссылка для сброса пароля отправлена на вашу почту");
       onSuccess?.();
     } catch {

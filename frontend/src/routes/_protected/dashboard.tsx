@@ -9,11 +9,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import {
-  formatRelativeDeadline,
-  useGetDashboardStatus,
-  formatDate,
-} from "@/widgets/dashboard";
+import { formatRelativeDeadline, formatDate } from "@/widgets/dashboard";
+import { useGetDashboardStatus } from "@/shared/api";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   component: RouteComponent,
@@ -143,7 +140,7 @@ export default function DashboardPage() {
       {
         icon: BookOpen,
         label: "Предметов",
-        value: dashboardStatus.totalSubjects,
+        value: dashboardStatus.total_subjects,
         tint: {
           bg: "#EEF2FF",
           fg: "#6366F1",
@@ -152,7 +149,7 @@ export default function DashboardPage() {
       {
         icon: ListTodo,
         label: "Всего задач",
-        value: dashboardStatus.totalTasks,
+        value: dashboardStatus.total_tasks,
         tint: {
           bg: "#F3F0FF",
           fg: "#8B5CF6",
@@ -161,7 +158,7 @@ export default function DashboardPage() {
       {
         icon: Loader2,
         label: "В процессе",
-        value: dashboardStatus.totalOngoingTasks,
+        value: dashboardStatus.total_ongoing_tasks,
         tint: {
           bg: "#FFF7ED",
           fg: "#F59E0B",
@@ -170,7 +167,7 @@ export default function DashboardPage() {
       {
         icon: CheckCircle2,
         label: "Завершено",
-        value: dashboardStatus.totalCompletedTasks,
+        value: dashboardStatus.total_completed_tasks,
         tint: {
           bg: "#ECFDF5",
           fg: "#10B981",
@@ -202,7 +199,7 @@ export default function DashboardPage() {
     );
   }
 
-  const hasOverdue = dashboardStatus.overdueTasks?.length > 0;
+  const hasOverdue = dashboardStatus.overdue_tasks?.length > 0;
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
@@ -219,7 +216,7 @@ export default function DashboardPage() {
 
         {/* Hero: completion ring + quick summary */}
         <section className="mb-6 flex items-center gap-6 rounded-2xl border border-black/[0.04] bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:gap-8 sm:p-8">
-          <CompletionRing percent={dashboardStatus.completionPercent} />
+          <CompletionRing percent={dashboardStatus.completion_percent} />
 
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium uppercase tracking-wide text-gray-400">
@@ -227,13 +224,13 @@ export default function DashboardPage() {
             </p>
 
             <p className="mt-1 text-[19px] font-semibold leading-snug tracking-[-0.01em] text-gray-900">
-              {dashboardStatus.totalCompletedTasks} из{" "}
-              {dashboardStatus.totalTasks} задач завершено
+              {dashboardStatus.total_completed_tasks} из{" "}
+              {dashboardStatus.total_tasks} задач завершено
             </p>
 
             <p className="mt-2 text-[13.5px] leading-relaxed text-gray-400">
-              {dashboardStatus.totalNotCompletedTasks} не начато ·{" "}
-              {dashboardStatus.totalOngoingTasks} в процессе
+              {dashboardStatus.total_not_completed_tasks} не начато ·{" "}
+              {dashboardStatus.total_ongoing_tasks} в процессе
             </p>
           </div>
         </section>
@@ -246,7 +243,7 @@ export default function DashboardPage() {
         </section>
 
         {/* Nearest deadline */}
-        {dashboardStatus.nearestDeadlineTask && (
+        {dashboardStatus.nearest_deadline_task && (
           <section className="mb-6">
             <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wide text-gray-400">
               Ближайший дедлайн
@@ -256,12 +253,12 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <h3 className="truncate text-[16px] font-semibold tracking-[-0.01em] text-gray-900">
-                    {dashboardStatus.nearestDeadlineTask.name}
+                    {dashboardStatus.nearest_deadline_task.name}
                   </h3>
 
-                  {dashboardStatus.nearestDeadlineTask.description && (
+                  {dashboardStatus.nearest_deadline_task.description && (
                     <p className="mt-1 line-clamp-2 text-[13.5px] text-gray-400">
-                      {dashboardStatus.nearestDeadlineTask.description}
+                      {dashboardStatus.nearest_deadline_task.description}
                     </p>
                   )}
                 </div>
@@ -274,9 +271,9 @@ export default function DashboardPage() {
 
                 <span>
                   {formatRelativeDeadline(
-                    dashboardStatus.nearestDeadlineTask.deadline,
+                    dashboardStatus.nearest_deadline_task.deadline,
                   )}{" "}
-                  · {formatDate(dashboardStatus.nearestDeadlineTask.deadline!)}
+                  · {formatDate(dashboardStatus.nearest_deadline_task.deadline!)}
                 </span>
               </div>
             </div>
@@ -304,7 +301,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-2.5">
-              {dashboardStatus.overdueTasks.map((task) => (
+              {dashboardStatus.overdue_tasks.map((task) => (
                 <div
                   key={task.id}
                   className="flex items-start gap-3 rounded-2xl border border-red-500/[0.08] bg-red-500/[0.03] p-4"

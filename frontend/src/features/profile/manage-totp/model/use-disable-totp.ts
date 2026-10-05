@@ -1,20 +1,15 @@
-import { disableTotp } from "../api/disable-totp";
-import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/shared/api";
-import { useTotp } from "..";
+import { useQueryClient } from "@tanstack/react-query";
+import { currentUserQuery } from "@/entities/user";
+import { useDisableTOTP } from "@/shared/api";
+import { toast } from "@/shared/ui/sonner";
 
 export function useDisableTotp() {
-  const { setQrCode, setTextKey } = useTotp();
+  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: disableTotp,
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["user"],
-      });
-      setQrCode("");
-      setTextKey("");
+  return useDisableTOTP({
+    mutation: {
+      onSuccess: () => queryClient.invalidateQueries(currentUserQuery),
+      onError: () => toast.error("Failed to disable two-factor authentication."),
     },
   });
 }

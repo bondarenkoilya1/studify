@@ -1,14 +1,14 @@
-import { useCurrentUser } from "@/entities/user";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { changeEmail } from "../api/change-email";
-import { ChangeEmailSchema, type ChangeEmailFormData } from "./schema";
-import { queryClient } from "@/shared/api";
+import { currentUserQuery, useCurrentUser } from "@/entities/user";
+import { useUpdateUserEmail } from "@/shared/api";
 import { toast } from "@/shared/ui/sonner";
+import { ChangeEmailSchema, type ChangeEmailFormData } from "./schema";
 
 export function useChangeEmailForm() {
   const { data } = useCurrentUser();
+  const queryClient = useQueryClient();
 
   const form = useForm<ChangeEmailFormData>({
     resolver: zodResolver(ChangeEmailSchema),
@@ -17,24 +17,26 @@ export function useChangeEmailForm() {
     },
   });
 
-  const changeEmailMutation = useMutation({
-    mutationFn: (values: ChangeEmailFormData) => changeEmail(values.newEmail),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-      toast.success("Your email was successfully updated!");
+  const changeEmailMutation = useUpdateUserEmail({
+    mutation: {
+      onSuccess: async () => {
+        // The response omits some profile fields, so refetch the full user.
+        await queryClient.invalidateQueries(currentUserQuery);
+        toast.success("Your email was successfully updated!");
+      },
+      onError: () => toast.error("Failed to update email."),
     },
-    onError: () => toast.error("Failed to update email."),
   });
 
   const onSubmit = (value: ChangeEmailFormData) => {
-    changeEmailMutation.mutate(value);
+    changeEmailMutation.mutate({ data: { new_email: value.newEmail } });
   };
 
   return {
     register: form.register,
     errors: form.formState.errors,
     handleSubmit: form.handleSubmit(onSubmit),
-    isDisabled: !data?.isEmailVerified,
+    isDisabled: !data?.is_email_verified,
     isPending: changeEmailMutation.isPending,
     error: changeEmailMutation.error,
   };

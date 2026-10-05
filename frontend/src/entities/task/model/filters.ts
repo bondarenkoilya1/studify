@@ -1,13 +1,12 @@
-import type { Task } from "@/entities/task";
-import type { TaskType } from "./types";
+import type { Task, TaskType } from "@/shared/api";
 
 export type TaskTypeFilter = "all" | TaskType;
 
 export function filterTasksByType(
-  tasks: Task[] | undefined,
+  tasks: Task[],
   type: TaskTypeFilter,
-): Task[] | undefined {
-  if (!tasks || type === "all") {
+): Task[] {
+  if (type === "all") {
     return tasks;
   }
 
