@@ -12,7 +12,7 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
 } from "lucide-react";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/lib/cn";
 
 function Calendar({
   className,

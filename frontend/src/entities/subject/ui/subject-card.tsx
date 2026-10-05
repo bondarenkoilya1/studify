@@ -17,7 +17,7 @@ import { toAbsoluteUrl } from "@/shared/utils";
 
 const MAX_LECTURER_ROWS = 2;
 
-export const COURSE_COLORS: Record<number, string> = {
+const COURSE_COLORS: Record<number, string> = {
   1: "bg-blue-50 text-blue-700",
   2: "bg-emerald-50 text-emerald-700",
   3: "bg-violet-50 text-violet-700",
@@ -26,7 +26,7 @@ export const COURSE_COLORS: Record<number, string> = {
   6: "bg-cyan-50 text-cyan-700",
 };
 
-export const TERM_COLORS: Record<number, string> = {
+const TERM_COLORS: Record<number, string> = {
   1: "bg-sky-50 text-sky-700",
   2: "bg-indigo-50 text-indigo-700",
   3: "bg-fuchsia-50 text-fuchsia-700",

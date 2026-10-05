@@ -128,7 +128,7 @@ function StatCard({
   );
 }
 
-export default function DashboardPage() {
+function DashboardPage() {
   const { data: dashboardStatus, isLoading } = useGetDashboardStatus();
 
   const stats = useMemo(() => {
