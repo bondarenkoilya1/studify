@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "@/shared/ui/sonner";
 import { z } from "zod";
 
 import { verifyResetPasswordToken } from "@/features/auth/login-by-email/api/reset-password/verify-reset-password-token";

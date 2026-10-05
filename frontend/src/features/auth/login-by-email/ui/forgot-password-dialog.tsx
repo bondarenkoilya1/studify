@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/shared/ui/sonner";
 import {
   Dialog,
   DialogBody,

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { changeEmail } from "../api/change-email";
 import { ChangeEmailSchema, type ChangeEmailFormData } from "./schema";
 import { queryClient } from "@/shared/api";
-import { toast } from "react-toastify";
+import { toast } from "@/shared/ui/sonner";
 
 export function useChangeEmailForm() {
   const { data } = useCurrentUser();

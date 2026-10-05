@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { type ChangePasswordFormData, ChangePasswordSchema } from "./schema";
 import { changePassword } from "../api/change-password";
-import { toast } from "react-toastify";
+import { toast } from "@/shared/ui/sonner";
 
 export function useChangePasswordForm() {
   const form = useForm<ChangePasswordFormData>({
