@@ -1,7 +1,7 @@
 import { useDisableTotp } from "../model/use-disable-totp";
 
 export function DisableTotpButton() {
-  const { mutate } = useDisableTotp();
+  const { mutate, isPending } = useDisableTotp();
 
   return (
     <button
@@ -20,6 +20,7 @@ export function DisableTotpButton() {
         disabled:pointer-events-none
         disabled:opacity-50
       "
+      disabled={isPending}
       onClick={() => mutate()}
     >
       Disable 2FA

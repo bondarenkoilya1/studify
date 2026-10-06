@@ -8,17 +8,30 @@ import {
   LECTURER_POSITION_LABELS,
   SCOPE_LABELS,
 } from "@/features/subject/create-subject/model/constants";
-import type { Subject } from "@/entities/subject";
+import type { Subject } from "@/shared/api";
 import {
-  COURSE_COLORS,
-  EXAM_TYPE_LABELS,
   SCOPE_DOT_COLORS,
   SCOPE_GRADIENTS,
-  TERM_COLORS,
 } from "@/entities/subject/model/presentation";
-import { publicEnv } from "@/shared/config";
+import { toAbsoluteUrl } from "@/shared/utils";
 
 const MAX_LECTURER_ROWS = 2;
+
+const COURSE_COLORS: Record<number, string> = {
+  1: "bg-blue-50 text-blue-700",
+  2: "bg-emerald-50 text-emerald-700",
+  3: "bg-violet-50 text-violet-700",
+  4: "bg-amber-50 text-amber-700",
+  5: "bg-rose-50 text-rose-700",
+  6: "bg-cyan-50 text-cyan-700",
+};
+
+const TERM_COLORS: Record<number, string> = {
+  1: "bg-sky-50 text-sky-700",
+  2: "bg-indigo-50 text-indigo-700",
+  3: "bg-fuchsia-50 text-fuchsia-700",
+  4: "bg-orange-50 text-orange-700",
+};
 
 const hashIndex = (val: string | number, max: number) =>
   Math.abs(
@@ -55,8 +68,8 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   // Keep the UI safe even before the backend contract is fixed.
   const lecturers = subject.lecturers ?? [];
 
-  const examDate = subject.examDate
-    ? new Date(subject.examDate).toLocaleDateString("ru-RU", {
+  const examDate = subject.exam_date
+    ? new Date(subject.exam_date).toLocaleDateString("ru-RU", {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -80,17 +93,11 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   const visibleLecturers = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
   const hiddenCount = lecturerGroups.length - visibleLecturers.length;
 
-  const thumbUrl = subject.thumbnailUrl
-    ? `${publicEnv.apiBaseUrl.replace(/\/$/, "")}/${subject.thumbnailUrl.replace(/^\//, "")}`
+  const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
+
+  const thumbUrl = subject.thumbnail_url
+    ? toAbsoluteUrl(subject.thumbnail_url)
     : null;
-
-  const examTypeLabel = subject.examType
-    ? (EXAM_TYPE_LABELS[subject.examType] ?? null)
-    : null;
-
-  const examInfo = [examTypeLabel, examDate].filter(Boolean).join(" · ");
-
-  const hasMeta = visibleLecturers.length > 0 || Boolean(examInfo);
 
   return (
     <div className="group relative h-[300px] rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.14)]">
@@ -154,9 +161,9 @@ export function SubjectCard({ subject }: { subject: Subject }) {
               </p>
             )}
 
-            {examInfo && (
-              <MetaRow icon={CalendarDays} title={examInfo}>
-                <span className="font-medium text-neutral-700">{examInfo}</span>
+            {examDate && (
+              <MetaRow icon={CalendarDays} title={examDate}>
+                <span className="font-medium text-neutral-700">{examDate}</span>
               </MetaRow>
             )}
           </div>

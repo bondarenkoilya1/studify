@@ -1,4 +1,4 @@
-import type { LecturerPosition } from "@/entities/subject/model/types";
+import type { LecturerPosition } from "@/shared/api";
 
 export type CreateSubjectDialogProps = {
   open: boolean;

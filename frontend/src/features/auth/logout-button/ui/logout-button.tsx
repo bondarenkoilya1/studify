@@ -2,23 +2,13 @@ import { cn } from "@/shared/lib/cn";
 import { useLogout } from "../model/use-logout";
 import { LogOut } from "lucide-react";
 
-interface Props {
-  onLogout?: () => void;
-}
-
-export function LogoutButton({ onLogout }: Props) {
+export function LogoutButton() {
   const { mutate, isPending } = useLogout();
-
-  const handleLogout = () => {
-    mutate(undefined, {
-      onSuccess: onLogout,
-    });
-  };
 
   return (
     <button
       type="button"
-      onClick={handleLogout}
+      onClick={() => mutate()}
       disabled={isPending}
       className={cn(
         "flex w-full items-center gap-2 rounded-lg px-4 py-2",

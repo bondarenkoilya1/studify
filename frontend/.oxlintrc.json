@@ -23,6 +23,7 @@
     "dist",
     "build",
     "coverage",
-    "*.tsbuildinfo"
+    "*.tsbuildinfo",
+    "src/shared/api/generated"
   ]
 }

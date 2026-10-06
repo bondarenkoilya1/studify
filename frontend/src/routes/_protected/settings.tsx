@@ -19,8 +19,7 @@ function RouteComponent() {
     <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <SettingsHeader
         email={data.email}
-        avatarUrl={data.avatarUrl}
-        id={data.id}
+        avatarUrl={data.avatar_url}
       />
 
       <div className="flex flex-col gap-6 md:flex-row">
@@ -40,7 +39,6 @@ function SettingsHeader({
 }: {
   email: string;
   avatarUrl?: string | null;
-  id: number;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border bg-card p-6 text-card-foreground shadow-xs sm:p-8">

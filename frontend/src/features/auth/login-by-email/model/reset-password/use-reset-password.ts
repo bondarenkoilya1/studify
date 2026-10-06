@@ -1,13 +1,13 @@
-// features/auth/login-by-email/model/use-reset-password.ts
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { toast } from "@/shared/ui/sonner";
 import {
   resetPasswordSchema,
   type ResetPasswordFormValues,
 } from "./reset-password.schema";
-import { resetPassword } from "../../api/reset-password/reset-password";
+import { resetPassword } from "@/shared/api";
 
-export function useResetPassword(token: string) {
+export function useResetPassword(token: string, onSuccess?: () => void) {
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -16,13 +16,15 @@ export function useResetPassword(token: string) {
     },
   });
 
-  const submit = form.handleSubmit((values) =>
-    resetPassword({
-      passwordResetToken: token,
-      newPassword: values.new_password,
-      newPasswordConfirmed: values.new_password_confirmed,
-    }),
-  );
+  // handleSubmit swallows errors thrown here, so the result is handled inside.
+  const submit = form.handleSubmit(async (values) => {
+    try {
+      await resetPassword({ ...values, password_reset_token: token });
+      onSuccess?.();
+    } catch {
+      toast.error("Не удалось сменить пароль");
+    }
+  });
 
   return {
     ...form,

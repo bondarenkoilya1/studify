@@ -21,15 +21,15 @@ export function Header() {
 
           {import.meta.env.DEV && (
             <DevelopmentServices
-              isEmailVerified={user?.isEmailVerified ?? false}
-              isTotpEnabled={user?.isTotpEnabled ?? false}
+              isEmailVerified={user?.is_email_verified ?? false}
+              isTotpEnabled={user?.is_totp_enabled ?? false}
             />
           )}
         </div>
 
         {/* Right */}
         <div className="shrink-0">
-          <HeaderActions email={user?.email} avatarUrl={user?.avatarUrl} />
+          <HeaderActions email={user?.email} avatarUrl={user?.avatar_url} />
         </div>
       </div>
     </header>

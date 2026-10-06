@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createTaskSchema = z.object({
-  subjectId: z.number(),
+  subject_id: z.number(),
 
   name: z
     .string()
@@ -15,13 +15,13 @@ export const createTaskSchema = z.object({
 
   description: z.string().trim().max(2000, "Описание слишком длинное"),
 
-  estimatedTime: z
+  estimated_time: z
     .number()
     .int()
     .positive("Время должно быть больше 0")
     .nullable(),
 
-  scheduledAt: z.string().nullable(),
+  scheduled_at: z.string().nullable(),
 
   deadline: z.string().nullable(),
 

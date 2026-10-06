@@ -1,15 +1,28 @@
-import { useMutation } from "@tanstack/react-query";
-import { deleteSubject } from "../api/delete-subject";
-import { queryClient } from "@/shared/api";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  getGetSubjectQueryKey,
+  getGetSubjectTasksQueryKey,
+  invalidateGetDashboardStatus,
+  invalidateGetUserSubjects,
+  useDeleteSubject as useDeleteSubjectMutation,
+} from "@/shared/api";
+import { toast } from "@/shared/ui/sonner";
 
 export function useDeleteSubject() {
-  return useMutation({
-    mutationFn: deleteSubject,
+  const queryClient = useQueryClient();
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["subjects"],
-      });
+  return useDeleteSubjectMutation({
+    mutation: {
+      onSuccess: async (_, { id }) => {
+        queryClient.removeQueries({ queryKey: getGetSubjectQueryKey(id) });
+        queryClient.removeQueries({ queryKey: getGetSubjectTasksQueryKey(id) });
+
+        await Promise.all([
+          invalidateGetUserSubjects(queryClient),
+          invalidateGetDashboardStatus(queryClient),
+        ]);
+      },
+      onError: () => toast.error("Не удалось удалить предмет"),
     },
   });
 }

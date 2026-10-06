@@ -11,7 +11,7 @@ const ACCEPTED_IMAGE_TYPES = new Set([
   "image/webp",
 ]);
 
-export const avatarFileSchema = z
+const avatarFileSchema = z
   .instanceof(File, { message: "Выберите файл изображения" })
   .refine((file) => file.size <= MAX_FILE_SIZE, {
     message: "Максимальный размер файла — 2 МБ",
@@ -29,4 +29,3 @@ export const avatarUploadSchema = z.object({
   avatar: avatarFileSchema,
 });
 
-export type AvatarUploadValues = z.infer<typeof avatarUploadSchema>;

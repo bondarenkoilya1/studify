@@ -1,9 +1,10 @@
 import { type RegisterByEmailFormData, RegisterByEmailSchema } from "./schema";
-import { registerByEmail } from "../api/register-by-email";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { startSession } from "@/entities/user";
+import { useRegisterUser } from "@/shared/api";
 
 export function useRegisterForm() {
   const queryClient = useQueryClient();
@@ -18,28 +19,22 @@ export function useRegisterForm() {
     resolver: zodResolver(RegisterByEmailSchema),
   });
 
-  const registerMutation = useMutation({
-    mutationFn: registerByEmail,
-
-    onError: () => {
-      setError("root", {
-        message: "Failed to register",
-      });
-    },
-
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["user"],
-      });
-
-      navigate({
-        to: "/",
-      });
+  const registerMutation = useRegisterUser({
+    mutation: {
+      onError: () => {
+        setError("root", {
+          message: "Failed to register",
+        });
+      },
+      onSuccess: async (user) => {
+        startSession(queryClient, user);
+        await navigate({ to: "/subjects" });
+      },
     },
   });
 
   const onSubmit = handleSubmit((data) => {
-    registerMutation.mutate(data);
+    registerMutation.mutate({ data });
   });
 
   return {

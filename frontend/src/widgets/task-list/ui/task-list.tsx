@@ -1,4 +1,4 @@
-import type { Task } from "@/entities/task";
+import type { Task } from "@/shared/api";
 import { TaskCard } from "@/entities/task/ui/task-card";
 
 interface TaskListProps {

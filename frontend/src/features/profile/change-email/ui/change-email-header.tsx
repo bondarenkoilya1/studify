@@ -3,7 +3,7 @@ import { useCurrentUser } from "@/entities/user";
 export function ChangeEmailHeader() {
   const { data } = useCurrentUser();
 
-  const isDisabled = !data?.isEmailVerified;
+  const isDisabled = !data?.is_email_verified;
 
   return (
     <div>
