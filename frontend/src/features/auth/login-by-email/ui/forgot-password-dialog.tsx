@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { toast } from "react-toastify";
 import {
   Dialog,
   DialogBody,
@@ -26,7 +25,7 @@ export function ForgotPasswordDialog({
     submit,
     isSubmitting,
     reset,
-  } = useForgotPassword();
+  } = useForgotPassword(() => onOpenChange(false));
   const emailInputRef = useRef<HTMLInputElement>(null);
   const { ref: registerRef, ...emailField } = register("email");
 
@@ -39,17 +38,6 @@ export function ForgotPasswordDialog({
     return () => clearTimeout(id);
   }, [open, reset]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await submit();
-      toast.success("Ссылка для сброса пароля отправлена на вашу почту");
-      onOpenChange(false);
-    } catch {
-      toast.error("Не удалось отправить ссылку");
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogClose onClick={() => onOpenChange(false)} />
@@ -60,7 +48,7 @@ export function ForgotPasswordDialog({
         </DialogDescription>
       </DialogHeader>
       <DialogBody>
-        <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+        <form className="space-y-6" onSubmit={submit} noValidate>
           <FormField htmlFor="forgot-password-email" label="Эл. почта">
             <Input
               id="forgot-password-email"

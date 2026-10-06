@@ -1,21 +1,13 @@
-import { useState } from "react";
-import { resendEmailConfirmation } from "../api/resend-email-confirmation";
+import { useResendConfirmationEmail } from "@/shared/api";
+import { toast } from "@/shared/ui/sonner";
 
 export function useResendEmailConfirmation() {
-  const [isDisabled, setDisabled] = useState(false);
+  const { mutate, isPending } = useResendConfirmationEmail({
+    mutation: {
+      onSuccess: () => toast.success("Confirmation email sent."),
+      onError: () => toast.error("Failed to send confirmation email."),
+    },
+  });
 
-  async function handleClick() {
-    try {
-      setDisabled(true);
-      await resendEmailConfirmation();
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(error);
-      }
-    } finally {
-      setDisabled(false);
-    }
-  }
-
-  return { isDisabled, handleClick };
+  return { isDisabled: isPending, handleClick: () => mutate() };
 }

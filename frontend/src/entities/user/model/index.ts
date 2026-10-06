@@ -1,2 +1,3 @@
-export * from "./types";
-export * from "./use-current-user";
+export { currentUserQuery } from "./user-query";
+export { useCurrentUser } from "./use-current-user";
+export { startSession, endSession } from "./session";

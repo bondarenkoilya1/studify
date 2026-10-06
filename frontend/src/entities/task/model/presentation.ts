@@ -3,7 +3,7 @@ import type {
   TaskStatus,
   TaskType,
   TaskPriority,
-} from "@/entities/task/model/types";
+} from "@/shared/api";
 
 export const STATUS_CONFIG: Record<
   TaskStatus,

@@ -35,8 +35,8 @@ tags:
     description: Study task management
   - name: Profile
     description: Current authenticated user account operations
-  - name: Files
-    description: Uploaded images and documents
+  - name: Static
+    description: Uploaded files served by the backend
   - name: Monitoring
     description: Prometheus metrics
 
@@ -584,7 +584,7 @@ paths:
 
   /api/subjects/{id}/thumbnail:
     post:
-      tags: [Subjects, Files]
+      tags: [Subjects]
       summary: Upload a subject thumbnail as raw image bytes
       description: |
         The request body is the raw image (not multipart). PNG, JPEG, and WebP are accepted, up to
@@ -636,7 +636,7 @@ paths:
 
   /api/subjects/{id}/file:
     post:
-      tags: [Subjects, Files]
+      tags: [Subjects]
       summary: Attach a PDF or text file to a subject
       description: |
         Multipart upload with the file in the `file` field. Only PDF and plain-text files up to
@@ -942,7 +942,7 @@ paths:
 
   /api/users/me/avatar:
     post:
-      tags: [Profile, Files]
+      tags: [Profile]
       summary: Upload the current user's avatar as raw image bytes
       description: |
         The request body is the raw image (not multipart). PNG, JPEG, and WebP are accepted, up to
@@ -1007,7 +1007,7 @@ paths:
 
   /static/{path}:
     get:
-      tags: [Files]
+      tags: [Static]
       summary: Download an uploaded file
       description: |
         Serves files from the backend `data/` directory, for example
@@ -1153,6 +1153,39 @@ components:
             $ref: '#/components/schemas/Error'
 
   schemas:
+    LecturerPosition:
+      type: string
+      description: Required by the backend on create; an empty or unknown value returns 500.
+      enum: [lecturer, practical_instructor, lab_instructor, assistant]
+
+    SubjectType:
+      type: string
+      enum: [university, personal]
+
+    SubjectScope:
+      type: string
+      enum: [technology, healthcare, humanities, business, social, science, other]
+
+    ExamType:
+      type: string
+      enum: [exam, credit, coursework, project, other]
+
+    TaskType:
+      type: string
+      enum: [exam, credit, coursework, project, other]
+
+    TaskStatus:
+      type: string
+      enum: [not_completed, ongoing, completed]
+
+    TaskDifficulty:
+      type: string
+      enum: [low, medium, high]
+
+    TaskPriority:
+      type: string
+      enum: [low, medium, high]
+
     Error:
       type: string
       description: Plain-text error message.
@@ -1332,16 +1365,13 @@ components:
 
     Lecturer:
       type: object
-      required: [name]
+      required: [name, position]
       properties:
         name:
           type: string
           example: Dr. Smith
         position:
-          type: string
-          enum: [lecturer, practical_instructor, lab_instructor, assistant]
-          description: Required by the backend on create; an empty or unknown value returns 500.
-          example: lecturer
+          $ref: '#/components/schemas/LecturerPosition'
 
     Subject:
       type: object
@@ -1364,17 +1394,11 @@ components:
           maxLength: 200
           example: Intro to SQL and relation modeling
         type:
-          type: string
-          enum: [university, personal]
-          example: university
+          $ref: '#/components/schemas/SubjectType'
         scope:
-          type: string
-          enum: [technology, healthcare, humanities, business, social, science, other]
-          example: technology
+          $ref: '#/components/schemas/SubjectScope'
         exam_type:
-          type: string
-          enum: [exam, credit, coursework, project, other]
-          example: exam
+          $ref: '#/components/schemas/ExamType'
         exam_date:
           type: string
           format: date-time
@@ -1443,17 +1467,11 @@ components:
           maxLength: 200
           example: Intro to SQL and relation modeling
         type:
-          type: string
-          enum: [university, personal]
-          example: university
+          $ref: '#/components/schemas/SubjectType'
         scope:
-          type: string
-          enum: [technology, healthcare, humanities, business, social, science, other]
-          example: technology
+          $ref: '#/components/schemas/SubjectScope'
         exam_type:
-          type: string
-          enum: [exam, credit, coursework, project, other]
-          example: exam
+          $ref: '#/components/schemas/ExamType'
         exam_date:
           type: string
           format: date-time
@@ -1496,17 +1514,11 @@ components:
           maxLength: 200
           example: Intro to SQL and relation modeling
         type:
-          type: string
-          enum: [university, personal]
-          example: university
+          $ref: '#/components/schemas/SubjectType'
         scope:
-          type: string
-          enum: [technology, healthcare, humanities, business, social, science, other]
-          example: technology
+          $ref: '#/components/schemas/SubjectScope'
         exam_type:
-          type: string
-          enum: [exam, credit, coursework, project, other]
-          example: exam
+          $ref: '#/components/schemas/ExamType'
         exam_date:
           type: string
           format: date-time
@@ -1531,7 +1543,7 @@ components:
 
     Task:
       type: object
-      required: [id, subject_id, name, type, description, status, difficulty, priority, created_at, updated_at]
+      required: [id, subject_id, name, type, description, estimated_time, scheduled_at, deadline, status, difficulty, priority, created_at, updated_at]
       properties:
         id:
           type: integer
@@ -1545,9 +1557,7 @@ components:
           type: string
           example: Read chapter 4
         type:
-          type: string
-          enum: [exam, credit, coursework, project, other]
-          example: coursework
+          $ref: '#/components/schemas/TaskType'
         description:
           type: string
           example: Write a short summary and review the key terms.
@@ -1567,17 +1577,11 @@ components:
           nullable: true
           example: '2026-07-10T12:00:00Z'
         status:
-          type: string
-          enum: [not_completed, ongoing, completed]
-          example: ongoing
+          $ref: '#/components/schemas/TaskStatus'
         difficulty:
-          type: string
-          enum: [low, medium, high]
-          example: medium
+          $ref: '#/components/schemas/TaskDifficulty'
         priority:
-          type: string
-          enum: [low, medium, high]
-          example: high
+          $ref: '#/components/schemas/TaskPriority'
         created_at:
           type: string
           format: date-time
@@ -1600,9 +1604,7 @@ components:
           type: string
           example: Read chapter 4
         type:
-          type: string
-          enum: [exam, credit, coursework, project, other]
-          example: coursework
+          $ref: '#/components/schemas/TaskType'
         description:
           type: string
           example: Write a short summary and review the key terms.
@@ -1622,17 +1624,11 @@ components:
           nullable: true
           example: '2026-07-10T12:00:00Z'
         status:
-          type: string
-          enum: [not_completed, ongoing, completed]
-          example: ongoing
+          $ref: '#/components/schemas/TaskStatus'
         difficulty:
-          type: string
-          enum: [low, medium, high]
-          example: medium
+          $ref: '#/components/schemas/TaskDifficulty'
         priority:
-          type: string
-          enum: [low, medium, high]
-          example: high
+          $ref: '#/components/schemas/TaskPriority'
 
     TaskUpdateRequest:
       type: object
@@ -1643,9 +1639,7 @@ components:
           type: string
           example: Read chapters 4 and 5
         type:
-          type: string
-          enum: [exam, credit, coursework, project, other]
-          example: exam
+          $ref: '#/components/schemas/TaskType'
         description:
           type: string
           example: Review the primary definitions and examples.
@@ -1670,17 +1664,11 @@ components:
           minimum: 1
           example: 2
         status:
-          type: string
-          enum: [not_completed, ongoing, completed]
-          example: completed
+          $ref: '#/components/schemas/TaskStatus'
         difficulty:
-          type: string
-          enum: [low, medium, high]
-          example: high
+          $ref: '#/components/schemas/TaskDifficulty'
         priority:
-          type: string
-          enum: [low, medium, high]
-          example: medium
+          $ref: '#/components/schemas/TaskPriority'
 
     DashboardStatus:
       type: object

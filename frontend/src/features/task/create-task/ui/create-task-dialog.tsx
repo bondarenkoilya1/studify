@@ -114,15 +114,15 @@ export function CreateTaskDialog({
               min={1}
               placeholder="60"
               controlSize="large"
-              aria-invalid={Boolean(form.formState.errors.estimatedTime)}
-              {...form.register("estimatedTime", {
+              aria-invalid={Boolean(form.formState.errors.estimated_time)}
+              {...form.register("estimated_time", {
                 setValueAs: (value) => (value === "" ? null : Number(value)),
               })}
             />
 
-            {form.formState.errors.estimatedTime?.message && (
+            {form.formState.errors.estimated_time?.message && (
               <p className="mt-1.5 text-[13px] text-red-500">
-                {form.formState.errors.estimatedTime.message}
+                {form.formState.errors.estimated_time.message}
               </p>
             )}
           </FormField>
@@ -133,7 +133,7 @@ export function CreateTaskDialog({
           >
             <Controller
               control={form.control}
-              name="scheduledAt"
+              name="scheduled_at"
               render={({ field, fieldState }) => (
                 <>
                   <DatePicker

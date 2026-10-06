@@ -1,9 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { type ChangePasswordFormData, ChangePasswordSchema } from "./schema";
-import { changePassword } from "../api/change-password";
-import { toast } from "react-toastify";
+import { useUpdateUserPassword } from "@/shared/api";
+import { toast } from "@/shared/ui/sonner";
 
 export function useChangePasswordForm() {
   const form = useForm<ChangePasswordFormData>({
@@ -14,18 +13,23 @@ export function useChangePasswordForm() {
     },
   });
 
-  const changePasswordMutation = useMutation({
-    mutationFn: (values: ChangePasswordFormData) =>
-      changePassword(values.currentPassword, values.newPassword),
-    onSuccess: () => {
-      form.reset();
-      toast.success("Your password was successfully updated!");
+  const changePasswordMutation = useUpdateUserPassword({
+    mutation: {
+      onSuccess: () => {
+        form.reset();
+        toast.success("Your password was successfully updated!");
+      },
+      onError: () => toast.error("Failed to update password."),
     },
-    onError: () => toast.error("Failed to update password."),
   });
 
   const onSubmit = (value: ChangePasswordFormData) => {
-    changePasswordMutation.mutate(value);
+    changePasswordMutation.mutate({
+      data: {
+        current_password: value.currentPassword,
+        new_password: value.newPassword,
+      },
+    });
   };
 
   return {

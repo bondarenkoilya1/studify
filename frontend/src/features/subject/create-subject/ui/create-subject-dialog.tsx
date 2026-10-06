@@ -35,7 +35,7 @@ import {
 } from "../model/constants";
 
 import { useCreateSubjectForm } from "../model/use-create-subject-form";
-import type { LecturerPosition } from "@/entities/subject/model/types";
+import type { LecturerPosition } from "@/shared/api";
 
 const initialLecturers = [
   {

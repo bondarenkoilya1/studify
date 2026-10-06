@@ -1,28 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { httpClient } from "@/shared/api";
-
-interface UploadAvatarResponse {
-  avatarUrl: string;
-}
+import { currentUserQuery } from "@/entities/user";
+import { uploadUserAvatar } from "@/shared/api";
 
 export function useUploadAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (file: File) => {
-      return httpClient.post<UploadAvatarResponse>(
-        "/api/users/me/avatar",
-        file,
-        { headers: { "Content-Type": file.type || "image/png" } },
+    // The spec lists several image types, so send the file's real one.
+    mutationFn: (file: File) =>
+      uploadUserAvatar(file, {
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+      }),
+    onSuccess: ({ avatar_url }) => {
+      queryClient.setQueryData(currentUserQuery.queryKey, (user) =>
+        user ? { ...user, avatar_url } : user,
       );
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["user"], (old: any) => {
-        if (!old) return old;
-        return { ...old, avatarUrl: `${data.avatarUrl}?t=${Date.now()}` };
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["user"] });
     },
   });
 }

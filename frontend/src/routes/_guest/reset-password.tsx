@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { toast } from "react-toastify";
 import { z } from "zod";
 
-import { verifyResetPasswordToken } from "@/features/auth/login-by-email/api/reset-password/verify-reset-password-token";
+import { verifyResetPasswordToken } from "@/shared/api";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
@@ -25,8 +25,6 @@ function ResetPasswordPage() {
 
   // Сохраняем токен во внутреннее состояние
   const [token, _] = useState<string | null>(() => search.token ?? null);
-  const [isValidating, setIsValidating] = useState(true);
-  const [isValid, setIsValid] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   // Мгновенная очистка URL от токена при входе (согласно гайду)
@@ -40,36 +38,23 @@ function ResetPasswordPage() {
     }
   }, [search.token, navigate]);
 
-  // Верификация токена
-  useEffect(() => {
-    if (!token) {
-      setIsValidating(false);
-      setIsValid(false);
-      return;
-    }
+  const verification = useQuery({
+    queryKey: ["reset-password-token", token],
+    queryFn: () => verifyResetPasswordToken({ password_reset_token: token! }),
+    enabled: Boolean(token),
+    retry: false,
+    staleTime: Infinity,
+  });
 
-    verifyResetPasswordToken(token)
-      .then(() => setIsValid(true))
-      .catch(() => setIsValid(false))
-      .finally(() => setIsValidating(false));
-  }, [token]);
+  const isValidating = Boolean(token) && verification.isPending;
+  const isValid = verification.isSuccess;
 
   const {
     register,
     formState: { errors },
     submit,
     isSubmitting,
-  } = useResetPassword(token ?? "");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await submit();
-      setIsSuccess(true);
-    } catch {
-      toast.error("Не удалось сменить пароль");
-    }
-  };
+  } = useResetPassword(token ?? "", () => setIsSuccess(true));
 
   if (isValidating) {
     return (
@@ -118,7 +103,7 @@ function ResetPasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="max-w-md w-full space-y-4">
+      <form onSubmit={submit} className="max-w-md w-full space-y-4">
         <FormField htmlFor="new_password" label="Новый пароль">
           <Input
             id="new_password"

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
-import { useGetSubjects } from "@/entities/subject/model/use-get-subjects";
+import { useGetUserSubjects } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { SubjectList } from "@/widgets/subjects-list";
 import { CreateSubjectDialog } from "@/features/subject/create-subject/ui/create-subject-dialog";
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_protected/subjects/")({
 });
 
 function SubjectsPage() {
-  const { data = [], isPending, error } = useGetSubjects();
+  const { data = [], isPending, error } = useGetUserSubjects();
 
   const [isCreateSubjectOpen, setIsCreateSubjectOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<SubjectFilter>("all");

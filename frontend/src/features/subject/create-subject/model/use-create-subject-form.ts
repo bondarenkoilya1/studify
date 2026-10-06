@@ -1,11 +1,16 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type DefaultValues, useForm } from "react-hook-form";
 
-import { ApiError } from "@/shared/api/http/errors";
-import { createSubject } from "../api/create-subject";
+import {
+  type ApiError,
+  invalidateGetDashboardStatus,
+  NetworkError,
+  invalidateGetUserSubjects,
+  type SubjectCreateRequest,
+  useAddSubject,
+} from "@/shared/api";
 import { createSubjectSchema, type CreateSubjectFormValues } from "./schema";
-import type { SubjectInput } from "@/entities/subject";
 
 const defaultValues: DefaultValues<CreateSubjectFormValues> = {
   name: "",
@@ -28,30 +33,26 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
   examDate: undefined,
 };
 
-function toSubjectInput(values: CreateSubjectFormValues): SubjectInput {
+function toCreateSubjectRequest(
+  values: CreateSubjectFormValues,
+): SubjectCreateRequest {
   return {
     name: values.name,
     note: values.note,
     type: values.type,
     scope: values.scope,
-    examDate: values.examDate?.toISOString() ?? null,
+    exam_date: values.examDate?.toISOString() ?? null,
     course: values.course ?? 1,
     term: values.term ?? 1,
     lecturers: values.lecturers,
-    thumbnailUrl: values.lecturerAvatarUrl ?? null,
+    thumbnail_url: values.lecturerAvatarUrl ?? null,
   };
 }
 
-function getSubjectErrorMessage(error: unknown): string {
-  if (error instanceof ApiError && error.message) {
-    return error.message;
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return "Не удалось создать предмет. Попробуйте ещё раз.";
+function getSubjectErrorMessage(error: ApiError): string {
+  return error instanceof NetworkError
+    ? "Не удалось создать предмет. Попробуйте ещё раз."
+    : error.message;
 }
 
 export function useCreateSubjectForm(onSuccess?: () => void) {
@@ -62,28 +63,26 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
     defaultValues,
   });
 
-  const mutation = useMutation({
-    mutationFn: createSubject,
+  const mutation = useAddSubject({
+    mutation: {
+      onError: (error) => {
+        form.setError("root", { message: getSubjectErrorMessage(error) });
+      },
+      onSuccess: async () => {
+        await Promise.all([
+          invalidateGetUserSubjects(queryClient),
+          invalidateGetDashboardStatus(queryClient),
+        ]);
 
-    onError: (error) => {
-      const message = getSubjectErrorMessage(error);
-      form.setError("root", { message });
-      console.error("Failed to create subject", error);
-    },
-
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["subjects"],
-      });
-
-      form.reset(defaultValues);
-      form.clearErrors("root");
-      onSuccess?.();
+        form.reset(defaultValues);
+        form.clearErrors("root");
+        onSuccess?.();
+      },
     },
   });
 
   const submit = form.handleSubmit((values) => {
-    mutation.mutate(toSubjectInput(values));
+    mutation.mutate({ data: toCreateSubjectRequest(values) });
   });
 
   return {

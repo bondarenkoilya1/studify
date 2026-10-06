@@ -5,7 +5,8 @@ export function getUTF8Length(string: string): number {
 }
 
 export function toAbsoluteUrl(url: string): string {
-  if (/^https?:\/\//i.test(url)) {
+  // Absolute, blob (local previews) and data URLs are used as is.
+  if (/^(https?:|blob:|data:)/i.test(url)) {
     return url;
   }
 

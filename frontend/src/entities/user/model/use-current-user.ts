@@ -1,4 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { userQuery } from "./user-query";
+import { currentUserQuery } from "./user-query";
 
-export const useCurrentUser = () => useQuery(userQuery);
+export const useCurrentUser = () => useQuery(currentUserQuery);

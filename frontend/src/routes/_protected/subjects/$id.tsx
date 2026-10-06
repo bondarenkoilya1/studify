@@ -1,28 +1,59 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { FileText, File as FileIcon, Search } from "lucide-react";
 
-import { useGetTasks } from "@/entities/task";
 import { TaskList } from "@/widgets/task-list";
-import { useTasksMetadata } from "@/entities/task/model/use-tasks-metadata";
 import {
   getTaskCountLabel,
   TYPE_LABELS,
 } from "@/entities/task/model/presentation";
-import { filterTasksByType } from "@/entities/task/model/filters";
+import {
+  filterTasksByType,
+  type TaskTypeFilter,
+} from "@/entities/task/model/filters";
+import { getTaskTypeCounts } from "@/entities/task/model/task-type-counts";
 import { CreateTaskButton } from "@/features/task/create-task";
-import { useGetSubject } from "@/entities/subject";
-import { type File } from "@/entities/subject/model/types";
+import {
+  ApiError,
+  getGetSubjectQueryOptions,
+  getGetSubjectTasksQueryOptions,
+  type SubjectFile,
+  useGetSubjectSuspense,
+  useGetSubjectTasksSuspense,
+} from "@/shared/api";
 import { formatBytes, toAbsoluteUrl } from "@/shared/utils";
 
 export const Route = createFileRoute("/_protected/subjects/$id")({
-  parseParams: (params) => ({
-    id: Number(params.id),
-  }),
+  params: {
+    parse: (params) => {
+      const id = Number(params.id);
+
+      if (!Number.isInteger(id) || id <= 0) {
+        throw notFound();
+      }
+
+      return { id };
+    },
+    stringify: ({ id }) => ({ id: String(id) }),
+  },
+  loader: async ({ context: { queryClient }, params: { id } }) => {
+    try {
+      await Promise.all([
+        queryClient.ensureQueryData(getGetSubjectQueryOptions(id)),
+        queryClient.ensureQueryData(getGetSubjectTasksQueryOptions(id)),
+      ]);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        throw notFound();
+      }
+
+      throw error;
+    }
+  },
   component: SubjectPage,
 });
 
-function SubjectFilesSidebar({ files }: { files: File[] }) {
+function SubjectFilesSidebar({ files }: { files: SubjectFile[] }) {
   if (!files || files.length === 0) {
     return null;
   }
@@ -35,22 +66,12 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
         </h2>
 
         <div className="mt-4 flex flex-col gap-2">
-          {files.map((file, index) => {
-            const rawSize =
-              file.sizeBytes ||
-              (file as { size_bytes?: number }).size_bytes ||
-              0;
-
-            const formattedSize = formatBytes(rawSize);
+          {files.map((file) => {
+            const formattedSize = formatBytes(file.size_bytes);
             const url = toAbsoluteUrl(file.url);
 
-            const contentType =
-              file.contentType ||
-              (file as { content_type?: string }).content_type ||
-              "";
-
             const isText =
-              contentType === "text/plain" ||
+              file.content_type.startsWith("text/plain") ||
               file.name.toLowerCase().endsWith(".txt");
 
             const iconWrapperClass = isText
@@ -62,7 +83,7 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
 
             return (
               <a
-                key={index}
+                key={file.url}
                 href={url}
                 target="_blank"
                 rel="noreferrer"
@@ -105,19 +126,13 @@ function SubjectFilesSidebar({ files }: { files: File[] }) {
 function SubjectPage() {
   const { id } = Route.useParams();
 
-  const { data: tasks } = useGetTasks(id);
-  const { types } = useTasksMetadata(id);
-  const subject = useGetSubject(id);
+  const { data: subject } = useGetSubjectSuspense(id);
+  const { data: tasks } = useGetSubjectTasksSuspense(id);
 
-  const [selectedType, setSelectedType] = useState<
-    "all" | (typeof types)[number]["type"]
-  >("all");
+  const [selectedType, setSelectedType] = useState<TaskTypeFilter>("all");
 
+  const types = getTaskTypeCounts(tasks);
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
-
-  if (!id || !subject) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
@@ -131,8 +146,8 @@ function SubjectPage() {
                 </h1>
 
                 <p className="mt-1 text-[14px] text-gray-400">
-                  {filteredTasksByType?.length ?? 0}{" "}
-                  {getTaskCountLabel(filteredTasksByType?.length ?? 0)}
+                  {filteredTasksByType.length}{" "}
+                  {getTaskCountLabel(filteredTasksByType.length)}
                 </p>
               </div>
 
@@ -188,7 +203,7 @@ function SubjectPage() {
           </div>
         </main>
 
-        <SubjectFilesSidebar files={subject.files || []} />
+        <SubjectFilesSidebar files={subject.files ?? []} />
       </div>
     </div>
   );
