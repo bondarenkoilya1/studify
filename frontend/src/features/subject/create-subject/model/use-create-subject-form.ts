@@ -81,9 +81,9 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
     },
   });
 
-  const submit = form.handleSubmit((values) => {
-    mutation.mutate({ data: toCreateSubjectRequest(values) });
-  });
+  const submit = form.handleSubmit((values) =>
+    mutation.mutate({ data: toCreateSubjectRequest(values) }),
+  );
 
   return {
     ...form,

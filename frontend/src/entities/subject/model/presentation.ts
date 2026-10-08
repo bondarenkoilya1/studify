@@ -1,4 +1,4 @@
-import type { ExamType } from "@/entities/subject/model/types";
+import type { ExamType } from "@/shared/api";
 
 export const SCOPE_GRADIENTS: Record<string, string[]> = {
   technology: [

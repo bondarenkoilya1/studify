@@ -32,10 +32,12 @@ import {
   SCOPE_LABELS,
   TERM_LABELS,
   TERM_OPTIONS,
+  EXAM_TYPES,
 } from "../model/constants";
 
 import { useCreateSubjectForm } from "../model/use-create-subject-form";
 import type { LecturerPosition } from "@/shared/api";
+import { EXAM_TYPE_LABELS } from "@/entities/subject/model/presentation";
 
 const initialLecturers = [
   {
@@ -283,6 +285,50 @@ export function CreateSubjectDialog({
                 />
               </FormField>
 
+              {isUniversity && (
+                <FormField
+                  htmlFor="create-subject-exam-type"
+                  label="Тип экзамена"
+                >
+                  <Controller
+                    control={form.control}
+                    name="examType"
+                    render={({ field, fieldState }) => (
+                      <>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger
+                            id="create-subject-exam-type"
+                            className={cn("h-11 w-full", FOCUS_RING)}
+                            aria-invalid={Boolean(fieldState.error)}
+                          >
+                            <SelectValue placeholder="Выберите тип экзамена">
+                              {(value: string) =>
+                                EXAM_TYPE_LABELS[
+                                  value as keyof typeof EXAM_TYPE_LABELS
+                                ] ?? value
+                              }
+                            </SelectValue>
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {EXAM_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {EXAM_TYPE_LABELS[type]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <FieldError message={fieldState.error?.message} />
+                      </>
+                    )}
+                  />
+                </FormField>
+              )}
+
               <FormField htmlFor="create-subject-term" label="Term">
                 <Controller
                   control={form.control}
@@ -341,7 +387,7 @@ export function CreateSubjectDialog({
                   render={({ field, fieldState }) => (
                     <>
                       <DatePicker
-                        value={field.value}
+                        value={field.value ?? undefined}
                         onChange={field.onChange}
                         className={cn("h-11", FOCUS_RING)}
                       />
@@ -376,7 +422,7 @@ export function CreateSubjectDialog({
               />
 
               <span className="absolute bottom-2.5 right-3 text-[11px] text-gray-400">
-                {note.length}/200
+                {note?.length}/200
               </span>
             </div>
 

@@ -60,7 +60,8 @@ function MetaRow({
 export function SubjectCard({ subject }: { subject: Subject }) {
   const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
 
-  const gradient = gradients[hashIndex(subject.id, gradients.length)];
+  const gradient =
+    gradients && gradients[hashIndex(subject.id, gradients.length)];
 
   const isUniversity = subject.type === "university";
 
