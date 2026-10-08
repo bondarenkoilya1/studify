@@ -15,10 +15,13 @@ import (
 	"studify/internal/user"
 	"time"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type tokenResponse struct {
+	Token string `json:"confirm_email_token"`
+}
 
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	body := UserRequest{}
@@ -435,14 +438,14 @@ func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 }
 
 func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
-	confirmToken := chi.URLParam(r, "token")
-	if confirmToken == "" {
-		slog.Error("failed to get token from url params")
-		http.Error(w, "missing token", http.StatusBadRequest)
+	body := tokenResponse{}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		slog.Error("failed to decode request body", slog.String("error", err.Error()))
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
 
-	tokenRecord, err := token.ValidateConfirmationToken(h.DB, token.Token(confirmToken))
+	tokenRecord, err := token.ValidateConfirmationToken(h.DB, token.Token(body.Token))
 	if err != nil {
 		slog.Error("failed to validate confirmation token", slog.String("error", err.Error()))
 		http.Error(w, "invalid confirmation token", http.StatusBadRequest)

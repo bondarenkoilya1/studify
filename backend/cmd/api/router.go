@@ -20,10 +20,6 @@ import (
 func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Metrics) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middlewares.RequestID)
-	r.Use(middlewares.RequestLogger)
-	r.Use(middlewares.Metrics(m.requestsTotal, m.requestsDuration))
-
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   corsOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -31,12 +27,15 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	r.Use(middlewares.RequestID)
+	r.Use(middlewares.RequestLogger)
+	r.Use(middlewares.Metrics(m.requestsTotal, m.requestsDuration))
 
 	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
-			registerLoginRoutes(r, h.Auth)
+			registerAuthRoutes(r, h.Auth)
 			registerMfaRoutes(r, h.Mfa)
 			registerPasswordResetRoutes(r, h.ResetPassword)
 		})
@@ -59,21 +58,18 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 	return r
 }
 
-// todo: fix, rename .etc
-func registerLoginRoutes(r chi.Router, h *auth.Handler) {
-	r.Route("/", func(r chi.Router) {
-		r.Post("/logout", h.LogoutUser)
+func registerAuthRoutes(r chi.Router, h *auth.Handler) {
+	r.Post("/logout", h.LogoutUser)
+	r.Post("/refresh", h.RefreshTokens)
 
-		r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
-		r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
-		r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
-		r.Post("/refresh", h.RefreshTokens)
+	r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
+	r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
+	r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
 
-		r.Route("/confirm", func(r chi.Router) {
-			r.Use(middlewares.ValidateAuth(h.Token))
-			r.Post("/resend", h.ResendConfirmationMail)
-			r.Post("/{token}", h.ConfirmEmail)
-		})
+	r.Route("/confirm", func(r chi.Router) {
+		r.Use(middlewares.ValidateAuth(h.Token))
+		r.Post("/resend", h.ResendConfirmationMail)
+		r.Post("/", h.ConfirmEmail)
 	})
 }
 

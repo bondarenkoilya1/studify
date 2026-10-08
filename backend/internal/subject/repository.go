@@ -18,22 +18,6 @@ type DBTX interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
-const subjectSelectQuery = `
-	SELECT
-	   id,
-	   user_id,
-	   name,
-	   note,
-	   type,
-	   scope,
-	   exam_type,
-	   exam_date,
-	   course,
-	   term,
-	   thumbnail_url
-	FROM subjects
-`
-
 func scanSubject(scanner interface {
 	Scan(dest ...any) error
 }) (*Subject, error) {
@@ -67,15 +51,12 @@ func scanSubject(scanner interface {
 		subject.Note = &note.String
 	}
 
-	// todo: Check new go 1.26
 	if course.Valid {
-		value := int(course.Int64)
-		subject.Course = &value
+		subject.Course = new(int(course.Int64))
 	}
 
 	if term.Valid {
-		value := int(term.Int64)
-		subject.Term = &value
+		subject.Term = new(int(term.Int64))
 	}
 
 	if thumbnailURL.Valid {
@@ -140,8 +121,14 @@ func getFilesBySubjectID(db *sql.DB, subjectID int64) ([]File, error) {
 }
 
 func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
-	query := subjectSelectQuery + `
-	   WHERE id = $1 AND user_id = $2;
+	const query = `
+		SELECT 
+		   id, user_id, name,
+		   note, type, scope,
+		   exam_type, exam_date,
+		   course, term, thumbnail_url
+		FROM subjects
+		WHERE id = $1 AND user_id = $2;
 	`
 	subject, err := scanSubject(db.QueryRow(query, id, userID))
 	if err != nil {
@@ -164,9 +151,15 @@ func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 }
 
 func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
-	query := subjectSelectQuery + `
+	const query = `
+       SELECT 
+		   id, user_id, name,
+		   note, type, scope,
+		   exam_type, exam_date,
+		   course, term, thumbnail_url
+       FROM subjects
 	   WHERE user_id = $1
-	   ORDER BY id;
+	   ORDER BY course DESC NULLS LAST, term DESC NULLS LAST
 	`
 
 	rows, err := db.Query(query, userID)
@@ -219,8 +212,7 @@ func InsertSubject(
 	}
 	defer tx.Rollback()
 
-	newSubject, err := insertSubjectTx(
-		tx,
+	newSubject, err := insertSubjectTx(tx,
 		userID,
 		name,
 		note,
