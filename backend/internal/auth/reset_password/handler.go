@@ -3,9 +3,9 @@ package reset_password
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"studify/internal"
 	"studify/internal/auth/credentials"
 	"studify/internal/auth/token"
@@ -29,9 +29,9 @@ type tokenResponse struct {
 }
 
 type Handler struct {
-	DB     *sql.DB
-	Mailer *mail.Mailer
-	Config *config.Config
+	DB          *sql.DB
+	MailService *mail.Service
+	Config      *config.Config
 }
 
 // RequestPasswordReset get user email and send generated link with token so user can
@@ -56,18 +56,12 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resetToken, err := token.CreateResetPasswordToken(h.DB, internal.UserID(currentUser.ID))
-	if err != nil {
-		slog.Error("failed to create reset password token", slog.String("error", err.Error()))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	link := fmt.Sprintf("%s/reset-password?token=%s", h.Config.AppURL, resetToken)
-
-	if err = h.Mailer.SendPasswordResetEmail("noreply@studify.com", body.Email, link); err != nil {
+	if err := h.MailService.SendPasswordResetEmail(
+		currentUser.Email,
+		internal.UserID(currentUser.ID),
+	); err != nil {
 		slog.Error("failed to send password reset email", slog.String("error", err.Error()))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -143,6 +137,19 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	if err = token.DeleteResetPasswordToken(h.DB, tokenRecord.UserID); err != nil {
 		slog.Error("failed to delete reset token", slog.String("error", err.Error()))
+	}
+
+	currentUser, err := user.GetUserByEmail(h.DB, strconv.FormatInt(tokenRecord.UserID, 10))
+	if err != nil {
+		slog.Error("failed to get user by email", slog.String("error", err.Error()))
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	if err := h.MailService.SendNewPasswordEmail(currentUser.Email, body.NewPassword); err != nil {
+		slog.Error("failed to send user new password email", slog.String("error", err.Error()))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)

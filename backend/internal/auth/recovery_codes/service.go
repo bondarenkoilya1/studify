@@ -3,7 +3,6 @@ package rc
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
@@ -72,14 +71,9 @@ func SaveRecoveryCodes(db *sql.DB, userID int64, codes []string) (err error) {
 	return nil
 }
 
-// TODO: similar, can be as util
+// TODO: Has the same analogue at RefreshToken service
 
 func HashRecoveryCode(code string) string {
 	sum := sha256.Sum256([]byte(code))
 	return hex.EncodeToString(sum[:])
-}
-
-func CompareRecoveryCodeHash(code string, expectedHash string) bool {
-	codeHash := HashRecoveryCode(code)
-	return subtle.ConstantTimeCompare([]byte(codeHash), []byte(expectedHash)) == 1
 }

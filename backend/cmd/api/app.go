@@ -12,7 +12,6 @@ import (
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/dashboard"
-	"studify/internal/email"
 	"studify/internal/mail"
 	"studify/internal/subject"
 	"studify/internal/task"
@@ -36,7 +35,7 @@ type Handler struct {
 	DB            *sql.DB
 	Token         *token.Service
 	Config        *config.Config
-	EmailService  *email.Service
+	MailService   *mail.Service
 	Auth          *auth.Handler
 	Subject       *subject.Handler
 	Task          *task.Handler
@@ -82,7 +81,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		return nil, err
 	}
 
-	mailer := mail.NewMailer(cfg.SMTPAddr)
+	mailer := mail.NewMailer(cfg.SMTPAddr, "noreply@studify.com")
 
 	tokenService := token.NewService(
 		cfg.JWTAccessSecret,
@@ -92,17 +91,13 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		db,
 	)
 
-	emailService := &email.Service{
-		DB:     db,
-		Mailer: mailer,
-		Config: cfg,
-	}
+	mailService := mail.NewService(db, mailer, cfg)
 
 	authHandler := &auth.Handler{
-		DB:           db,
-		Token:        tokenService,
-		Config:       cfg,
-		EmailService: emailService,
+		DB:          db,
+		Token:       tokenService,
+		Config:      cfg,
+		MailService: mailService,
 	}
 
 	subjectHandler := &subject.Handler{DB: db}
@@ -118,21 +113,21 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	}
 
 	userHandler := &user.Handler{
-		DB:           db,
-		EmailService: emailService,
+		DB:          db,
+		MailService: mailService,
 	}
 
 	resetPasswordHandler := &reset_password.Handler{
-		DB:     db,
-		Mailer: mailer,
-		Config: cfg,
+		DB:          db,
+		MailService: mailService,
+		Config:      cfg,
 	}
 
 	h := &Handler{
 		DB:            db,
 		Token:         tokenService,
 		Config:        cfg,
-		EmailService:  emailService,
+		MailService:   mailService,
 		Auth:          authHandler,
 		Subject:       subjectHandler,
 		Task:          taskHandler,

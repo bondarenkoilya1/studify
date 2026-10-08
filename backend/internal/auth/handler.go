@@ -58,7 +58,7 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.EmailService.SendConfirmationEmail(
+	if err := h.MailService.SendConfirmationEmail(
 		newUser.Email,
 		internal.UserID(newUser.ID),
 	); err != nil {
@@ -477,7 +477,7 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err = h.EmailService.SendConfirmationEmail(
+	if err = h.MailService.SendConfirmationEmail(
 		currentUser.Email,
 		internal.UserID(currentUser.ID),
 	); err != nil {

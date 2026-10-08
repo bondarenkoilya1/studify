@@ -4,14 +4,14 @@ import (
 	"database/sql"
 	"studify/internal/auth/token"
 	"studify/internal/config"
-	"studify/internal/email"
+	"studify/internal/mail"
 )
 
 type Handler struct {
-	DB           *sql.DB
-	Token        *token.Service
-	Config       *config.Config
-	EmailService *email.Service
+	DB          *sql.DB
+	Token       *token.Service
+	Config      *config.Config
+	MailService *mail.Service
 }
 
 type ChallengeTokenResponse struct {

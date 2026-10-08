@@ -2,12 +2,12 @@ package user
 
 import (
 	"database/sql"
-	"studify/internal/email"
+	"studify/internal/mail"
 )
 
 type Handler struct {
-	DB           *sql.DB
-	EmailService *email.Service
+	DB          *sql.DB
+	MailService *mail.Service
 }
 
 type User struct {
