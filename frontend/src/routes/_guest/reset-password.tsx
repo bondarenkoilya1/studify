@@ -40,7 +40,12 @@ function ResetPasswordPage() {
 
   const verification = useQuery({
     queryKey: ["reset-password-token", token],
-    queryFn: () => verifyResetPasswordToken({ password_reset_token: token! }),
+    queryFn: async () => {
+      await verifyResetPasswordToken({
+        password_reset_token: token!,
+      });
+      return true;
+    },
     enabled: Boolean(token),
     retry: false,
     staleTime: Infinity,

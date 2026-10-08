@@ -315,7 +315,7 @@ export const useVerifyResetPasswordToken = <
   );
 };
 export const getResetPasswordUrl = () => {
-  return `/api/auth/reset-password`;
+  return `/api/auth/reset-password/`;
 };
 
 /**

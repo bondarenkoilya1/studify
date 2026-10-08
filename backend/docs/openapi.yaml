@@ -336,7 +336,7 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/auth/reset-password:
+  /api/auth/reset-password/:
     post:
       tags: [Auth / Reset Password]
       summary: Reset the user's password with a valid reset token
