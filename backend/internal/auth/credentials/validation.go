@@ -7,10 +7,15 @@ import (
 	"unicode/utf8"
 )
 
+type Action string
+
 const (
 	maxEmailLength    = 254
 	maxPasswordLength = 72
 	minPasswordLength = 8
+
+	ActionRegister Action = "register"
+	ActionLogin    Action = "login"
 )
 
 var (
@@ -19,13 +24,6 @@ var (
 	ErrInvalidEmail    = errors.New("invalid email")
 	ErrPasswordTooLong = errors.New("password is too long")
 	ErrEmailTooLong    = errors.New("email is too long")
-)
-
-type Action string
-
-const (
-	ActionRegister Action = "register"
-	ActionLogin    Action = "login"
 )
 
 func ValidateCredentials(email, password string, action Action) error {
