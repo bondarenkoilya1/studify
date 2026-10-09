@@ -15,13 +15,7 @@ var (
 
 func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 	query := `
-		SELECT
-			id,
-			email,
-			password,
-			is_email_verified,
-			is_totp_enabled,
-			avatar_url
+		SELECT id, email, password_hash, is_email_verified, is_totp_enabled, avatar_url
 		FROM users
 		WHERE email = $1;
 	`
@@ -30,18 +24,13 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 	var avatarURL sql.NullString
 
 	err := db.QueryRow(query, email).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Password,
-		&user.IsEmailVerified,
-		&user.IsTOTPEnabled,
-		&avatarURL,
+		&user.ID, &user.Email, &user.PasswordHash,
+		&user.IsEmailVerified, &user.IsTOTPEnabled, &avatarURL,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
 
@@ -54,12 +43,7 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	query := `
-		SELECT
-			id,
-			email,
-			is_email_verified,
-			is_totp_enabled,
-			avatar_url
+		SELECT id, email, is_email_verified, is_totp_enabled, avatar_url
 		FROM users
 		WHERE id = $1;
 	`
@@ -68,17 +52,12 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	var avatarURL sql.NullString
 
 	err := db.QueryRow(query, id).Scan(
-		&user.ID,
-		&user.Email,
-		&user.IsEmailVerified,
-		&user.IsTOTPEnabled,
-		&avatarURL,
+		&user.ID, &user.Email, &user.IsEmailVerified, &user.IsTOTPEnabled, &avatarURL,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-
 		return nil, fmt.Errorf("get user by id: %w", err)
 	}
 
@@ -90,44 +69,34 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 }
 
 func GetUserPasswordHashByID(db *sql.DB, id int64) (string, error) {
-	query := `
-		SELECT password
-		FROM users
-		WHERE id = $1;
-	`
+	query := `SELECT password_hash FROM users WHERE id = $1;`
 
 	var passwordHash string
 
-	err := db.QueryRow(query, id).Scan(&passwordHash)
-	if err != nil {
+	if err := db.QueryRow(query, id).Scan(&passwordHash); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", ErrUserNotFound
 		}
-
 		return "", fmt.Errorf("get user password hash by id: %w", err)
 	}
 
 	return passwordHash, nil
 }
 
-func InsertUser(db *sql.DB, email, password string) (*User, error) {
+func InsertUser(db *sql.DB, email, passwordHash string) (*User, error) {
 	query := `
-		INSERT INTO users (email, password)
+		INSERT INTO users (email, password_hash)
 		VALUES ($1, $2)
 		RETURNING id, email, is_email_verified;
 	`
 
 	var user User
-	err := db.QueryRow(query, email, password).Scan(
-		&user.ID,
-		&user.Email,
-		&user.IsEmailVerified,
-	)
+
+	err := db.QueryRow(query, email, passwordHash).Scan(&user.ID, &user.Email, &user.IsEmailVerified)
 	if err != nil {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
 			return nil, ErrUserAlreadyExists
 		}
-
 		return nil, fmt.Errorf("insert user: %w", err)
 	}
 
@@ -135,61 +104,11 @@ func InsertUser(db *sql.DB, email, password string) (*User, error) {
 }
 
 func VerifyUserEmail(db *sql.DB, id int64) error {
-	query := `
-		UPDATE users
-		SET is_email_verified = TRUE
-		WHERE id = $1;
-	`
+	query := `UPDATE users SET is_email_verified = TRUE WHERE id = $1;`
 
 	result, err := db.Exec(query, id)
 	if err != nil {
-		return err
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rows == 0 {
-		return ErrUserNotFound
-	}
-
-	return nil
-}
-
-func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*User, error) {
-	query := `
-		UPDATE users
-		SET
-		    email = $1,
-			is_email_verified = false
-		WHERE id = $2
-		RETURNING id, email, is_email_verified;
-	`
-
-	var user User
-	if err := db.QueryRow(query, newEmail, id).Scan(&user.ID, &user.Email, &user.IsEmailVerified); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
-		}
-		return nil, fmt.Errorf("update user email: %w", err)
-	}
-
-	return &user, nil
-}
-
-func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
-	query := `
-		UPDATE users
-		SET
-		    password = $1
-		WHERE id = $2;
-	`
-
-	result, err := db.Exec(query, newPassword, id)
-	if err != nil {
-		return fmt.Errorf("update user password: %w", err)
+		return fmt.Errorf("verify user email: %w", err)
 	}
 
 	rows, err := result.RowsAffected()
@@ -204,51 +123,59 @@ func UpdateUserPassword(db *sql.DB, id int64, newPassword string) error {
 	return nil
 }
 
-// UpdateUserAvatar updates path string for user avatar
-func UpdateUserAvatar(db *sql.DB, id int64, avatarURL string) error {
+func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*User, error) {
 	query := `
 		UPDATE users
-		SET
-		    avatar_url = $1
-		WHERE id = $2;
+		SET email = $1, is_email_verified = FALSE
+		WHERE id = $2
+		RETURNING id, email, is_email_verified;
 	`
 
-	result, err := db.Exec(query, avatarURL, id)
+	var user User
+
+	err := db.QueryRow(query, newEmail, id).Scan(&user.ID, &user.Email, &user.IsEmailVerified)
 	if err != nil {
-		return fmt.Errorf("update user avatar: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("update user email: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("get updated user count: %w", err)
-	}
+	return &user, nil
+}
 
-	if rowsAffected == 0 {
-		return ErrUserNotFound
-	}
+func UpdateUserPassword(db *sql.DB, id int64, newPasswordHash string) error {
+	query := `UPDATE users SET password_hash = $1 WHERE id = $2;`
 
-	return nil
+	return execExpectOne(db, query, "update user password", newPasswordHash, id)
+}
+
+// UpdateUserAvatar updates path string for user avatar
+func UpdateUserAvatar(db *sql.DB, id int64, avatarURL string) error {
+	query := `UPDATE users SET avatar_url = $1 WHERE id = $2;`
+
+	return execExpectOne(db, query, "update user avatar", avatarURL, id)
 }
 
 func DeleteUserAvatar(db *sql.DB, id int64) error {
-	query := `
-		UPDATE users
-		SET
-		    avatar_url = NULL
-		WHERE id = $1;
-	`
+	query := `UPDATE users SET avatar_url = NULL WHERE id = $1;`
 
-	result, err := db.Exec(query, id)
+	return execExpectOne(db, query, "delete user avatar", id)
+}
+
+// execExpectOne runs an UPDATE and returns ErrUserNotFound if no row was changed.
+func execExpectOne(db *sql.DB, query, op string, args ...any) error {
+	result, err := db.Exec(query, args...)
 	if err != nil {
-		return fmt.Errorf("delete user avatar: %w", err)
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("get updated user count: %w", err)
+		return fmt.Errorf("%s: rows affected: %w", op, err)
 	}
 
-	if rowsAffected == 0 {
+	if rows == 0 {
 		return ErrUserNotFound
 	}
 

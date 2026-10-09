@@ -2,7 +2,7 @@ CREATE TABLE users
 (
     id                    BIGSERIAL PRIMARY KEY,
     email                 TEXT        NOT NULL UNIQUE,
-    password              TEXT        NOT NULL,
+    passwordHash          TEXT        NOT NULL,
     is_email_verified     BOOLEAN     NOT NULL DEFAULT FALSE,
 
     is_totp_enabled       BOOLEAN     NOT NULL DEFAULT FALSE,
@@ -14,4 +14,3 @@ CREATE TABLE users
     avatar_url TEXT
 );
 
--- Rename password to passwordHash
