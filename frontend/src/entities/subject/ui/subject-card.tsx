@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { CalendarDays, GraduationCap, type LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -58,6 +58,8 @@ function MetaRow({
 }
 
 export function SubjectCard({ subject }: { subject: Subject }) {
+  const [imageError, setImageError] = useState(false);
+
   const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
 
   const gradient =
@@ -109,10 +111,11 @@ export function SubjectCard({ subject }: { subject: Subject }) {
       >
         {/* Header */}
         <div className="flex min-h-11 items-center gap-3.5 pr-8">
-          {thumbUrl ? (
+          {thumbUrl && !imageError ? (
             <img
               src={thumbUrl}
-              alt=""
+              alt="Subject thumbnail"
+              onError={() => setImageError(true)}
               className="size-11 shrink-0 rounded-[13px] object-cover shadow-sm"
             />
           ) : (
@@ -125,6 +128,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
           <h3
             title={subject.name}
+
             className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-neutral-900"
           >
             {subject.name}
