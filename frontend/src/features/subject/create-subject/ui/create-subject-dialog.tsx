@@ -1,5 +1,5 @@
 import { Controller, useFieldArray } from "react-hook-form";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 import {
   Dialog,
@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
-import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import {
   Select,
@@ -40,22 +39,86 @@ import type { LecturerPosition } from "@/shared/api";
 import { EXAM_TYPE_LABELS } from "@/entities/subject/model/presentation";
 
 const initialLecturers = [
-  {
-    name: "",
-    position: "lecturer" as const,
-  },
-  {
-    name: "",
-    position: "practical_instructor" as const,
-  },
+  { name: "", position: "lecturer" as const },
+  { name: "", position: "practical_instructor" as const },
 ];
+
+const TYPE_OPTIONS = [
+  { value: "university", label: "Университет" },
+  { value: "personal", label: "Личный" },
+] as const;
 
 const FOCUS_RING =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20";
 
+/* Селект и инпут внутри строки: без рамки и фона, значение прижато вправо */
+const SELECT_INLINE = cn(
+  "h-11 w-auto min-w-0 justify-end gap-1.5 border-0 bg-transparent px-0",
+  "text-[15px] text-gray-500 shadow-none hover:bg-transparent",
+  FOCUS_RING,
+);
+
+const INPUT_INLINE =
+  "h-11 border-0 bg-transparent px-0 text-[15px] shadow-none focus:ring-0 focus-visible:ring-0";
+
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1.5 text-[13px] text-red-500">{message}</p>;
+  return <p className="text-[13px] text-red-500">{message}</p>;
+}
+
+/* Группа строк: одна серая «плашка», строки разделены тонкой линией */
+function Group({
+  title,
+  children,
+}: {
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-4">
+      {title && (
+        <h3 className="mb-1.5 px-4 text-[13px] text-gray-500">{title}</h3>
+      )}
+      <div
+        className={cn(
+          "overflow-hidden rounded-xl bg-black/[0.04]",
+          // линия у каждой строки, кроме первой; начинается с отступа слева
+          "[&>*+*>div:first-child]:border-t [&>*+*>div:first-child]:border-black/[0.07]",
+        )}
+      >
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/* Строка: подпись слева, контрол справа, ошибка под контролом */
+function Row({
+  label,
+  htmlFor,
+  error,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="pl-4">
+      <div className="flex min-h-11 items-center justify-between gap-4 pr-4">
+        <label htmlFor={htmlFor} className="shrink-0 text-[15px] text-gray-900">
+          {label}
+        </label>
+        <div className="flex min-w-0 flex-1 justify-end">{children}</div>
+      </div>
+      {error && (
+        <div className="pb-2 pr-4 text-right">
+          <FieldError message={error} />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Collapse({
@@ -75,7 +138,7 @@ function Collapse({
       <div className="overflow-hidden">
         <div
           className={cn(
-            "space-y-5 transition-opacity duration-200",
+            "transition-opacity duration-200",
             open ? "opacity-100" : "opacity-0",
           )}
         >
@@ -103,17 +166,12 @@ export function CreateSubjectDialog({
     name: "lecturers",
   });
 
-  const addInitialLecturers = () => {
+  const addLecturer = () => {
     if (fields.length === 0) {
       append(initialLecturers);
+      return;
     }
-  };
-
-  const addLecturer = () => {
-    append({
-      name: "",
-      position: LECTURER_POSITIONS[0],
-    });
+    append({ name: "", position: LECTURER_POSITIONS[0] });
   };
 
   return (
@@ -122,464 +180,377 @@ export function CreateSubjectDialog({
 
       <DialogHeader>
         <DialogTitle>Новый предмет</DialogTitle>
-
         <DialogDescription>
           Добавьте предмет и основную информацию о нём.
         </DialogDescription>
       </DialogHeader>
 
       <DialogBody>
-        <form onSubmit={form.submit} className="space-y-5">
+        <form onSubmit={form.submit} className="flex flex-col">
           {form.formState.errors.root?.message && (
-            <div className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600">
+            <div className="mb-4 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600">
               {form.formState.errors.root.message}
             </div>
           )}
 
-          {/* TYPE */}
-          <FormField htmlFor="create-subject-type" label="Тип предмета">
+          {/* ТИП — сегментированный переключатель */}
+          <Controller
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <div
+                role="radiogroup"
+                aria-label="Тип предмета"
+                className="grid grid-cols-2 gap-0.5 rounded-[10px] bg-black/[0.06] p-0.5"
+              >
+                {TYPE_OPTIONS.map((option) => {
+                  const active = field.value === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => field.onChange(option.value)}
+                      className={cn(
+                        "h-8 rounded-lg px-3 text-[13px] font-medium",
+                        "transition-all duration-150",
+                        FOCUS_RING,
+                        active
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          />
+
+          {/* НАЗВАНИЕ — отдельная плашка без подписи, подпись в placeholder */}
+          <section className="mt-4">
+            <div className="rounded-xl bg-black/[0.04] px-4">
+              <Input
+                id="create-subject-name"
+                aria-label="Название"
+                placeholder={
+                  isUniversity
+                    ? "Название, например «Экономика»"
+                    : "Название, например «Изучение английского»"
+                }
+                className={cn(INPUT_INLINE, "h-12 text-[17px]")}
+                aria-invalid={Boolean(form.formState.errors.name)}
+                {...form.register("name")}
+              />
+            </div>
+            {form.formState.errors.name?.message && (
+              <div className="mt-1.5 px-4">
+                <FieldError message={form.formState.errors.name.message} />
+              </div>
+            )}
+          </section>
+
+          {/* ОСНОВНОЕ — категория, курс, семестр (+ экзамен для университета) */}
+          <Group>
             <Controller
               control={form.control}
-              name="type"
-              render={({ field }) => (
-                <div
-                  role="radiogroup"
-                  aria-label="Тип предмета"
-                  className="grid grid-cols-2 gap-1 rounded-xl bg-black/[0.05] p-1"
+              name="scope"
+              render={({ field, fieldState }) => (
+                <Row
+                  label="Категория"
+                  htmlFor="create-subject-scope"
+                  error={fieldState.error?.message}
                 >
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={field.value === "university"}
-                    onClick={() => field.onChange("university")}
-                    className={cn(
-                      "h-9 rounded-[9px] px-3 text-[13px] font-medium",
-                      "transition-all duration-150",
-                      FOCUS_RING,
-                      field.value === "university"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700",
-                    )}
-                  >
-                    Университет
-                  </button>
-
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={field.value === "personal"}
-                    onClick={() => field.onChange("personal")}
-                    className={cn(
-                      "h-9 rounded-[9px] px-3 text-[13px] font-medium",
-                      "transition-all duration-150",
-                      FOCUS_RING,
-                      field.value === "personal"
-                        ? "bg-white text-gray-900 shadow-sm"
-                        : "text-gray-500 hover:text-gray-700",
-                    )}
-                  >
-                    Личный
-                  </button>
-                </div>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      id="create-subject-scope"
+                      className={SELECT_INLINE}
+                      aria-invalid={Boolean(fieldState.error)}
+                    >
+                      <SelectValue placeholder="Выбрать">
+                        {(value: string) =>
+                          SCOPE_LABELS[value as keyof typeof SCOPE_LABELS] ??
+                          value
+                        }
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(SCOPE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Row>
               )}
             />
-          </FormField>
 
-          {/* NAME */}
-          <FormField htmlFor="create-subject-name" label="Название">
-            <Input
-              id="create-subject-name"
-              placeholder={
-                isUniversity
-                  ? "Например, Экономика: введение в экономику"
-                  : "Например, Изучение английского"
-              }
-              controlSize="large"
-              className={cn("h-11", FOCUS_RING)}
-              aria-invalid={Boolean(form.formState.errors.name)}
-              {...form.register("name")}
+            <Controller
+              control={form.control}
+              name="course"
+              render={({ field, fieldState }) => (
+                <Row
+                  label="Курс"
+                  htmlFor="create-subject-course"
+                  error={fieldState.error?.message}
+                >
+                  <Select
+                    value={
+                      field.value === null || field.value === undefined
+                        ? undefined
+                        : String(field.value)
+                    }
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger
+                      id="create-subject-course"
+                      className={SELECT_INLINE}
+                      aria-invalid={Boolean(fieldState.error)}
+                    >
+                      <SelectValue placeholder="Выбрать" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COURSE_OPTIONS.map((course) => (
+                        <SelectItem key={course} value={String(course)}>
+                          {COURSE_LABELS[course]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Row>
+              )}
             />
 
-            <FieldError message={form.formState.errors.name?.message} />
-          </FormField>
+            <Controller
+              control={form.control}
+              name="term"
+              render={({ field, fieldState }) => (
+                <Row
+                  label="Семестр"
+                  htmlFor="create-subject-term"
+                  error={fieldState.error?.message}
+                >
+                  <Select
+                    value={
+                      field.value === null || field.value === undefined
+                        ? undefined
+                        : String(field.value)
+                    }
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger
+                      id="create-subject-term"
+                      className={SELECT_INLINE}
+                      aria-invalid={Boolean(fieldState.error)}
+                    >
+                      <SelectValue placeholder="Выбрать" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TERM_OPTIONS.map((termOption) => (
+                        <SelectItem key={termOption} value={String(termOption)}>
+                          {TERM_LABELS[termOption]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Row>
+              )}
+            />
 
-          {/* SCOPE + DATE */}
-          <div
-            className={cn(
-              "grid gap-4",
-              isUniversity ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1",
-            )}
-          >
-            {/* SCOPE */}
-            <FormField htmlFor="create-subject-scope" label="Категория">
+            {isUniversity && (
               <Controller
                 control={form.control}
-                name="scope"
+                name="examType"
                 render={({ field, fieldState }) => (
-                  <>
+                  <Row
+                    label="Тип экзамена"
+                    htmlFor="create-subject-exam-type"
+                    error={fieldState.error?.message}
+                  >
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger
-                        id="create-subject-scope"
-                        className={cn("h-11 w-full", FOCUS_RING)}
+                        id="create-subject-exam-type"
+                        className={SELECT_INLINE}
                         aria-invalid={Boolean(fieldState.error)}
                       >
-                        <SelectValue placeholder="Выберите категорию">
+                        <SelectValue placeholder="Выбрать">
                           {(value: string) =>
-                            SCOPE_LABELS[value as keyof typeof SCOPE_LABELS] ??
-                            value
+                            EXAM_TYPE_LABELS[
+                              value as keyof typeof EXAM_TYPE_LABELS
+                            ] ?? value
                           }
                         </SelectValue>
                       </SelectTrigger>
-
                       <SelectContent>
-                        {Object.entries(SCOPE_LABELS).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
+                        {EXAM_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {EXAM_TYPE_LABELS[type]}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-
-                    <FieldError message={fieldState.error?.message} />
-                  </>
+                  </Row>
                 )}
               />
-            </FormField>
-
-            {/* COURSE + TERM */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField htmlFor="create-subject-course" label="Курс">
-                <Controller
-                  control={form.control}
-                  name="course"
-                  render={({ field, fieldState }) => (
-                    <>
-                      <Select
-                        value={
-                          field.value === null || field.value === undefined
-                            ? undefined
-                            : String(field.value)
-                        }
-                        onValueChange={(value) => field.onChange(Number(value))}
-                      >
-                        <SelectTrigger
-                          id="create-subject-course"
-                          className={cn("h-11 w-full", FOCUS_RING)}
-                          aria-invalid={Boolean(fieldState.error)}
-                        >
-                          <SelectValue placeholder="Выберите курс" />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                          {COURSE_OPTIONS.map((course) => (
-                            <SelectItem key={course} value={String(course)}>
-                              {COURSE_LABELS[course]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <FieldError message={fieldState.error?.message} />
-                    </>
-                  )}
-                />
-              </FormField>
-
-              {isUniversity && (
-                <FormField
-                  htmlFor="create-subject-exam-type"
-                  label="Тип экзамена"
-                >
-                  <Controller
-                    control={form.control}
-                    name="examType"
-                    render={({ field, fieldState }) => (
-                      <>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger
-                            id="create-subject-exam-type"
-                            className={cn("h-11 w-full", FOCUS_RING)}
-                            aria-invalid={Boolean(fieldState.error)}
-                          >
-                            <SelectValue placeholder="Выберите тип экзамена">
-                              {(value: string) =>
-                                EXAM_TYPE_LABELS[
-                                  value as keyof typeof EXAM_TYPE_LABELS
-                                ] ?? value
-                              }
-                            </SelectValue>
-                          </SelectTrigger>
-
-                          <SelectContent>
-                            {EXAM_TYPES.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {EXAM_TYPE_LABELS[type]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <FieldError message={fieldState.error?.message} />
-                      </>
-                    )}
-                  />
-                </FormField>
-              )}
-
-              <FormField htmlFor="create-subject-term" label="Term">
-                <Controller
-                  control={form.control}
-                  name="term"
-                  render={({ field, fieldState }) => (
-                    <>
-                      <Select
-                        value={
-                          field.value === null || field.value === undefined
-                            ? undefined
-                            : String(field.value)
-                        }
-                        onValueChange={(value) => field.onChange(Number(value))}
-                      >
-                        <SelectTrigger
-                          id="create-subject-term"
-                          className={cn("h-11 w-full", FOCUS_RING)}
-                          aria-invalid={Boolean(fieldState.error)}
-                        >
-                          <SelectValue placeholder="Выберите term" />
-                        </SelectTrigger>
-
-                        <SelectContent>
-                          {TERM_OPTIONS.map((termOption) => (
-                            <SelectItem
-                              key={termOption}
-                              value={String(termOption)}
-                            >
-                              {TERM_LABELS[termOption]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <FieldError message={fieldState.error?.message} />
-                    </>
-                  )}
-                />
-              </FormField>
-            </div>
-
-            {/* DATE — рендерим всегда, чтобы Collapse ниже мог его схлопнуть
-                плавно; но т.к. DATE технически часть grid-раскладки со SCOPE,
-                а не university-only блока, тут просто держим условный рендер
-                как было — схлопывание анимируем только для лекторов и note-блока,
-                где эффект от рывка высоты заметнее всего. Если хочешь анимировать
-                и это поле — оберни весь grid в <Collapse open={isUniversity}>. */}
-            {isUniversity && (
-              <FormField
-                htmlFor="create-subject-exam-date"
-                label="Дата экзамена"
-              >
-                <Controller
-                  control={form.control}
-                  name="examDate"
-                  render={({ field, fieldState }) => (
-                    <>
-                      <DatePicker
-                        value={field.value ?? undefined}
-                        onChange={field.onChange}
-                        className={cn("h-11", FOCUS_RING)}
-                      />
-
-                      <FieldError message={fieldState.error?.message} />
-                    </>
-                  )}
-                />
-              </FormField>
             )}
-          </div>
 
-          {/* NOTE */}
-          <FormField htmlFor="create-subject-note" label="Заметка">
-            <div className="relative">
+            {isUniversity && (
+              <Controller
+                control={form.control}
+                name="examDate"
+                render={({ field, fieldState }) => (
+                  <Row
+                    label="Дата экзамена"
+                    htmlFor="create-subject-exam-date"
+                    error={fieldState.error?.message}
+                  >
+                    <DatePicker
+                      value={field.value ?? undefined}
+                      onChange={field.onChange}
+                      className={SELECT_INLINE}
+                    />
+                  </Row>
+                )}
+              />
+            )}
+          </Group>
+
+          {/* ЗАМЕТКА */}
+          <Group>
+            <div className="relative px-4 py-3">
               <textarea
                 id="create-subject-note"
-                placeholder="Дополнительная информация о предмете"
+                aria-label="Заметка"
+                placeholder="Заметка"
                 maxLength={200}
                 rows={2}
                 aria-invalid={Boolean(form.formState.errors.note)}
                 {...form.register("note")}
                 className={cn(
-                  "w-full resize-none rounded-xl border border-gray-200",
-                  "bg-white px-3.5 py-2.5 pr-16 text-[14px] text-gray-900",
-                  "placeholder:text-gray-400",
-                  "outline-none transition-all",
-                  "focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/10",
-                  form.formState.errors.note &&
-                    "border-red-500 focus:border-red-500 focus:ring-red-500/10",
+                  "w-full resize-none bg-transparent pr-12 text-[15px]",
+                  "text-gray-900 placeholder:text-gray-400 outline-none",
                 )}
               />
-
-              <span className="absolute bottom-2.5 right-3 text-[11px] text-gray-400">
-                {note?.length}/200
+              <span className="absolute bottom-3 right-4 text-[11px] text-gray-400">
+                {note?.length ?? 0}/200
               </span>
             </div>
+          </Group>
+          {form.formState.errors.note?.message && (
+            <div className="mt-1.5 px-4">
+              <FieldError message={form.formState.errors.note.message} />
+            </div>
+          )}
 
-            <FieldError message={form.formState.errors.note?.message} />
-          </FormField>
-
-          {/* LECTURERS — university-only, схлопывается плавно вместе с
-              полем даты выше при переключении типа предмета */}
+          {/* ПРЕПОДАВАТЕЛИ — только для университета */}
           <Collapse open={isUniversity}>
-            <FormField htmlFor="create-subject-lecturers" label="Преподаватели">
-              <div id="create-subject-lecturers" className="space-y-3">
-                {fields.length === 0 ? (
-                  <button
-                    type="button"
-                    onClick={addInitialLecturers}
-                    className={cn(
-                      "w-full rounded-xl border border-dashed",
-                      "border-gray-300 px-4 py-3",
-                      "text-[13px] font-medium text-gray-500",
-                      "transition-all",
-                      FOCUS_RING,
-                      "hover:border-indigo-400 hover:bg-indigo-50/50 hover:text-indigo-600",
-                    )}
-                  >
-                    + Добавить лектора и преподавателя практики
-                  </button>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {fields.map((field, index) => {
-                        const nameError =
-                          form.formState.errors.lecturers?.[index]?.name;
+            <Group title="Преподаватели">
+              {fields.map((field, index) => {
+                const nameError =
+                  form.formState.errors.lecturers?.[index]?.name;
+                const positionError =
+                  form.formState.errors.lecturers?.[index]?.position;
 
-                        const positionError =
-                          form.formState.errors.lecturers?.[index]?.position;
+                return (
+                  <div key={field.id} className="pl-4">
+                    <div className="flex min-h-11 items-center gap-2 pr-2">
+                      <Input
+                        aria-label="Имя преподавателя"
+                        placeholder="Имя"
+                        className={cn(INPUT_INLINE, "flex-1")}
+                        aria-invalid={Boolean(nameError)}
+                        {...form.register(`lecturers.${index}.name`)}
+                      />
 
-                        return (
-                          <div
-                            key={field.id}
-                            className={cn(
-                              "group relative rounded-xl border",
-                              "border-gray-200 bg-gray-50/60 p-3",
-                              "transition-colors",
-                              "hover:border-gray-300",
-                            )}
+                      <Controller
+                        control={form.control}
+                        name={`lecturers.${index}.position`}
+                        render={({ field: positionField }) => (
+                          <Select
+                            value={positionField.value}
+                            onValueChange={positionField.onChange}
                           >
-                            <div className="mb-2 flex items-center justify-between">
-                              <span className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                                {index === 0
-                                  ? "Лектор"
-                                  : index === 1
-                                    ? "Практика"
-                                    : "Преподаватель"}
-                              </span>
-
-                              <button
-                                type="button"
-                                onClick={() => remove(index)}
-                                aria-label="Удалить преподавателя"
-                                className={cn(
-                                  "flex size-6 items-center justify-center rounded-full text-gray-400 transition-colors",
-                                  FOCUS_RING,
-                                  "hover:bg-red-500/10 hover:text-red-500",
-                                )}
-                              >
-                                <X className="size-3.5" />
-                              </button>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Input
-                                placeholder={
-                                  index === 0
-                                    ? "Имя лектора"
-                                    : index === 1
-                                      ? "Имя преподавателя практики"
-                                      : "Имя преподавателя"
+                            <SelectTrigger
+                              aria-label="Должность"
+                              className={SELECT_INLINE}
+                              aria-invalid={Boolean(positionError)}
+                            >
+                              <SelectValue>
+                                {(value: string) =>
+                                  LECTURER_POSITION_LABELS[
+                                    value as LecturerPosition
+                                  ] ?? value
                                 }
-                                controlSize="large"
-                                className={cn("h-11", FOCUS_RING)}
-                                aria-invalid={Boolean(nameError)}
-                                {...form.register(`lecturers.${index}.name`)}
-                              />
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LECTURER_POSITIONS.map((position) => (
+                                <SelectItem key={position} value={position}>
+                                  {LECTURER_POSITION_LABELS[position]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
 
-                              <FieldError message={nameError?.message} />
-
-                              <Controller
-                                control={form.control}
-                                name={`lecturers.${index}.position`}
-                                render={({ field: positionField }) => (
-                                  <Select
-                                    value={positionField.value}
-                                    onValueChange={positionField.onChange}
-                                  >
-                                    <SelectTrigger
-                                      className={cn(
-                                        "h-11 w-full bg-white",
-                                        FOCUS_RING,
-                                      )}
-                                      aria-invalid={Boolean(positionError)}
-                                    >
-                                      <SelectValue>
-                                        {(value: string) =>
-                                          LECTURER_POSITION_LABELS[
-                                            value as LecturerPosition
-                                          ] ?? value
-                                        }
-                                      </SelectValue>
-                                    </SelectTrigger>
-
-                                    <SelectContent>
-                                      {LECTURER_POSITIONS.map((position) => (
-                                        <SelectItem
-                                          key={position}
-                                          value={position}
-                                        >
-                                          {LECTURER_POSITION_LABELS[position]}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              />
-
-                              <FieldError message={positionError?.message} />
-                            </div>
-                          </div>
-                        );
-                      })}
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        aria-label="Удалить преподавателя"
+                        className={cn(
+                          "flex size-7 shrink-0 items-center justify-center",
+                          "rounded-full text-gray-400 transition-colors",
+                          FOCUS_RING,
+                          "hover:bg-red-500/10 hover:text-red-500",
+                        )}
+                      >
+                        <X className="size-3.5" />
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={addLecturer}
-                      className={cn(
-                        "rounded text-[13px] font-medium text-indigo-600 transition-colors",
-                        FOCUS_RING,
-                        "hover:text-indigo-700",
-                      )}
-                    >
-                      + Добавить преподавателя
-                    </button>
-                  </>
-                )}
+                    {(nameError?.message || positionError?.message) && (
+                      <div className="pb-2 pr-4">
+                        <FieldError
+                          message={nameError?.message ?? positionError?.message}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
 
-                {typeof form.formState.errors.lecturers?.message ===
-                  "string" && (
-                  <FieldError
-                    message={form.formState.errors.lecturers.message}
-                  />
-                )}
+              {/* Одна кнопка на оба случая: пустой список и «ещё один» */}
+              <div className="pl-4">
+                <button
+                  type="button"
+                  onClick={addLecturer}
+                  className={cn(
+                    "flex min-h-11 w-full items-center gap-2 pr-4 text-left",
+                    "text-[15px] text-indigo-600 transition-colors",
+                    FOCUS_RING,
+                    "hover:text-indigo-700",
+                  )}
+                >
+                  <Plus className="size-4" />
+                  {fields.length === 0
+                    ? "Добавить лектора и преподавателя практики"
+                    : "Добавить преподавателя"}
+                </button>
               </div>
-            </FormField>
+            </Group>
+
+            {typeof form.formState.errors.lecturers?.message === "string" && (
+              <div className="mt-1.5 px-4">
+                <FieldError message={form.formState.errors.lecturers.message} />
+              </div>
+            )}
           </Collapse>
 
-          {/* FOOTER */}
-          <DialogFooter className="mt-6 border-t border-gray-100 pt-4">
+          <DialogFooter className="mt-6">
             <Button
               type="submit"
               size="lg"
