@@ -1,6 +1,6 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { FileText, File as FileIcon, Search } from "lucide-react";
+import { FileText, File as FileIcon, Search, ArrowLeft } from "lucide-react";
 
 import { TaskList } from "@/widgets/task-list";
 import {
@@ -138,6 +138,26 @@ function SubjectPage() {
     <div className="min-h-screen bg-[#f5f5f7]">
       <div className="mx-auto flex max-w-[1024px] flex-col gap-8 px-5 py-12 sm:px-8 lg:flex-row">
         <main className="w-full max-w-[640px] flex-1">
+          <Link
+            to="/subjects"
+            className="
+              group mb-6 inline-flex items-center gap-1.5
+              rounded-full bg-white py-1.5 pl-2.5 pr-3.5
+              text-[13px] font-medium text-gray-500
+              shadow-[0_1px_2px_rgba(0,0,0,0.04)]
+              transition-all duration-200
+              hover:bg-gray-50 hover:text-gray-900
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20
+            "
+          >
+            <ArrowLeft
+              size={16}
+              strokeWidth={2}
+              className="transition-transform duration-200 group-hover:-translate-x-0.5"
+            />
+            Предметы
+          </Link>
+
           <header>
             <div className="flex items-center justify-between gap-4">
               <div>
