@@ -61,14 +61,9 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   const [imageError, setImageError] = useState(false);
 
   const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
-
   const gradient =
     gradients && gradients[hashIndex(subject.id, gradients.length)];
-
   const isUniversity = subject.type === "university";
-
-  // API may return null for an empty collection.
-  // Keep the UI safe even before the backend contract is fixed.
   const lecturers = subject.lecturers ?? [];
 
   const examDate = subject.exam_date
@@ -95,9 +90,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
   const visibleLecturers = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
   const hiddenCount = lecturerGroups.length - visibleLecturers.length;
-
   const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
-
   const thumbUrl = subject.thumbnail_url
     ? toAbsoluteUrl(subject.thumbnail_url)
     : null;
@@ -128,7 +121,6 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
           <h3
             title={subject.name}
-
             className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-neutral-900"
           >
             {subject.name}

@@ -22,6 +22,7 @@ func SaveImageAsWebp(r io.Reader, c ImageConstraints, dir string) (string, error
 	}
 
 	switch format {
+
 	case "png", "jpeg", "webp":
 	default:
 		return "", ErrInvalidFormat
