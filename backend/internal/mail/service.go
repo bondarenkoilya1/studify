@@ -24,7 +24,7 @@ func (s *Service) SendConfirmationEmail(email string, userID internal.UserID) er
 		return fmt.Errorf("create confirmation token: %w", err)
 	}
 
-	link := fmt.Sprintf("%s/confirm/%s", s.cfg.AppURL, t)
+	link := fmt.Sprintf("%s/confirm?token=%s", s.cfg.AppURL, t)
 	body := fmt.Sprintf(confirmationBody, link)
 	if err := s.mailer.send(email, confirmationSubject, body); err != nil {
 		return fmt.Errorf("send confirmation email: %w", err)

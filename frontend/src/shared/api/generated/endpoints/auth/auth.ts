@@ -47,7 +47,7 @@ export const getRegisterUserUrl = () => {
 
 /**
  * Creates the user, issues auth cookies, and sends an email confirmation link
- * (`{APP_URL}/confirm/{token}`). The confirmation token is valid for 4 hours.
+ * (`{APP_URL}/confirm/`). The confirmation token is valid for 4 hours.
  * @summary Register a new user
  */
 export const registerUser = async (

@@ -47,7 +47,7 @@ paths:
       summary: Register a new user
       description: |
         Creates the user, issues auth cookies, and sends an email confirmation link
-        (`{APP_URL}/confirm/{token}`). The confirmation token is valid for 4 hours.
+        (`{APP_URL}/confirm/`). The confirmation token is valid for 4 hours.
       operationId: registerUser
       security: []
       requestBody:
@@ -184,25 +184,33 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/auth/confirm/{token}:
+  /api/auth/confirm/:
     post:
       tags: [Auth / Confirm]
       summary: Confirm a user's email address
+      description: |
+        Takes the confirmation token from the email link (valid for 4 hours) in the JSON body.
+        The user to verify is taken from the token record, not from the access cookie, so the
+        cookie only has to be valid. The token is deleted after a successful confirmation.
+        This route has no `Content-Type` check: a body that is not valid JSON returns 400, not 415.
       operationId: confirmEmail
       security:
         - accessCookie: []
-      parameters:
-        - name: token
-          in: path
-          required: true
-          description: Email confirmation token from the confirmation link.
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmEmailRequest'
       responses:
         '204':
           description: Email was confirmed successfully.
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Invalid JSON, or the confirmation token is invalid, expired or empty.
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -1749,3 +1757,12 @@ components:
         file_url:
           type: string
           example: /static/files/26c15f91-1756-4be7-b4b5-4ea6732dbe11.pdf
+
+    ConfirmEmailRequest:
+      type: object
+      required: [ confirm_email_token ]
+      properties:
+        confirm_email_token:
+          type: string
+          description: Token from the confirmation link sent by email.
+          example: Xk3pN8vQ2mR7tY1wZ5cB9dF4gH6jL0sA2eU8iO3qT7y

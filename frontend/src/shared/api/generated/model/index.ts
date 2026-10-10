@@ -21,6 +21,7 @@
 export * from "./avatarUploadResponse";
 export * from "./badRequestResponse";
 export * from "./challengeTokenResponse";
+export * from "./confirmEmailRequest";
 export * from "./conflictResponse";
 export * from "./credentials";
 export * from "./credentialsBody";

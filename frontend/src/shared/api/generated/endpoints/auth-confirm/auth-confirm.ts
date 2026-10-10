@@ -26,7 +26,8 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
-  BadRequestResponse,
+  ConfirmEmailRequest,
+  Error,
   InternalErrorResponse,
   NotFoundResponse,
   UnauthorizedResponse,
@@ -132,29 +133,57 @@ export const useResendConfirmationEmail = <
     queryClient,
   );
 };
-export const getConfirmEmailUrl = (token: string) => {
-  return `/api/auth/confirm/${token}`;
+export const getConfirmEmailUrl = () => {
+  return `/api/auth/confirm/`;
 };
 
 /**
+ * Takes the confirmation token from the email link (valid for 4 hours) in the JSON body.
+ * The user to verify is taken from the token record, not from the access cookie, so the
+ * cookie only has to be valid. The token is deleted after a successful confirmation.
+ * This route has no `Content-Type` check: a body that is not valid JSON returns 400, not 415.
  * @summary Confirm a user's email address
  */
 export const confirmEmail = async (
-  token: string,
+  confirmEmailRequest: ConfirmEmailRequest,
   options?: Parameters<typeof fetcher>[1],
 ): Promise<void> => {
-  return fetcher<void>(getConfirmEmailUrl(token), {
+  const getHeaders = (
+    h?: NonNullable<RequestInit["headers"]>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return fetcher<void>(getConfirmEmailUrl(), {
     ...options,
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getHeaders(options?.headers),
+    },
+    body: JSON.stringify(confirmEmailRequest),
   });
 };
 
 export const getConfirmEmailMutationKey = () => ["confirmEmail"] as const;
 
 export const getConfirmEmailMutationOptions = <
-  TError = ErrorType<
-    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
-  >,
+  TError = ErrorType<Error | UnauthorizedResponse | InternalErrorResponse>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -183,9 +212,9 @@ export const getConfirmEmailMutationOptions = <
     Awaited<ReturnType<typeof confirmEmail>>,
     ConfirmEmailMutationVariables
   > = (props) => {
-    const { token } = props ?? {};
+    const { data } = props ?? {};
 
-    return confirmEmail(token, requestOptions);
+    return confirmEmail(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -194,19 +223,17 @@ export const getConfirmEmailMutationOptions = <
 export type ConfirmEmailMutationResult = NonNullable<
   Awaited<ReturnType<typeof confirmEmail>>
 >;
-
+export type ConfirmEmailMutationBody = ConfirmEmailRequest;
 export type ConfirmEmailMutationError = ErrorType<
-  BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  Error | UnauthorizedResponse | InternalErrorResponse
 >;
-export type ConfirmEmailMutationVariables = { token: string };
+export type ConfirmEmailMutationVariables = { data: ConfirmEmailRequest };
 
 /**
  * @summary Confirm a user's email address
  */
 export const useConfirmEmail = <
-  TError = ErrorType<
-    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
-  >,
+  TError = ErrorType<Error | UnauthorizedResponse | InternalErrorResponse>,
   TContext = unknown,
 >(
   options?: {
