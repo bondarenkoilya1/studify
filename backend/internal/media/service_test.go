@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"image/jpeg"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -53,17 +54,38 @@ func makePNG(t *testing.T, w, h int) []byte {
 	return buf.Bytes()
 }
 
+func makeJPEG(t *testing.T, w, h int) []byte {
+	t.Helper()
+
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	blue := &image.Uniform{C: color.RGBA{R: 30, G: 100, B: 220, A: 255}}
+	draw.Draw(img, img.Bounds(), blue, image.Point{}, draw.Src)
+
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85}); err != nil {
+		t.Fatalf("encode jpeg: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func makeWEBP(t *testing.T, w, h int) []byte {
+	t.Helper()
+
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	blue := &image.Uniform{C: color.RGBA{R: 30, G: 100, B: 220, A: 255}}
+	draw.Draw(img, img.Bounds(), blue, image.Point{}, draw.Src)
+
+	var buf bytes.Buffer
+	if err := webp.Encode(&buf, img, &webp.Options{Quality: 85}); err != nil {
+		t.Fatalf("encode jpeg: %v", err)
+	}
+	return buf.Bytes()
+}
+
 func TestSaveImageAsWebp(t *testing.T) {
 	/*
-		2. jpeg
-		3. jpg
-		4. webp
-		5. mov
-		6. txt
-
 		1. png too large
 		2. png big bounds
-		3. fake jpg, real pdf e.g.
 	*/
 
 	tests := []struct {
@@ -75,6 +97,9 @@ func TestSaveImageAsWebp(t *testing.T) {
 	}{
 		{"PDF", makePDF(t, 10), true, 0, 0},
 		{"PNG 300x400", makePNG(t, 300, 400), false, 300, 400},
+		{"JPEG 100x100", makeJPEG(t, 100, 100), false, 100, 100},
+		{"WEBP 200x150", makeWEBP(t, 200, 150), false, 200, 150},
+		{"TXT", []byte("hello, this is a plain text file"), true, 0, 0},
 	}
 
 	for _, tt := range tests {
