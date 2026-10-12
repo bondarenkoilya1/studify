@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"studify/internal/user"
 	"studify/internal/util"
 	"time"
 )
@@ -445,29 +446,27 @@ func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
 	return nil
 }
 
-func InsertSubjectThumbnail(db *sql.DB, subjectID int64, thumbnailURL string, userID int64) error {
+func ReplaceSubjectThumbnail(db *sql.DB, subjectID, userID int64, newURL string) (*string, error) {
 	query := `
-		UPDATE subjects
-		SET
-		    thumbnail_url = $1
-		WHERE id = $2 and user_id = $3;
+		UPDATE subjects s
+		SET thumbnail_url = $3
+		FROM (SELECT id, subjects.thumbnail_url FROM subjects WHERE ID = $1 FOR UPDATE) old
+		WHERE s.id = old.id and user_id = $2
+		RETURNING old.thumbnail_url
 	`
 
-	result, err := db.Exec(query, thumbnailURL, subjectID, userID)
-	if err != nil {
-		return fmt.Errorf("failed to update subject thumbnail: %w", err)
+	var oldURL sql.NullString
+	if err := db.QueryRow(query, subjectID, userID, newURL).Scan(&oldURL); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, user.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("replace user avatar: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get updated subjects count: %w", err)
+	if !oldURL.Valid {
+		return nil, nil
 	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows
-	}
-
-	return nil
+	return &oldURL.String, nil
 }
 
 func InsertSubjectFile(db *sql.DB, subjectID, userID int64, path, originalName, mimeType string, sizeBytes int64) (int64, error) {

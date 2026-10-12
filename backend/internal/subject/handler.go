@@ -9,12 +9,33 @@ import (
 	_ "image/png"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"studify/internal/httpx"
 	"studify/internal/media"
+	"studify/internal/user"
 
 	"github.com/go-chi/chi/v5"
 )
+
+const (
+	thumbnailsDir       = "./data/thumbnails/"
+	thumbnailsPublicDir = "/static/thumbnails/"
+	filesDir            = "./data/files/"
+	filesPublicDir      = "/static/files"
+)
+
+// thumbnailFilePath превращает публичный URL thumbnail в путь на диске.
+// Второе значение false означает, что URL не похож на наш аватар.
+func thumbnailFilePath(thumbnailURL string) (string, bool) {
+	filename, ok := strings.CutPrefix(thumbnailURL, thumbnailsPublicDir)
+	if !ok || filename == "" || filepath.Base(filename) != filename {
+		return "", false
+	}
+	return filepath.Join(thumbnailsDir, filename), true
+}
 
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
@@ -410,7 +431,7 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 		Quality:   85,
 	}
 
-	filename, err := media.SaveImageAsWebp(r.Body, constraints, "./data/thumbnails/")
+	filename, err := media.SaveImageAsWebp(r.Body, constraints, thumbnailsDir)
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			http.Error(w, "thumbnail is too large (max 2MB)", http.StatusRequestEntityTooLarge)
@@ -429,16 +450,30 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	thumbnailURL := "/static/thumbnails/" + filename
+	thumbnailURL := thumbnailsPublicDir + filename
 
-	if err = InsertSubjectThumbnail(h.DB, subjectID, thumbnailURL, userID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	oldURL, err := ReplaceSubjectThumbnail(h.DB, subjectID, userID, thumbnailURL)
+	if err != nil {
+		if rmErr := os.Remove(filepath.Join(thumbnailsDir, filename)); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			slog.Error("failed to delete orphaned avatar file", "error", rmErr, "user_id", userID)
+		}
+
+		if errors.Is(err, user.ErrUserNotFound) {
 			http.Error(w, "subject not found", http.StatusNotFound)
 			return
 		}
 		slog.Error("failed to update subject thumbnail", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if oldURL != nil && *oldURL != "" {
+		path, ok := thumbnailFilePath(*oldURL)
+		if !ok {
+			slog.Error("unexpected thumbnail url", slog.String("url", *oldURL), slog.Int64("user_id", userID))
+		} else if rmErr := os.Remove(path); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			slog.Error("failed to delete previous thumbnail file", slog.String("error", rmErr.Error()), slog.String("path", path), slog.Int64("user_id", userID))
+		}
 	}
 
 	writeJSON(w, http.StatusOK, thumbnail{ThumbnailURL: thumbnailURL})
@@ -455,14 +490,14 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	const maxPDFSize = 50 << 20 // 50 MB
 
-	filename, sizeBytes, contentType, err := media.SaveFile(file, maxPDFSize, "./data/files")
+	filename, sizeBytes, contentType, err := media.SaveFile(file, maxPDFSize, filesDir)
 	if err != nil {
 		slog.Error("failed to save file", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	path := "/static/files/" + filename
+	path := filesPublicDir + filename
 	originalFilename := header.Filename
 
 	userID, err := httpx.GetUserID(r)
