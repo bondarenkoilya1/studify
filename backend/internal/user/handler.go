@@ -7,6 +7,8 @@ import (
 	_ "image/png"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"studify/internal"
 	"studify/internal/auth/credentials"
@@ -15,6 +17,21 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+const (
+	avatarsDir       = "./data/users/"
+	avatarsPublicDir = "/static/users/"
+)
+
+// avatarFilePath превращает публичный URL аватара в путь на диске.
+// Второе значение false означает, что URL не похож на наш аватар.
+func avatarFilePath(avatarURL string) (string, bool) {
+	filename, ok := strings.CutPrefix(avatarURL, avatarsPublicDir)
+	if !ok || filename == "" || filepath.Base(filename) != filename {
+		return "", false
+	}
+	return filepath.Join(avatarsDir, filename), true
+}
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := CurrentUser(r, h.DB)
@@ -180,7 +197,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		Quality:   85,
 	}
 
-	filename, err := media.SaveImageAsWebp(r.Body, constraints, "./data/users/")
+	filename, err := media.SaveImageAsWebp(r.Body, constraints, avatarsDir)
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			http.Error(w, "avatar is too large (max 2MB)", http.StatusRequestEntityTooLarge)
@@ -199,9 +216,14 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	avatarURL := "/static/users/" + filename
+	avatarURL := avatarsPublicDir + filename
 
-	if err = UpdateUserAvatar(h.DB, userID, avatarURL); err != nil {
+	oldURL, err := ReplaceUserAvatar(h.DB, userID, avatarURL)
+	if err != nil {
+		if rmErr := os.Remove(filepath.Join(avatarsDir, filename)); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			slog.Error("failed to delete orphaned avatar file", "error", rmErr, "user_id", userID)
+		}
+
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
@@ -209,6 +231,15 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to update user avatar", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if oldURL != nil && *oldURL != "" {
+		path, ok := avatarFilePath(*oldURL)
+		if !ok {
+			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
+		} else if rmErr := os.Remove(path); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			slog.Error("failed to delete previous avatar file", "error", rmErr, "path", path, "user_id", userID)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -225,7 +256,8 @@ func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := DeleteUserAvatar(h.DB, userID); err != nil {
+	oldURL, err := DeleteUserAvatar(h.DB, userID)
+	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
@@ -233,6 +265,15 @@ func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		slog.Error("failed to delete user avatar", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if oldURL != nil && *oldURL != "" {
+		path, ok := avatarFilePath(*oldURL)
+		if !ok {
+			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
+		} else if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			slog.Error("failed to delete avatar file", "error", err, "path", path, "user_id", userID)
+		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)

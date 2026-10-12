@@ -150,17 +150,52 @@ func UpdateUserPassword(db *sql.DB, id int64, newPasswordHash string) error {
 	return execExpectOne(db, query, "update user password", newPasswordHash, id)
 }
 
-// UpdateUserAvatar updates path string for user avatar
-func UpdateUserAvatar(db *sql.DB, id int64, avatarURL string) error {
-	query := `UPDATE users SET avatar_url = $1 WHERE id = $2;`
+// ReplaceUserAvatar sets a new avatar_url and returns the previous value.
+// Returns ErrUserNotFound if the user does not exist.
+func ReplaceUserAvatar(db *sql.DB, id int64, newURL string) (*string, error) {
+	const query = `
+		UPDATE users u
+		SET avatar_url = $2
+		FROM (SELECT id, avatar_url FROM users WHERE id = $1 FOR UPDATE) old
+		WHERE u.id = old.id
+		RETURNING old.avatar_url;`
 
-	return execExpectOne(db, query, "update user avatar", avatarURL, id)
+	var oldURL sql.NullString
+	if err := db.QueryRow(query, id, newURL).Scan(&oldURL); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("replace user avatar: %w", err)
+	}
+
+	if !oldURL.Valid {
+		return nil, nil
+	}
+	return &oldURL.String, nil
 }
 
-func DeleteUserAvatar(db *sql.DB, id int64) error {
-	query := `UPDATE users SET avatar_url = NULL WHERE id = $1;`
+// DeleteUserAvatar sets avatar_url to NULL and returns the previous value.
+// Returns ErrUserNotFound if the user does not exist.
+func DeleteUserAvatar(db *sql.DB, id int64) (*string, error) {
+	const query = `
+		UPDATE users u
+		SET avatar_url = NULL
+		FROM (SELECT id, avatar_url FROM users WHERE id = $1 FOR UPDATE) old
+		WHERE u.id = old.id
+		RETURNING old.avatar_url;`
 
-	return execExpectOne(db, query, "delete user avatar", id)
+	var oldURL sql.NullString
+	if err := db.QueryRow(query, id).Scan(&oldURL); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("delete user avatar: %w", err)
+	}
+
+	if !oldURL.Valid {
+		return nil, nil
+	}
+	return &oldURL.String, nil
 }
 
 // execExpectOne runs an UPDATE and returns ErrUserNotFound if no row was changed.
