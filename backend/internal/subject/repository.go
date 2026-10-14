@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"studify/internal"
 	"studify/internal/user"
 	"studify/internal/util"
 	"time"
@@ -12,12 +13,6 @@ import (
 // todo: optimize with joins
 
 var ErrSubjectAlreadyExists = errors.New("subject already exists")
-
-type DBTX interface {
-	Exec(query string, args ...any) (sql.Result, error)
-	Query(query string, args ...any) (*sql.Rows, error)
-	QueryRow(query string, args ...any) *sql.Row
-}
 
 func scanSubject(scanner interface{ Scan(dest ...any) error }) (*Subject, error) {
 	subject := &Subject{}
@@ -198,7 +193,7 @@ func InsertSubject(
 }
 
 func insertSubjectTx(
-	db DBTX, userID int64, name string, note *string,
+	db internal.DBTX, userID int64, name string, note *string,
 	subjectType, scope, examType string, thumbnailURL *string,
 	examDate *time.Time, course, term *int,
 ) (*Subject, error) {
@@ -222,7 +217,7 @@ func insertSubjectTx(
 	return subject, nil
 }
 
-func insertLecturersTx(db DBTX, subjectID int64, lecturers []Lecturer) ([]Lecturer, error) {
+func insertLecturersTx(db internal.DBTX, subjectID int64, lecturers []Lecturer) ([]Lecturer, error) {
 	result := make([]Lecturer, 0, len(lecturers))
 
 	const query = `

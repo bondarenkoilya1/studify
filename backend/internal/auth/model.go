@@ -12,6 +12,7 @@ type Handler struct {
 	Token       *token.Service
 	Config      *config.Config
 	MailService *mail.Service
+	AuthService *Service
 }
 
 type ChallengeTokenResponse struct {

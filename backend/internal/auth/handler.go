@@ -445,21 +445,13 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenRecord, err := token.ValidateConfirmationToken(h.DB, token.Token(body.Token))
-	if err != nil {
-		slog.Error("failed to validate confirmation token", slog.String("error", err.Error()))
-		http.Error(w, "invalid confirmation token", http.StatusBadRequest)
-		return
-	}
+	if err := h.AuthService.ConfirmEmail(r.Context(), token.Token(body.Token)); err != nil {
+		if errors.Is(err, ErrInvalidConfirmationToken) {
+			http.Error(w, "invalid confirmation token", http.StatusBadRequest)
+			return
+		}
 
-	if err = user.VerifyUserEmail(h.DB, tokenRecord.UserID); err != nil {
-		slog.Error("failed to verify user email", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err = token.DeleteConfirmationToken(h.DB, tokenRecord.UserID); err != nil {
-		slog.Error("failed to delete confirmation token from db", slog.String("error", err.Error()))
+		slog.Error("failed to confirm email", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

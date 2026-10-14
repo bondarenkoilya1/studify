@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"studify/internal"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -103,7 +104,7 @@ func InsertUser(db *sql.DB, email, passwordHash string) (*User, error) {
 	return &user, nil
 }
 
-func VerifyUserEmail(db *sql.DB, id int64) error {
+func VerifyUserEmail(db internal.DBTX, id int64) error {
 	query := `UPDATE users SET is_email_verified = TRUE WHERE id = $1;`
 
 	result, err := db.Exec(query, id)

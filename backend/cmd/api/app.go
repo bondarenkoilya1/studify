@@ -37,6 +37,7 @@ type Handler struct {
 	Config        *config.Config
 	MailService   *mail.Service
 	Auth          *auth.Handler
+	AuthService   *auth.Service
 	Subject       *subject.Handler
 	Task          *task.Handler
 	Dashboard     *dashboard.Handler
@@ -93,11 +94,14 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 
 	mailService := mail.NewService(db, mailer, cfg)
 
+	authService := auth.NewService(db)
+
 	authHandler := &auth.Handler{
 		DB:          db,
 		Token:       tokenService,
 		Config:      cfg,
 		MailService: mailService,
+		AuthService: authService,
 	}
 
 	subjectHandler := &subject.Handler{DB: db}
@@ -129,6 +133,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		Config:        cfg,
 		MailService:   mailService,
 		Auth:          authHandler,
+		AuthService:   authService,
 		Subject:       subjectHandler,
 		Task:          taskHandler,
 		Dashboard:     dashboardHandler,

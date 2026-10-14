@@ -19,7 +19,7 @@ func NewService(db *sql.DB, mailer *Mailer, cfg *config.Config) *Service {
 }
 
 func (s *Service) SendConfirmationEmail(email string, userID internal.UserID) error {
-	t, err := token.CreateConfirmationToken(s.db, userID)
+	t, err := token.CreateConfirmationToken(s.db, int64(userID))
 	if err != nil {
 		return fmt.Errorf("create confirmation token: %w", err)
 	}

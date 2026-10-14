@@ -3,6 +3,7 @@ package token
 import (
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"studify/internal"
 	"studify/internal/config"
 	"time"
@@ -10,7 +11,7 @@ import (
 
 func CreateConfirmationToken(
 	db *sql.DB,
-	userID internal.UserID,
+	userID int64,
 ) (Token, error) {
 	authToken, err := GenerateAuthToken()
 	if err != nil {
@@ -21,7 +22,27 @@ func CreateConfirmationToken(
 
 	expiresAt := time.Now().Add(config.ConfirmationTokenTTL)
 
-	if err = InsertConfirmationToken(db, int64(userID), tokenHash, expiresAt); err != nil {
+	/* todo: check if exists
+	1. Check if some token already exists
+	2. Make delete operation only if the old token was found
+	3. If couldn't delete the old token
+
+	*/
+	oldToken, err := GetConfirmationTokenByUserID(db, userID)
+	if err != nil {
+		slog.Error("token was not found", slog.Int64("user_id", userID))
+	}
+
+	if time.Since(oldToken.CreatedAt) < time.Minute {
+		slog.Error("token resend limit didn't pass yes", slog.Int64("user_id", userID))
+		return "", fmt.Errorf("too soon to resend the confirmation email")
+	}
+
+	if err := DeleteConfirmationToken(db, userID); err != nil {
+		slog.Error("failed to delete old confirmation token", slog.String("error", err.Error()), slog.Int64("user_id", userID))
+	}
+
+	if err = InsertConfirmationToken(db, userID, tokenHash, expiresAt); err != nil {
 		return "", err
 	}
 
@@ -29,7 +50,7 @@ func CreateConfirmationToken(
 }
 
 func ValidateConfirmationToken(
-	db *sql.DB,
+	db internal.DBTX,
 	authToken Token,
 ) (*EmailConfirmationRecord, error) {
 	tokenHash := HashToken(authToken)
