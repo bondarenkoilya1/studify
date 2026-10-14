@@ -19,11 +19,8 @@ type DBTX interface {
 	QueryRow(query string, args ...any) *sql.Row
 }
 
-func scanSubject(scanner interface {
-	Scan(dest ...any) error
-}) (*Subject, error) {
+func scanSubject(scanner interface{ Scan(dest ...any) error }) (*Subject, error) {
 	subject := &Subject{}
-
 	var (
 		note         sql.NullString
 		examDate     sql.NullTime
@@ -33,17 +30,9 @@ func scanSubject(scanner interface {
 	)
 
 	if err := scanner.Scan(
-		&subject.ID,
-		&subject.UserID,
-		&subject.Name,
-		&note,
-		&subject.Type,
-		&subject.Scope,
-		&subject.ExamType,
-		&examDate,
-		&course,
-		&term,
-		&thumbnailURL,
+		&subject.ID, &subject.UserID, &subject.Name, &note,
+		&subject.Type, &subject.Scope, &subject.ExamType, &examDate,
+		&course, &term, &thumbnailURL,
 	); err != nil {
 		return nil, err
 	}
@@ -51,29 +40,23 @@ func scanSubject(scanner interface {
 	if note.Valid {
 		subject.Note = &note.String
 	}
-
 	if course.Valid {
 		subject.Course = new(int(course.Int64))
 	}
-
 	if term.Valid {
 		subject.Term = new(int(term.Int64))
 	}
-
 	if thumbnailURL.Valid {
 		subject.ThumbnailURL = &thumbnailURL.String
 	}
 
 	subject.ExamDate = util.NullTimePtr(examDate)
-
 	return subject, nil
 }
 
 func getLecturersBySubjectID(db *sql.DB, subjectID int64) ([]Lecturer, error) {
 	rows, err := db.Query(`
-		SELECT name, position
-		FROM lecturers
-		WHERE subject_id = $1;
+		SELECT name, position FROM lecturers WHERE subject_id = $1;
 	`, subjectID)
 	if err != nil {
 		return nil, fmt.Errorf("receive lecturers: %w", err)
@@ -97,9 +80,7 @@ func getLecturersBySubjectID(db *sql.DB, subjectID int64) ([]Lecturer, error) {
 
 func getFilesBySubjectID(db *sql.DB, subjectID int64) ([]File, error) {
 	rows, err := db.Query(`
-		SELECT path, original_name, mime_type, size_bytes
-		FROM subjects_files
-		WHERE subject_id = $1;
+		SELECT path, original_name, mime_type, size_bytes FROM subjects_files WHERE subject_id = $1;
 	`, subjectID)
 	if err != nil {
 		return nil, fmt.Errorf("recieve files: %w", err)
@@ -123,14 +104,10 @@ func getFilesBySubjectID(db *sql.DB, subjectID int64) ([]File, error) {
 
 func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 	const query = `
-		SELECT 
-		   id, user_id, name,
-		   note, type, scope,
-		   exam_type, exam_date,
-		   course, term, thumbnail_url
-		FROM subjects
-		WHERE id = $1 AND user_id = $2;
+		SELECT id, user_id, name, note, type, scope, exam_type, exam_date, course, term, thumbnail_url
+		FROM subjects WHERE id = $1 AND user_id = $2;
 	`
+
 	subject, err := scanSubject(db.QueryRow(query, id, userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get subject by id: %w", err)
@@ -153,14 +130,10 @@ func GetSubjectByID(db *sql.DB, id, userID int64) (*Subject, error) {
 
 func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 	const query = `
-       SELECT 
-		   id, user_id, name,
-		   note, type, scope,
-		   exam_type, exam_date,
-		   course, term, thumbnail_url
-       FROM subjects
-	   WHERE user_id = $1
-	   ORDER BY course DESC NULLS LAST, term DESC NULLS LAST
+		SELECT id, user_id, name, note, type, scope, exam_type, exam_date, course, term, thumbnail_url
+		FROM subjects
+		WHERE user_id = $1
+		ORDER BY course DESC NULLS LAST, term DESC NULLS LAST;
 	`
 
 	rows, err := db.Query(query, userID)
@@ -170,7 +143,6 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 	defer rows.Close()
 
 	subjects := make([]Subject, 0)
-
 	for rows.Next() {
 		subject, err := scanSubject(rows)
 		if err != nil {
@@ -194,18 +166,9 @@ func GetSubjectsByUserID(db *sql.DB, userID int64) ([]Subject, error) {
 }
 
 func InsertSubject(
-	db *sql.DB,
-	userID int64,
-	name string,
-	note *string,
-	subjectType string,
-	scope string,
-	examType string,
-	thumbnailURL *string,
-	examDate *time.Time,
-	course *int,
-	term *int,
-	lecturers []Lecturer,
+	db *sql.DB, userID int64, name string, note *string,
+	subjectType, scope, examType string, thumbnailURL *string,
+	examDate *time.Time, course, term *int, lecturers []Lecturer,
 ) (*Subject, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -213,31 +176,18 @@ func InsertSubject(
 	}
 	defer tx.Rollback()
 
-	newSubject, err := insertSubjectTx(tx,
-		userID,
-		name,
-		note,
-		subjectType,
-		scope,
-		examType,
-		thumbnailURL,
-		examDate,
-		course,
-		term,
+	newSubject, err := insertSubjectTx(
+		tx, userID, name, note, subjectType, scope, examType,
+		thumbnailURL, examDate, course, term,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	newLecturers, err := insertLecturersTx(
-		tx,
-		newSubject.ID,
-		lecturers,
-	)
+	newLecturers, err := insertLecturersTx(tx, newSubject.ID, lecturers)
 	if err != nil {
 		return nil, err
 	}
-
 	newSubject.Lecturers = newLecturers
 
 	if err := tx.Commit(); err != nil {
@@ -247,61 +197,24 @@ func InsertSubject(
 	return newSubject, nil
 }
 
-func insertSubjectTx(db DBTX,
-	userID int64,
-	name string,
-	note *string,
-	subjectType string,
-	scope string,
-	examType string,
-	thumbnailURL *string,
-	examDate *time.Time,
-	course *int,
-	term *int,
+func insertSubjectTx(
+	db DBTX, userID int64, name string, note *string,
+	subjectType, scope, examType string, thumbnailURL *string,
+	examDate *time.Time, course, term *int,
 ) (*Subject, error) {
-	query := `
-	   INSERT INTO subjects (
-	      user_id,
-	      name,
-	      note,
-	      type,
-	      scope,
-	      exam_type,
-	      exam_date,
-	      course,
-	      term,
-	      thumbnail_url
-	   )
-	   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	   RETURNING
-	      id,
-	      user_id,
-	      name,
-	      note,
-	      type,
-	      scope,
-	      exam_type,
-	      exam_date,
-	      course,
-	      term,
-	      thumbnail_url;
+	const query = `
+		INSERT INTO subjects (
+			user_id, name, note, type, scope, exam_type,
+			exam_date, course, term, thumbnail_url
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		RETURNING id, user_id, name, note, type, scope, exam_type, exam_date, course, term, thumbnail_url;
 	`
 
-	subject, err := scanSubject(
-		db.QueryRow(
-			query,
-			userID,
-			name,
-			note,
-			subjectType,
-			scope,
-			examType,
-			examDate,
-			toNullInt64(course),
-			toNullInt64(term),
-			thumbnailURL,
-		),
-	)
+	subject, err := scanSubject(db.QueryRow(
+		query, userID, name, note, subjectType, scope, examType,
+		examDate, toNullInt64(course), toNullInt64(term), thumbnailURL,
+	))
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert subject: %w", normalizeUniqueSubjectError(err))
 	}
@@ -313,30 +226,17 @@ func insertLecturersTx(db DBTX, subjectID int64, lecturers []Lecturer) ([]Lectur
 	result := make([]Lecturer, 0, len(lecturers))
 
 	const query = `
-		INSERT INTO lecturers (
-			subject_id,
-			name,
-			position
-		)
+		INSERT INTO lecturers (subject_id, name, position)
 		VALUES ($1, $2, $3)
 		RETURNING name, position;
 	`
 
 	for _, lecturer := range lecturers {
 		var created Lecturer
-
-		if err := db.QueryRow(
-			query,
-			subjectID,
-			lecturer.Name,
-			lecturer.Position,
-		).Scan(
-			&created.Name,
-			&created.Position,
-		); err != nil {
+		if err := db.QueryRow(query, subjectID, lecturer.Name, lecturer.Position).
+			Scan(&created.Name, &created.Position); err != nil {
 			return nil, fmt.Errorf("failed to insert lecturer: %w", err)
 		}
-
 		result = append(result, created)
 	}
 
@@ -347,52 +247,26 @@ func toNullInt64(value *int) *int64 {
 	if value == nil {
 		return nil
 	}
-
 	v := int64(*value)
 	return &v
 }
 
 func UpdateSubject(
-	db *sql.DB,
-	userID, id int64,
-	name string,
-	note *string,
-	subjectType string,
-	scope string,
-	examType string,
-	thumbnailURL *string,
-	examDate *time.Time,
-	course *int,
-	term *int,
+	db *sql.DB, userID, id int64, name string, note *string,
+	subjectType, scope, examType string, thumbnailURL *string,
+	examDate *time.Time, course, term *int,
 ) error {
-	query := `
-	   UPDATE subjects
-	   SET
-	      name = $1,
-	      note = $2,
-	      type = $3,
-	      scope = $4,
-	      exam_type = $5,
-	      exam_date = $6,
-	      course = $7,
-	      term = $8,
-	      thumbnail_url = $9
-	   WHERE id = $10 AND user_id = $11;
+	const query = `
+		UPDATE subjects
+		SET name = $1, note = $2, type = $3, scope = $4,
+			exam_type = $5, exam_date = $6, course = $7,
+			term = $8, thumbnail_url = $9
+		WHERE id = $10 AND user_id = $11;
 	`
 
 	result, err := db.Exec(
-		query,
-		name,
-		note,
-		subjectType,
-		scope,
-		examType,
-		examDate,
-		toNullInt64(course),
-		toNullInt64(term),
-		thumbnailURL,
-		id,
-		userID,
+		query, name, note, subjectType, scope, examType, examDate,
+		toNullInt64(course), toNullInt64(term), thumbnailURL, id, userID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update subject: %w", normalizeUniqueSubjectError(err))
@@ -402,7 +276,6 @@ func UpdateSubject(
 	if err != nil {
 		return fmt.Errorf("failed to get updated subjects count: %w", err)
 	}
-
 	if rowsAffected == 0 {
 		return sql.ErrNoRows
 	}
@@ -411,23 +284,16 @@ func UpdateSubject(
 }
 
 func DeleteSubjectsByUserID(db *sql.DB, userID int64) error {
-	const query = `
-	   DELETE FROM subjects
-	   WHERE user_id = $1;
-	`
+	const query = `DELETE FROM subjects WHERE user_id = $1;`
 
 	if _, err := db.Exec(query, userID); err != nil {
 		return fmt.Errorf("failed to delete subjects by user id: %w", err)
 	}
-
 	return nil
 }
 
 func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
-	const query = `
-	   DELETE FROM subjects
-	   WHERE id = $1 AND user_id = $2;
-	`
+	const query = `DELETE FROM subjects WHERE id = $1 AND user_id = $2;`
 
 	result, err := db.Exec(query, id, userID)
 	if err != nil {
@@ -438,7 +304,6 @@ func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
 	if err != nil {
 		return fmt.Errorf("failed to get deleted subjects count: %w", err)
 	}
-
 	if rowsAffected == 0 {
 		return sql.ErrNoRows
 	}
@@ -447,12 +312,12 @@ func DeleteSubjectByID(db *sql.DB, userID, id int64) error {
 }
 
 func ReplaceSubjectThumbnail(db *sql.DB, subjectID, userID int64, newURL string) (*string, error) {
-	query := `
+	const query = `
 		UPDATE subjects s
 		SET thumbnail_url = $3
-		FROM (SELECT id, subjects.thumbnail_url FROM subjects WHERE ID = $1 FOR UPDATE) old
-		WHERE s.id = old.id and user_id = $2
-		RETURNING old.thumbnail_url
+		FROM (SELECT id, subjects.thumbnail_url FROM subjects WHERE id = $1 FOR UPDATE) old
+		WHERE s.id = old.id AND user_id = $2
+		RETURNING old.thumbnail_url;
 	`
 
 	var oldURL sql.NullString
@@ -469,8 +334,10 @@ func ReplaceSubjectThumbnail(db *sql.DB, subjectID, userID int64, newURL string)
 	return &oldURL.String, nil
 }
 
-func InsertSubjectFile(db *sql.DB, subjectID, userID int64, path, originalName, mimeType string, sizeBytes int64) (int64, error) {
-	query := `
+func InsertSubjectFile(
+	db *sql.DB, subjectID, userID int64, path, originalName, mimeType string, sizeBytes int64,
+) (int64, error) {
+	const query = `
 		INSERT INTO subjects_files (subject_id, path, original_name, mime_type, size_bytes)
 		SELECT s.id, $2, $3, $4, $5
 		FROM subjects s
@@ -479,12 +346,12 @@ func InsertSubjectFile(db *sql.DB, subjectID, userID int64, path, originalName, 
 	`
 
 	var fileID int64
-
-	err := db.QueryRow(query, subjectID, path, originalName, mimeType, sizeBytes, userID).Scan(&fileID)
-	if err != nil {
+	if err := db.QueryRow(query, subjectID, path, originalName, mimeType, sizeBytes, userID).
+		Scan(&fileID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, sql.ErrNoRows
 		}
+		return 0, fmt.Errorf("failed to insert subject file: %w", err)
 	}
 
 	return fileID, nil
