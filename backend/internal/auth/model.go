@@ -5,6 +5,7 @@ import (
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/mail"
+	"studify/internal/user"
 )
 
 type Handler struct {
@@ -13,6 +14,7 @@ type Handler struct {
 	Config      *config.Config
 	MailService *mail.Service
 	AuthService *Service
+	UserService *user.Service
 }
 
 type ChallengeTokenResponse struct {

@@ -43,6 +43,7 @@ type Handler struct {
 	Dashboard     *dashboard.Handler
 	Mfa           *mfa.Handler
 	User          *user.Handler
+	UserService   *user.Service
 	ResetPassword *reset_password.Handler
 }
 
@@ -91,10 +92,9 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		cfg.IsProduction(),
 		db,
 	)
-
 	mailService := mail.NewService(db, mailer, cfg)
-
 	authService := auth.NewService(db)
+	userService := user.NewService(db)
 
 	authHandler := &auth.Handler{
 		DB:          db,
@@ -102,6 +102,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		Config:      cfg,
 		MailService: mailService,
 		AuthService: authService,
+		UserService: userService,
 	}
 
 	subjectHandler := &subject.Handler{DB: db}
@@ -111,14 +112,16 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	dashboardHandler := &dashboard.Handler{DB: db}
 
 	mfaHandler := &mfa.Handler{
-		DB:     db,
-		Config: cfg,
-		Token:  tokenService,
+		DB:          db,
+		Config:      cfg,
+		Token:       tokenService,
+		UserService: userService,
 	}
 
 	userHandler := &user.Handler{
 		DB:          db,
 		MailService: mailService,
+		UserService: userService,
 	}
 
 	resetPasswordHandler := &reset_password.Handler{

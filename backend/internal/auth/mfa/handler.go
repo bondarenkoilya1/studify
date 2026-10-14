@@ -7,11 +7,10 @@ import (
 	"log/slog"
 	"net/http"
 	"studify/internal"
-	"studify/internal/user"
 )
 
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := user.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -63,7 +62,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := user.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -110,7 +109,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := user.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -144,7 +143,7 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := user.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)

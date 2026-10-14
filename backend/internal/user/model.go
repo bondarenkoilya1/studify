@@ -8,6 +8,7 @@ import (
 type Handler struct {
 	DB          *sql.DB
 	MailService *mail.Service
+	UserService *Service
 }
 
 type User struct {

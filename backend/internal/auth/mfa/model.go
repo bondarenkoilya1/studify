@@ -5,12 +5,14 @@ import (
 	"errors"
 	"studify/internal/auth/token"
 	"studify/internal/config"
+	"studify/internal/user"
 )
 
 type Handler struct {
-	DB     *sql.DB
-	Config *config.Config
-	Token  *token.Service
+	DB          *sql.DB
+	Config      *config.Config
+	Token       *token.Service
+	UserService *user.Service
 }
 
 var (

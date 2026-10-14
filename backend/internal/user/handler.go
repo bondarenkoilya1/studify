@@ -34,7 +34,7 @@ func avatarFilePath(avatarURL string) (string, bool) {
 }
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	user, err := CurrentUser(r, h.DB)
+	user, err := h.UserService.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -65,7 +65,7 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := CurrentUser(r, h.DB)
+	user, err := h.UserService.CurrentUser(r, h.DB)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)

@@ -8,7 +8,15 @@ import (
 	"studify/internal/httpx"
 )
 
-func CurrentUser(r *http.Request, db *sql.DB) (*User, error) {
+type Service struct {
+	db *sql.DB
+}
+
+func NewService(db *sql.DB) *Service {
+	return &Service{db: db}
+}
+
+func (s *Service) CurrentUser(r *http.Request, db *sql.DB) (*User, error) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		return nil, err
