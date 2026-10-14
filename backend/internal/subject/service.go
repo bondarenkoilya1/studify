@@ -5,8 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func writeJSON(w http.ResponseWriter, status int, value any) {
@@ -75,14 +73,3 @@ func validateCreateSubjectRequest(req *CreateSubjectRequest) error {
 }
 
 // DB
-func normalizeUniqueSubjectError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
-		return ErrSubjectAlreadyExists
-	}
-
-	return err
-}

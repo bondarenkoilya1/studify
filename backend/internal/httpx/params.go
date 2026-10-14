@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// GetID retrieve the value of {id} from the URL path
 func GetID(r *http.Request) (int64, error) {
 	idStr := chi.URLParam(r, "id")
 	if idStr == "" {
