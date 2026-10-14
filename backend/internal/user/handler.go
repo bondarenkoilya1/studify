@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"studify/internal"
 	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/media"
@@ -52,16 +51,9 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
-	// Receive and compare emails
 	body := emailRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	body.NewEmail = strings.TrimSpace(body.NewEmail)
-	if body.NewEmail == "" {
-		http.Error(w, "email is required", http.StatusBadRequest)
 		return
 	}
 
@@ -76,22 +68,20 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(body.NewEmail) == strings.TrimSpace(user.Email) {
-		http.Error(w, "invalid data", http.StatusBadRequest)
-		return
-	}
-
-	// Update, here transaction should start (in repo)
-	newUser, err := UpdateUserEmail(h.DB, user.ID, body.NewEmail)
+	newUser, err := h.UserService.UpdateUserEmail(r.Context(), user.ID, user.Email, body.NewEmail)
 	if err != nil {
-		slog.Error("failed to update user email", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err = h.MailService.SendConfirmationEmail(newUser.Email, internal.UserID(newUser.ID)); err != nil {
-		slog.Error("failed to send confirmation email", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, ErrEmailRequired),
+			errors.Is(err, ErrEmailInvalid),
+			errors.Is(err, ErrEmailUnchanged):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, ErrEmailTaken):
+			http.Error(w, err.Error(), http.StatusConflict)
+		default:
+			slog.Error("failed to update user email",
+				slog.Int64("user_id", user.ID), slog.String("error", err.Error()))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 

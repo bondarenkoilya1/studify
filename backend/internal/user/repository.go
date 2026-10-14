@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,10 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-var (
-	ErrUserAlreadyExists = errors.New("user already exists")
-	ErrUserNotFound      = errors.New("user not found")
-)
+const uniqueViolation = "23505" // SQLSTATE для нарушения UNIQUE
 
 func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 	query := `
@@ -124,7 +122,7 @@ func VerifyUserEmail(db internal.DBTX, id int64) error {
 	return nil
 }
 
-func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*User, error) {
+func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail string) (*User, error) {
 	query := `
 		UPDATE users
 		SET email = $1, is_email_verified = FALSE
@@ -134,17 +132,25 @@ func UpdateUserEmail(db *sql.DB, id int64, newEmail string) (*User, error) {
 
 	var user User
 
-	err := db.QueryRow(query, newEmail, id).Scan(&user.ID, &user.Email, &user.IsEmailVerified)
+	err := db.QueryRowContext(ctx, query, newEmail, id).
+		Scan(&user.ID, &user.Email, &user.IsEmailVerified)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-		return nil, fmt.Errorf("update user email: %w", err)
+
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) &&
+			pgErr.Code == uniqueViolation &&
+			pgErr.ConstraintName == "users_email_key" { // подставьте имя вашего ограничения/индекса
+			return nil, ErrEmailTaken
+		}
+
+		return nil, fmt.Errorf("update email (user_id=%d): %w", id, err)
 	}
 
 	return &user, nil
 }
-
 func UpdateUserPassword(db *sql.DB, id int64, newPasswordHash string) error {
 	query := `UPDATE users SET password_hash = $1 WHERE id = $2;`
 

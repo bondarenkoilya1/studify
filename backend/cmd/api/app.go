@@ -94,7 +94,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	)
 	mailService := mail.NewService(db, mailer, cfg)
 	authService := auth.NewService(db)
-	userService := user.NewService(db)
+	userService := user.NewService(db, mailService)
 
 	authHandler := &auth.Handler{
 		DB:          db,
