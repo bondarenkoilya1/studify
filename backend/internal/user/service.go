@@ -165,3 +165,21 @@ func (s *Service) UploadAvatar(ctx context.Context, rc io.Reader, userID int64) 
 
 	return avatarURL, nil
 }
+
+func (s *Service) DeleteAvatar(ctx context.Context, userID int64) error {
+	oldURL, err := DeleteUserAvatar(ctx, s.db, userID)
+	if err != nil {
+		return fmt.Errorf("delete user avatar (user_id=%d): %w", userID, err)
+	}
+
+	if oldURL != nil && *oldURL != "" {
+		path, ok := avatarFilePath(*oldURL)
+		if !ok {
+			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
+		} else if rmErr := os.Remove(path); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			slog.Error("failed to delete avatar file", "error", rmErr, "path", path, "user_id", userID)
+		}
+	}
+
+	return nil
+}

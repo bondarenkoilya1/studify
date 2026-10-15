@@ -183,7 +183,7 @@ func ReplaceUserAvatar(ctx context.Context, db *sql.DB, id int64, newURL string)
 
 // DeleteUserAvatar sets avatar_url to NULL and returns the previous value.
 // Returns ErrUserNotFound if the user does not exist.
-func DeleteUserAvatar(db *sql.DB, id int64) (*string, error) {
+func DeleteUserAvatar(ctx context.Context, db *sql.DB, id int64) (*string, error) {
 	const query = `
 		UPDATE users u
 		SET avatar_url = NULL
@@ -192,7 +192,7 @@ func DeleteUserAvatar(db *sql.DB, id int64) (*string, error) {
 		RETURNING old.avatar_url;`
 
 	var oldURL sql.NullString
-	if err := db.QueryRow(query, id).Scan(&oldURL); err != nil {
+	if err := db.QueryRowContext(ctx, query, id).Scan(&oldURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}

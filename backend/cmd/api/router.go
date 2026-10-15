@@ -114,8 +114,8 @@ func registerUserRoutes(r chi.Router, h *user.Handler) {
 	r.Route("/users", func(r chi.Router) {
 		r.Route("/me", func(r chi.Router) {
 			r.Get("/", h.GetUser)
-			r.With(middlewares.RequireJSON).Patch("/email", h.UpdateUserEmail)
-			r.With(middlewares.RequireJSON).Patch("/password", h.UpdateUserPassword)
+			r.With(middlewares.RequireJSON).Patch("/email", h.UpdateEmail)
+			r.With(middlewares.RequireJSON).Patch("/password", h.UpdatePassword)
 
 			r.Route("/avatar", func(r chi.Router) {
 				r.Post("/", h.UploadAvatar)

@@ -7,7 +7,6 @@ import (
 	_ "image/png"
 	"log/slog"
 	"net/http"
-	"os"
 	"studify/internal/httpx"
 	"studify/internal/media"
 )
@@ -35,7 +34,7 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	body := emailRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -76,7 +75,7 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	request := passwordRequest{}
@@ -156,29 +155,19 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		slog.Error("failed to get user id", slog.String("error", err.Error()))
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	oldURL, err := DeleteUserAvatar(h.DB, userID)
-	if err != nil {
+	if err := h.UserService.DeleteAvatar(r.Context(), userID); err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to delete user avatar", slog.String("error", err.Error()))
+		slog.Error("failed to delete avatar",
+			slog.Int64("user_id", userID), slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
-	}
-
-	if oldURL != nil && *oldURL != "" {
-		path, ok := avatarFilePath(*oldURL)
-		if !ok {
-			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
-		} else if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			slog.Error("failed to delete avatar file", "error", err, "path", path, "user_id", userID)
-		}
 	}
 
 	w.WriteHeader(http.StatusNoContent)
