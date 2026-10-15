@@ -8,8 +8,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
-	"strings"
 	"studify/internal/httpx"
 	"studify/internal/media"
 )
@@ -18,16 +16,6 @@ const (
 	avatarsDir       = "./data/users/"
 	avatarsPublicDir = "/static/users/"
 )
-
-// avatarFilePath превращает публичный URL аватара в путь на диске.
-// Второе значение false означает, что URL не похож на наш аватар.
-func avatarFilePath(avatarURL string) (string, bool) {
-	filename, ok := strings.CutPrefix(avatarURL, avatarsPublicDir)
-	if !ok || filename == "" || filepath.Base(filename) != filename {
-		return "", false
-	}
-	return filepath.Join(avatarsDir, filename), true
-}
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.UserService.CurrentUser(r, h.DB)
@@ -104,7 +92,7 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.UserService.UpdateUserPassword(r.Context(), userID, request.CurrentPassword, request.NewPassword)
+	err = h.UserService.UpdateUserPassword(userID, request.CurrentPassword, request.NewPassword)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrCurrentPasswordRequired),
@@ -138,13 +126,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	const maxAvatarBytes = 2 << 20 // 2 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxAvatarBytes)
 
-	constraints := media.ImageConstraints{
-		MaxWidth:  2560,
-		MaxHeight: 2560,
-		Quality:   85,
-	}
-
-	filename, err := media.SaveImageAsWebp(r.Body, constraints, avatarsDir)
+	url, err := h.UserService.UploadAvatar(r.Context(), r.Body, userID)
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			http.Error(w, "avatar is too large (max 2MB)", http.StatusRequestEntityTooLarge)
@@ -156,41 +138,17 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		case errors.Is(err, media.ErrDimensionsExceed), errors.Is(err, media.ErrDecodeFailed):
 			http.Error(w, err.Error(), http.StatusBadRequest)
-		default:
-			slog.Error("failed to save image", slog.String("error", err.Error()))
-			http.Error(w, "failed to save image", http.StatusInternalServerError)
-		}
-		return
-	}
-
-	avatarURL := avatarsPublicDir + filename
-
-	oldURL, err := ReplaceUserAvatar(h.DB, userID, avatarURL)
-	if err != nil {
-		if rmErr := os.Remove(filepath.Join(avatarsDir, filename)); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
-			slog.Error("failed to delete orphaned avatar file", "error", rmErr, "user_id", userID)
-		}
-
-		if errors.Is(err, ErrUserNotFound) {
+		case errors.Is(err, ErrUserNotFound):
 			http.Error(w, "user not found", http.StatusNotFound)
-			return
+		default:
+			slog.Error("failed to upload avatar", slog.Int64("user_id", userID), slog.String("error", err.Error()))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
-		slog.Error("failed to update user avatar", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
-	}
-
-	if oldURL != nil && *oldURL != "" {
-		path, ok := avatarFilePath(*oldURL)
-		if !ok {
-			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
-		} else if rmErr := os.Remove(path); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
-			slog.Error("failed to delete previous avatar file", "error", rmErr, "path", path, "user_id", userID)
-		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(avatarResponse{AvatarURL: avatarURL}); err != nil {
+	if err = json.NewEncoder(w).Encode(avatarResponse{AvatarURL: url}); err != nil {
 		slog.Error("failed to encode avatar response", slog.String("error", err.Error()))
 	}
 }

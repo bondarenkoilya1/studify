@@ -159,7 +159,7 @@ func UpdateUserPassword(db internal.DBTX, id int64, newPasswordHash string) erro
 
 // ReplaceUserAvatar sets a new avatar_url and returns the previous value.
 // Returns ErrUserNotFound if the user does not exist.
-func ReplaceUserAvatar(db *sql.DB, id int64, newURL string) (*string, error) {
+func ReplaceUserAvatar(ctx context.Context, db *sql.DB, id int64, newURL string) (*string, error) {
 	const query = `
 		UPDATE users u
 		SET avatar_url = $2
@@ -168,7 +168,7 @@ func ReplaceUserAvatar(db *sql.DB, id int64, newURL string) (*string, error) {
 		RETURNING old.avatar_url;`
 
 	var oldURL sql.NullString
-	if err := db.QueryRow(query, id, newURL).Scan(&oldURL); err != nil {
+	if err := db.QueryRowContext(ctx, query, id, newURL).Scan(&oldURL); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}

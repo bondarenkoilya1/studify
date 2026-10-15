@@ -5,14 +5,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	mail2 "net/mail"
+	"os"
+	"path/filepath"
 	"strings"
 	"studify/internal"
 	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/mail"
+	"studify/internal/media"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,6 +28,16 @@ type Service struct {
 
 func NewService(db *sql.DB, mailService *mail.Service) *Service {
 	return &Service{db: db, mailService: mailService}
+}
+
+// avatarFilePath превращает публичный URL аватара в путь на диске.
+// Второе значение false означает, что URL не похож на наш аватар.
+func avatarFilePath(avatarURL string) (string, bool) {
+	filename, ok := strings.CutPrefix(avatarURL, avatarsPublicDir)
+	if !ok || filename == "" || filepath.Base(filename) != filename {
+		return "", false
+	}
+	return filepath.Join(avatarsDir, filename), true
 }
 
 func (s *Service) CurrentUser(r *http.Request, db *sql.DB) (*User, error) {
@@ -82,7 +96,7 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 	return newUser, nil
 }
 
-func (s *Service) UpdateUserPassword(ctx context.Context, userID int64, oldPassword, newPassword string) error {
+func (s *Service) UpdateUserPassword(userID int64, oldPassword, newPassword string) error {
 	if oldPassword == "" {
 		return ErrCurrentPasswordRequired
 	}
@@ -121,4 +135,33 @@ func (s *Service) UpdateUserPassword(ctx context.Context, userID int64, oldPassw
 	}
 
 	return nil
+}
+
+func (s *Service) UploadAvatar(ctx context.Context, rc io.Reader, userID int64) (string, error) {
+	constraints := media.ImageConstraints{MaxWidth: 2560, MaxHeight: 2560, Quality: 85}
+
+	filename, err := media.SaveImageAsWebp(rc, constraints, avatarsDir)
+	if err != nil {
+		return "", fmt.Errorf("save avatar image: %w", err)
+	}
+
+	avatarURL := avatarsPublicDir + filename
+	oldURL, err := ReplaceUserAvatar(ctx, s.db, userID, avatarURL)
+	if err != nil {
+		if rmErr := os.Remove(filepath.Join(avatarsDir, filename)); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			slog.Error("failed to delete orphaned avatar file", "error", rmErr, "user_id", userID)
+		}
+		return "", err
+	}
+
+	if oldURL != nil && *oldURL != "" {
+		path, ok := avatarFilePath(*oldURL)
+		if !ok {
+			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
+		} else if rmErr := os.Remove(path); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
+			slog.Error("failed to delete previous avatar file", "error", rmErr, "path", path, "user_id", userID)
+		}
+	}
+
+	return avatarURL, nil
 }
