@@ -10,8 +10,11 @@ import (
 	mail2 "net/mail"
 	"strings"
 	"studify/internal"
+	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/mail"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
@@ -77,4 +80,45 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 	}
 
 	return newUser, nil
+}
+
+func (s *Service) UpdateUserPassword(ctx context.Context, userID int64, oldPassword, newPassword string) error {
+	if oldPassword == "" {
+		return ErrCurrentPasswordRequired
+	}
+	if oldPassword == newPassword {
+		return ErrPasswordUnchanged
+	}
+	if err := credentials.ValidatePassword(newPassword, credentials.ActionRegister); err != nil {
+		return fmt.Errorf("%w: %v", ErrPasswordInvalid, err)
+	}
+
+	passwordHash, err := GetUserPasswordHashByID(s.db, userID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return ErrUserNotFound
+		}
+		return fmt.Errorf("get user password hash (user_id=%d): %w", userID, err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(oldPassword)); err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return ErrInvalidCurrentPassword
+		}
+		return fmt.Errorf("compare password hash: %w", err)
+	}
+
+	newPasswordHash, err := credentials.HashPassword(newPassword)
+	if err != nil {
+		return fmt.Errorf("hash new password: %w", err)
+	}
+
+	if err := UpdateUserPassword(s.db, userID, newPasswordHash); err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return ErrUserNotFound
+		}
+		return fmt.Errorf("update user password (user_id=%d): %w", userID, err)
+	}
+
+	return nil
 }

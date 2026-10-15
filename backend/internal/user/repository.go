@@ -67,7 +67,7 @@ func GetUserByID(db *sql.DB, id int64) (*User, error) {
 	return &user, nil
 }
 
-func GetUserPasswordHashByID(db *sql.DB, id int64) (string, error) {
+func GetUserPasswordHashByID(db internal.DBTX, id int64) (string, error) {
 	query := `SELECT password_hash FROM users WHERE id = $1;`
 
 	var passwordHash string
@@ -151,7 +151,7 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 
 	return &user, nil
 }
-func UpdateUserPassword(db *sql.DB, id int64, newPasswordHash string) error {
+func UpdateUserPassword(db internal.DBTX, id int64, newPasswordHash string) error {
 	query := `UPDATE users SET password_hash = $1 WHERE id = $2;`
 
 	return execExpectOne(db, query, "update user password", newPasswordHash, id)
@@ -206,7 +206,7 @@ func DeleteUserAvatar(db *sql.DB, id int64) (*string, error) {
 }
 
 // execExpectOne runs an UPDATE and returns ErrUserNotFound if no row was changed.
-func execExpectOne(db *sql.DB, query, op string, args ...any) error {
+func execExpectOne(db internal.DBTX, query, op string, args ...any) error {
 	result, err := db.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)

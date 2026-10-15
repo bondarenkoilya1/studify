@@ -10,11 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/media"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 const (
@@ -92,26 +89,11 @@ func (h *Handler) UpdateUserEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
 	request := passwordRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		slog.Error("failed to decode password update request", slog.String("error", err.Error()))
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if request.CurrentPassword == "" {
-		http.Error(w, "current password is required", http.StatusBadRequest)
-		return
-	}
-
-	if request.CurrentPassword == request.NewPassword {
-		http.Error(w, "invalid data", http.StatusBadRequest)
-		return
-	}
-
-	if err := credentials.ValidatePassword(request.NewPassword, credentials.ActionRegister); err != nil {
-		slog.Error("failed to validate new password", slog.String("error", err.Error()))
-		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
 	}
 
@@ -122,47 +104,22 @@ func (h *Handler) UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passwordHash, err := GetUserPasswordHashByID(h.DB, userID)
+	err = h.UserService.UpdateUserPassword(r.Context(), userID, request.CurrentPassword, request.NewPassword)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		switch {
+		case errors.Is(err, ErrCurrentPasswordRequired),
+			errors.Is(err, ErrPasswordUnchanged),
+			errors.Is(err, ErrPasswordInvalid):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, ErrInvalidCurrentPassword):
+			http.Error(w, "invalid current password", http.StatusForbidden)
+		case errors.Is(err, ErrUserNotFound):
 			http.Error(w, "user not found", http.StatusNotFound)
-			return
+		default:
+			slog.Error("failed to update user password",
+				slog.Int64("user_id", userID), slog.String("error", err.Error()))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
-
-		slog.Error("failed to get user password hash", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err := bcrypt.CompareHashAndPassword(
-		[]byte(passwordHash),
-		[]byte(request.CurrentPassword),
-	); err != nil {
-		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			http.Error(w, "invalid current password", http.StatusUnauthorized)
-			return
-		}
-
-		slog.Error("failed to compare password hash", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	newPasswordHash, err := credentials.HashPassword(request.NewPassword)
-	if err != nil {
-		slog.Error("failed to hash new password", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err := UpdateUserPassword(h.DB, userID, newPasswordHash); err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
-			return
-		}
-
-		slog.Error("failed to update user password", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

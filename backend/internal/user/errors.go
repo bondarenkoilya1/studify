@@ -10,4 +10,9 @@ var (
 
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrUserNotFound      = errors.New("user not found")
+
+	ErrCurrentPasswordRequired = errors.New("current password is required")
+	ErrPasswordUnchanged       = errors.New("new password must differ from current")
+	ErrPasswordInvalid         = errors.New("invalid new password")
+	ErrInvalidCurrentPassword  = errors.New("invalid current password")
 )
