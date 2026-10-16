@@ -1,6 +1,7 @@
 package token
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -21,7 +22,7 @@ func CreateResetPasswordToken(
 	tokenHash := HashToken(authToken)
 	expiresAt := time.Now().Add(config.ResetPasswordTokenTTL)
 
-	if err = DeleteResetPasswordToken(db, int64(userID)); err != nil && !errors.Is(err, ErrResetPasswordTokenNotFound) {
+	if err = DeleteResetPasswordToken(context.TODO(), db, int64(userID)); err != nil && !errors.Is(err, ErrResetPasswordTokenNotFound) {
 		return "", fmt.Errorf("delete previous reset password token: %w", err)
 	}
 

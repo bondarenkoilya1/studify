@@ -127,7 +127,7 @@ func (s *Service) UpdateUserPassword(userID int64, oldPassword, newPassword stri
 		return fmt.Errorf("hash new password: %w", err)
 	}
 
-	if err := UpdateUserPassword(s.db, userID, newPasswordHash); err != nil {
+	if err := UpdateUserPassword(context.TODO(), s.db, userID, newPasswordHash); err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return ErrUserNotFound
 		}

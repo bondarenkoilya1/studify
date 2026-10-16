@@ -1,6 +1,7 @@
 package reset_password
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -43,7 +44,7 @@ func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err := h.ResetPasswordService.VerifyResetPasswordToken(nil, token.Token(body.Token))
+	err := h.ResetPasswordService.VerifyResetPasswordToken(context.TODO(), token.Token(body.Token))
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrMissingToken):
