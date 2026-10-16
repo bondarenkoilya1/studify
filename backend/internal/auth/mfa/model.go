@@ -13,6 +13,7 @@ type Handler struct {
 	Config      *config.Config
 	Token       *token.Service
 	UserService *user.Service
+	MfaService  *Service
 }
 
 var (

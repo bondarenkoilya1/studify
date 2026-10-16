@@ -20,6 +20,50 @@ import (
 
 var ErrInvalidCode = errors.New("read TOTP code")
 
+type Service struct {
+	db *sql.DB
+}
+
+func NewService(db *sql.DB) *Service {
+	return &Service{db: db}
+}
+
+func (s *Service) validateTOTP(userID internal.UserID, code string, encryptionKey []byte) error {
+	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(s.db, int64(userID))
+	if err != nil {
+		return fmt.Errorf("get user TOTP key: %w", err)
+	}
+
+	decryptedSecret, err := DecryptTOTPKey(encryptedSecret, encryptionKey)
+	if err != nil {
+		return fmt.Errorf("decrypt user TOTP key: %w", err)
+	}
+
+	valid := totp.Validate(code, decryptedSecret)
+	if !valid {
+		return ErrInvalidCode
+	}
+
+	return nil
+}
+
+func (s *Service) enableTOTP(userID internal.UserID) ([]string, error) {
+	if err := UpdateUserTOTPStatus(s.db, int64(userID), true); err != nil {
+		return nil, fmt.Errorf("enable user is_totp_enabled status: %w", err)
+	}
+
+	codes, err := rc.Generate()
+	if err != nil {
+		return nil, fmt.Errorf("generate recovery codes: %w", err)
+	}
+
+	if err = rc.SaveRecoveryCodes(s.db, int64(userID), codes); err != nil {
+		return nil, fmt.Errorf("save recovery codes: %w", err)
+	}
+
+	return codes, nil
+}
+
 func GenerateTOTPKey(email, issuer string) (*otp.Key, error) {
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      issuer,
@@ -110,40 +154,4 @@ func DecryptTOTPKey(encrypted string, key []byte) (string, error) {
 	}
 
 	return string(secret), nil
-}
-
-func validateTOTP(db *sql.DB, userID internal.UserID, code string, encryptionKey []byte) error {
-	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(db, int64(userID))
-	if err != nil {
-		return fmt.Errorf("get user TOTP key: %w", err)
-	}
-
-	decryptedSecret, err := DecryptTOTPKey(encryptedSecret, encryptionKey)
-	if err != nil {
-		return fmt.Errorf("decrypt user TOTP key: %w", err)
-	}
-
-	valid := totp.Validate(code, decryptedSecret)
-	if !valid {
-		return ErrInvalidCode
-	}
-
-	return nil
-}
-
-func enableTOTP(db *sql.DB, userID internal.UserID) ([]string, error) {
-	if err := UpdateUserTOTPStatus(db, int64(userID), true); err != nil {
-		return nil, fmt.Errorf("enable user is_totp_enabled status: %w", err)
-	}
-
-	codes, err := rc.Generate()
-	if err != nil {
-		return nil, fmt.Errorf("generate recovery codes: %w", err)
-	}
-
-	if err = rc.SaveRecoveryCodes(db, int64(userID), codes); err != nil {
-		return nil, fmt.Errorf("save recovery codes: %w", err)
-	}
-
-	return codes, nil
 }

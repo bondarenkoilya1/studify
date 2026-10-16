@@ -80,7 +80,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = validateTOTP(h.DB, internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+	if err = h.MfaService.validateTOTP(internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
 			slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
 			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
@@ -92,7 +92,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	codes, err := enableTOTP(h.DB, internal.UserID(currentUser.ID))
+	codes, err := h.MfaService.enableTOTP(internal.UserID(currentUser.ID))
 	if err != nil {
 		slog.Error("failed to enable TOTP", slog.String("error", err.Error()))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -127,7 +127,7 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = validateTOTP(h.DB, internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+	if err = h.MfaService.validateTOTP(internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
 			slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
 			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
