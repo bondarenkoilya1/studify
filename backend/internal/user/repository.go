@@ -151,10 +151,10 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 
 	return &user, nil
 }
-func UpdateUserPassword(db internal.DBTX, id int64, newPasswordHash string) error {
+func UpdateUserPassword(ctx context.Context, db internal.DBTX, id int64, newPasswordHash string) error {
 	query := `UPDATE users SET password_hash = $1 WHERE id = $2;`
 
-	return execExpectOne(db, query, "update user password", newPasswordHash, id)
+	return execExpectOne(ctx, db, query, "update user password", newPasswordHash, id)
 }
 
 // ReplaceUserAvatar sets a new avatar_url and returns the previous value.
@@ -206,8 +206,8 @@ func DeleteUserAvatar(ctx context.Context, db *sql.DB, id int64) (*string, error
 }
 
 // execExpectOne runs an UPDATE and returns ErrUserNotFound if no row was changed.
-func execExpectOne(db internal.DBTX, query, op string, args ...any) error {
-	result, err := db.Exec(query, args...)
+func execExpectOne(ctx context.Context, db internal.DBTX, query, op string, args ...any) error {
+	result, err := db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

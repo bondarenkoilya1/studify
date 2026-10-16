@@ -1,9 +1,11 @@
 package token
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"studify/internal"
 	"time"
 )
 
@@ -91,7 +93,8 @@ func InsertResetPasswordToken(
 }
 
 func DeleteResetPasswordToken(
-	db *sql.DB,
+	ctx context.Context,
+	db internal.DBTX,
 	userID int64,
 ) error {
 	query := `
@@ -100,20 +103,14 @@ func DeleteResetPasswordToken(
 		  AND type = $2;
 	`
 
-	result, err := db.Exec(query, userID, resetPasswordTokenType)
+	result, err := db.ExecContext(ctx, query, userID, resetPasswordTokenType)
 	if err != nil {
-		return fmt.Errorf(
-			"delete password reset token: %w",
-			err,
-		)
+		return fmt.Errorf("delete password reset token: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf(
-			"get deleted password reset token count: %w",
-			err,
-		)
+		return fmt.Errorf("get deleted password reset token count: %w", err)
 	}
 
 	if rowsAffected == 0 {

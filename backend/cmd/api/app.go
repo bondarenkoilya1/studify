@@ -32,20 +32,20 @@ type application struct {
 }
 
 type Handler struct {
-	DB            *sql.DB
-	Token         *token.Service
-	Config        *config.Config
-	MailService   *mail.Service
-	Auth          *auth.Handler
-	AuthService   *auth.Service
-	Subject       *subject.Handler
-	Task          *task.Handler
-	Dashboard     *dashboard.Handler
-	Mfa           *mfa.Handler
-	MfaService    *mfa.Service
-	User          *user.Handler
-	UserService   *user.Service
-	ResetPassword *reset_password.Handler
+	Token                *token.Service // todo: rename to service
+	Config               *config.Config
+	MailService          *mail.Service
+	Auth                 *auth.Handler
+	AuthService          *auth.Service
+	Subject              *subject.Handler
+	Task                 *task.Handler
+	Dashboard            *dashboard.Handler
+	Mfa                  *mfa.Handler
+	MfaService           *mfa.Service
+	User                 *user.Handler
+	UserService          *user.Service
+	ResetPassword        *reset_password.Handler
+	ResetPasswordService *reset_password.Service
 }
 
 type Metrics struct {
@@ -97,6 +97,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	authService := auth.NewService(db)
 	userService := user.NewService(db, mailService)
 	mfaService := mfa.NewService(db)
+	resetPasswordService := reset_password.NewService(db, mailService)
 
 	authHandler := &auth.Handler{
 		DB:          db,
@@ -128,25 +129,24 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	}
 
 	resetPasswordHandler := &reset_password.Handler{
-		DB:          db,
-		MailService: mailService,
-		Config:      cfg,
+		DB:                   db,
+		ResetPasswordService: resetPasswordService,
 	}
 
 	h := &Handler{
-		DB:            db,
-		Token:         tokenService,
-		Config:        cfg,
-		MailService:   mailService,
-		Auth:          authHandler,
-		AuthService:   authService,
-		Subject:       subjectHandler,
-		Task:          taskHandler,
-		Dashboard:     dashboardHandler,
-		Mfa:           mfaHandler,
-		MfaService:    mfaService,
-		User:          userHandler,
-		ResetPassword: resetPasswordHandler,
+		Token:                tokenService,
+		Config:               cfg,
+		MailService:          mailService,
+		Auth:                 authHandler,
+		AuthService:          authService,
+		Subject:              subjectHandler,
+		Task:                 taskHandler,
+		Dashboard:            dashboardHandler,
+		Mfa:                  mfaHandler,
+		MfaService:           mfaService,
+		User:                 userHandler,
+		ResetPassword:        resetPasswordHandler,
+		ResetPasswordService: resetPasswordService,
 	}
 
 	return &application{
