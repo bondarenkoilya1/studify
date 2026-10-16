@@ -13,6 +13,7 @@ import (
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/user"
+	"studify/internal/util"
 	"time"
 
 	"github.com/pquerna/otp/totp"
@@ -333,11 +334,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isValid := token.CompareTokenHash(
-		token.RefreshToken(refreshTokenCookie.Value),
-		token.TokenHash(refreshToken.TokenHash),
-	)
-
+	isValid := util.CompareHashSHA256(refreshTokenCookie.Value, refreshToken.TokenHash)
 	if !isValid {
 		slog.Error("refresh token hash mismatch", slog.Any("token_id", refreshTokenID))
 		h.rejectRefresh(w)
@@ -381,7 +378,8 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newRefreshTokenHash := token.HashRefreshToken(newRefreshToken)
+	newRefreshTokenHash := util.HashSHA256(string(newRefreshToken))
+
 	_, err = token.InsertRefreshTokenTx(
 		tx,
 		int64(userID),

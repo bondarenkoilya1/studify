@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"studify/internal"
 	"studify/internal/config"
+	"studify/internal/util"
 	"time"
 )
 
@@ -53,7 +54,7 @@ func (s *Service) IssueTokens(userID internal.UserID, w http.ResponseWriter) err
 		return fmt.Errorf("generate refresh token: %w", err)
 	}
 
-	refreshTokenHash := HashRefreshToken(refreshToken)
+	refreshTokenHash := util.HashSHA256(string(refreshToken))
 
 	_, err = InsertRefreshToken(
 		s.DB,

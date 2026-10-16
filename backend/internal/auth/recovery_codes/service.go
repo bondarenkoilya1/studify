@@ -2,11 +2,10 @@ package rc
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"math/big"
+	"studify/internal/util"
 )
 
 const (
@@ -58,7 +57,7 @@ func SaveRecoveryCodes(db *sql.DB, userID int64, codes []string) (err error) {
 	defer tx.Rollback()
 
 	for _, code := range codes {
-		hash := HashRecoveryCode(code)
+		hash := util.HashSHA256(code)
 		if err = InsertRecoveryCode(tx, userID, hash); err != nil {
 			return fmt.Errorf("insert recovery code: %w", err)
 		}
@@ -69,11 +68,4 @@ func SaveRecoveryCodes(db *sql.DB, userID int64, codes []string) (err error) {
 	}
 
 	return nil
-}
-
-// TODO: Has the same analogue at RefreshToken service
-
-func HashRecoveryCode(code string) string {
-	sum := sha256.Sum256([]byte(code))
-	return hex.EncodeToString(sum[:])
 }

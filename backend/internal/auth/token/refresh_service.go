@@ -2,10 +2,7 @@ package token
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -24,17 +21,6 @@ func GenerateTokenID() (string, error) {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
-}
-
-func HashRefreshToken(token RefreshToken) TokenHash {
-	sum := sha256.Sum256([]byte(token))
-	return TokenHash(hex.EncodeToString(sum[:]))
-}
-
-func CompareTokenHash(token RefreshToken, expectedHash TokenHash) bool {
-	tokenHash := HashRefreshToken(token)
-
-	return subtle.ConstantTimeCompare([]byte(tokenHash), []byte(expectedHash)) == 1
 }
 
 func (s *Service) GenerateRefreshToken(userID internal.UserID) (RefreshToken, TokenID, error) {
