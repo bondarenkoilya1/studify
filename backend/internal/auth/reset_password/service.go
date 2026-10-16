@@ -107,7 +107,7 @@ func (s *Service) ResetPassword(ctx context.Context, resetPasswordToken token.To
 		return nil
 	}
 
-	if err = s.mailService.SendNewPasswordEmail(currentUser.Email, newPassword); err != nil {
+	if err = s.mailService.SendNewPasswordEmail(currentUser.Email); err != nil {
 		slog.Error("failed to send new password email",
 			slog.Int64("user_id", tokenRecord.UserID),
 			slog.String("error", err.Error()),

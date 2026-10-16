@@ -48,9 +48,8 @@ func (s *Service) SendPasswordResetEmail(email string, userID internal.UserID) e
 	return nil
 }
 
-func (s *Service) SendNewPasswordEmail(email, password string) error {
-	body := fmt.Sprintf(newPasswordBody, password)
-	if err := s.mailer.send(email, newPasswordSubject, body); err != nil {
+func (s *Service) SendNewPasswordEmail(email string) error {
+	if err := s.mailer.send(email, newPasswordSubject, newPasswordBody); err != nil {
 		return fmt.Errorf("send new password email: %w", err)
 	}
 

@@ -35,11 +35,7 @@ The Studify Team
 
 Your Studify password has been changed.
 
-Your new password is:
-
-%s
-
-You can use this password to sign in to your Studify account.
+You can use new password to sign in to your Studify account.
 
 If you didn't make this change, please reset your password immediately and contact us if you need help.
 
