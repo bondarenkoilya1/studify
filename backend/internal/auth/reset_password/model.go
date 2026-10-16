@@ -1,9 +1,5 @@
 package reset_password
 
-import (
-	"database/sql"
-)
-
 type email struct {
 	Email string `json:"email"`
 }
@@ -19,6 +15,5 @@ type tokenResponse struct {
 }
 
 type Handler struct {
-	DB                   *sql.DB
 	ResetPasswordService *Service
 }

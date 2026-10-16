@@ -129,7 +129,6 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	}
 
 	resetPasswordHandler := &reset_password.Handler{
-		DB:                   db,
 		ResetPasswordService: resetPasswordService,
 	}
 

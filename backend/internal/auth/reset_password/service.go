@@ -42,7 +42,18 @@ func (s *Service) RequestPasswordReset(email string) error {
 	return nil
 }
 
-// todo: делаю транзакцию
+func (s *Service) VerifyResetPasswordToken(ctx context.Context, t token.Token) error {
+	if t == "" {
+		return ErrMissingToken
+	}
+
+	if _, err := token.ValidateResetPasswordToken(s.db, t); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidResetToken, err)
+	}
+
+	return nil
+}
+
 func (s *Service) ResetPassword(ctx context.Context, resetPasswordToken token.Token, newPassword, newPasswordConfirmed string) error {
 	if resetPasswordToken == "" {
 		return ErrMissingToken

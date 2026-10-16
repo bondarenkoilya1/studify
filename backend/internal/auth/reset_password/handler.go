@@ -43,14 +43,18 @@ func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if body.Token == "" {
-		http.Error(w, "missing token", http.StatusBadRequest)
-		return
-	}
-
-	if _, err := token.ValidateResetPasswordToken(h.DB, token.Token(body.Token)); err != nil {
-		slog.Warn("reset token validation failed", slog.String("error", err.Error()))
-		http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
+	err := h.ResetPasswordService.VerifyResetPasswordToken(nil, token.Token(body.Token))
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrMissingToken):
+			http.Error(w, "missing token", http.StatusBadRequest)
+		case errors.Is(err, ErrInvalidResetToken):
+			slog.Warn("reset token validation failed", slog.String("error", err.Error()))
+			http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
+		default:
+			slog.Error("failed to verify reset token", slog.String("error", err.Error()))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 
