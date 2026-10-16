@@ -8,7 +8,7 @@ import (
 	"os"
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
-	"studify/internal/auth/reset_password"
+	"studify/internal/auth/resetpassword"
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/dashboard"
@@ -44,8 +44,8 @@ type Handler struct {
 	MfaService           *mfa.Service
 	User                 *user.Handler
 	UserService          *user.Service
-	ResetPassword        *reset_password.Handler
-	ResetPasswordService *reset_password.Service
+	ResetPassword        *resetpassword.Handler
+	ResetPasswordService *resetpassword.Service
 }
 
 type Metrics struct {
@@ -97,7 +97,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	authService := auth.NewService(db)
 	userService := user.NewService(db, mailService)
 	mfaService := mfa.NewService(db)
-	resetPasswordService := reset_password.NewService(db, mailService)
+	resetPasswordService := resetpassword.NewService(db, mailService)
 
 	authHandler := &auth.Handler{
 		DB:          db,
@@ -128,7 +128,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		UserService: userService,
 	}
 
-	resetPasswordHandler := &reset_password.Handler{
+	resetPasswordHandler := &resetpassword.Handler{
 		ResetPasswordService: resetPasswordService,
 	}
 

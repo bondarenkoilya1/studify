@@ -1,4 +1,4 @@
-package reset_password
+package resetpassword
 
 type email struct {
 	Email string `json:"email"`

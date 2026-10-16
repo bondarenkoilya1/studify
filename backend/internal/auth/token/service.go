@@ -2,7 +2,6 @@ package token
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"fmt"
@@ -41,11 +40,6 @@ func GenerateAuthToken() (Token, error) {
 	}
 
 	return Token(base64.RawURLEncoding.EncodeToString(bytes)), nil
-}
-
-func HashToken(token Token) []byte {
-	sum := sha256.Sum256([]byte(token))
-	return sum[:]
 }
 
 func (s *Service) IssueTokens(userID internal.UserID, w http.ResponseWriter) error {

@@ -120,12 +120,12 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		hash := token.HashToken(challengeToken)
+		hash := util.HashSHA256(string(challengeToken))
 
 		_, err = token.InsertAuthChallenge(
 			h.DB,
 			currentUser.ID,
-			hash,
+			[]byte(hash),
 			time.Now().Add(config.ChallengeTokenTTL),
 		)
 		if err != nil {
@@ -181,9 +181,9 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash := token.HashToken(token.Token(body.ChallengeToken))
+	hash := util.HashSHA256(body.ChallengeToken)
 
-	ch, err := token.GetAuthChallengeByTokenHash(h.DB, hash)
+	ch, err := token.GetAuthChallengeByTokenHash(h.DB, []byte(hash))
 	if err != nil {
 		if errors.Is(err, token.ErrChallengeTokenNotFound) {
 			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)

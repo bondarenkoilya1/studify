@@ -96,7 +96,7 @@
   сначала ставит `is_totp_enabled = true`, потом сохраняет коды. Если сохранение
   упадёт, 2FA включена, а пользователь кодов не получил.
 - `ResetPassword`
-  ([reset_password/handler.go:138-144](backend/internal/auth/reset_password/handler.go#L138))
+  ([resetpassword/handler.go:138-144](backend/internal/auth/resetpassword/handler.go#L138))
   обновляет пароль, потом удаляет токен и игнорирует ошибку удаления. Если
   удаление не прошло, токен можно использовать повторно в течение 30 минут.
 - `LoginTOTP` ([auth/handler.go:182-236](backend/internal/auth/handler.go#L182))

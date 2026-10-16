@@ -114,7 +114,7 @@
 ### 10. Можно узнать, зарегистрирован ли email
 
 - `POST /api/auth/reset-password/request` отвечает 404 «User not found» для
-  неизвестного адреса ([reset_password/handler.go:55](backend/internal/auth/reset_password/handler.go#L55)).
+  неизвестного адреса ([resetpassword/handler.go:55](backend/internal/auth/resetpassword/handler.go#L55)).
   Кроме того, этот 404 возвращается на любую ошибку БД.
 - Логин отвечает быстрее, если пользователя нет: bcrypt не вызывается.
 - Регистрация отвечает 409 на занятый email. Это обычно приемлемо, но вместе с
@@ -207,7 +207,7 @@
 
 ### 20. Именование и стиль
 
-- Пакет `reset_password` с подчёркиванием (в Go так не принято), пакет `rc`
+- Пакет `resetpassword` с подчёркиванием (в Go так не принято), пакет `rc`
   импортируется под коротким алиасом.
 - Опечатки: `enabld`, `recieve`.
 - Комментарии на русском и английском вперемешку.

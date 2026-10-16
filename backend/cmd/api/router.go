@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
-	"studify/internal/auth/reset_password"
+	"studify/internal/auth/resetpassword"
 	"studify/internal/dashboard"
 	"studify/internal/middlewares"
 	"studify/internal/subject"
@@ -143,7 +143,7 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 	})
 }
 
-func registerPasswordResetRoutes(r chi.Router, h *reset_password.Handler) {
+func registerPasswordResetRoutes(r chi.Router, h *resetpassword.Handler) {
 	r.Route("/reset-password", func(r chi.Router) {
 		r.Use(middlewares.RequireJSON)
 
