@@ -18,6 +18,7 @@ func NewService(db *sql.DB, mailer *Mailer, cfg *config.Config) *Service {
 	return &Service{db: db, mailer: mailer, cfg: cfg}
 }
 
+// todo: don't do it here
 func (s *Service) SendConfirmationEmail(email string, userID internal.UserID) error {
 	t, err := token.CreateConfirmationToken(s.db, int64(userID))
 	if err != nil {
@@ -33,13 +34,8 @@ func (s *Service) SendConfirmationEmail(email string, userID internal.UserID) er
 	return nil
 }
 
-func (s *Service) SendPasswordResetEmail(email string, userID internal.UserID) error {
-	t, err := token.CreateResetPasswordToken(s.db, userID)
-	if err != nil {
-		return fmt.Errorf("create password reset token: %w", err)
-	}
-
-	link := fmt.Sprintf("%s/reset-password?token=%s", s.cfg.AppURL, t)
+func (s *Service) SendPasswordResetEmail(email, token string) error {
+	link := fmt.Sprintf("%s/reset-password?token=%s", s.cfg.AppURL, token)
 	body := fmt.Sprintf(passwordResetBody, link)
 	if err := s.mailer.send(email, passwordResetSubject, body); err != nil {
 		return fmt.Errorf("send password reset email: %w", err)

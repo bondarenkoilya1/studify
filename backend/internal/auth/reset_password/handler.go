@@ -18,7 +18,7 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.ResetPasswordService.RequestPasswordReset(body.Email); err != nil {
+	if err := h.ResetPasswordService.requestPasswordReset(body.Email); err != nil {
 		switch {
 		case errors.Is(err, ErrEmailRequired):
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -44,7 +44,7 @@ func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err := h.ResetPasswordService.VerifyResetPasswordToken(context.TODO(), token.Token(body.Token))
+	err := h.ResetPasswordService.verifyResetPasswordToken(context.TODO(), token.Token(body.Token))
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrMissingToken):
@@ -71,7 +71,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.ResetPasswordService.ResetPassword(
+	err := h.ResetPasswordService.resetPassword(
 		r.Context(),
 		token.Token(body.Token),
 		body.NewPassword,

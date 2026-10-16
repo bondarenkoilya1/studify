@@ -60,7 +60,7 @@ func (s *Service) IssueTokens(userID internal.UserID, w http.ResponseWriter) err
 		s.DB,
 		int64(userID),
 		string(refreshTokenID),
-		string(refreshTokenHash),
+		refreshTokenHash,
 		time.Now().Add(config.RefreshTokenTTL),
 	)
 	if err != nil {
