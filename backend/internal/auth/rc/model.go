@@ -9,3 +9,9 @@ type Record struct {
 	ExpiresAt time.Time
 	CreatedAt time.Time
 }
+
+const (
+	codeLength = 12
+	codeCount  = 10
+	alphabet   = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+)

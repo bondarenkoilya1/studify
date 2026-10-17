@@ -20,8 +20,6 @@ type Service struct {
 	DB            *sql.DB
 }
 
-type Token string
-
 func NewService(accessSecret, refreshSecret, issuer string, secureCookies bool, DB *sql.DB) *Service {
 	return &Service{
 		accessSecret:  accessSecret,

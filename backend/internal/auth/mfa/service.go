@@ -13,7 +13,7 @@ import (
 	"image/png"
 	"io"
 	"studify/internal"
-	rc "studify/internal/auth/recovery_codes"
+	rc "studify/internal/auth/rc"
 	"studify/internal/config"
 
 	"github.com/pquerna/otp"
@@ -122,7 +122,7 @@ func (s *Service) enableTOTP(ctx context.Context, userID internal.UserID) ([]str
 	if err != nil {
 		return nil, fmt.Errorf("generate recovery codes: %w", err)
 	}
-	if err := rc.SaveRecoveryCodes(s.db, int64(userID), codes); err != nil {
+	if err := rc.SaveRecoveryCodes(ctx, s.db, int64(userID), codes); err != nil {
 		return nil, fmt.Errorf("save recovery codes: %w", err)
 	}
 

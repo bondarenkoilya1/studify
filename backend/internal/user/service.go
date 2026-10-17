@@ -15,19 +15,22 @@ import (
 	"studify/internal"
 	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
-	"studify/internal/mail"
 	"studify/internal/media"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Service struct {
-	db          *sql.DB
-	mailService *mail.Service
+type confirmationSender interface {
+	SendConfirmationEmail(ctx context.Context, userID internal.UserID, email string) error
 }
 
-func NewService(db *sql.DB, mailService *mail.Service) *Service {
-	return &Service{db: db, mailService: mailService}
+type Service struct {
+	db                  *sql.DB
+	emailConfirmService confirmationSender
+}
+
+func NewService(db *sql.DB, s confirmationSender) *Service {
+	return &Service{db: db, emailConfirmService: s}
 }
 
 // avatarFilePath превращает публичный URL аватара в путь на диске.
@@ -88,9 +91,11 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 		return nil, fmt.Errorf("commit update user email tx (user_id=%d): %w", userID, err)
 	}
 
-	if err = s.mailService.SendConfirmationEmail(newUser.Email, internal.UserID(newUser.ID)); err != nil {
-		slog.Error("failed to send confirmation email",
-			slog.Int64("user_id", userID), slog.String("error", err.Error()))
+	if err = s.emailConfirmService.SendConfirmationEmail(ctx, internal.UserID(newUser.ID), newUser.Email); err != nil {
+		slog.ErrorContext(ctx, "failed to send confirmation email",
+			slog.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("send confirmation email: %w", err)
 	}
 
 	return newUser, nil

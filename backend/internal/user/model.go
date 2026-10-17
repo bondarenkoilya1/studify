@@ -1,14 +1,7 @@
 package user
 
-import (
-	"database/sql"
-	"studify/internal/mail"
-)
-
 type Handler struct {
-	DB          *sql.DB
-	MailService *mail.Service
-	UserService *Service
+	Service *Service
 }
 
 type User struct {

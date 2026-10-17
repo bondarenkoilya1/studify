@@ -2,10 +2,12 @@ package mfa
 
 import (
 	"errors"
+	"studify/internal/auth/token"
 	"studify/internal/user"
 )
 
 type Handler struct {
+	Token       *token.Service
 	UserService *user.Service
 	MfaService  *Service
 }

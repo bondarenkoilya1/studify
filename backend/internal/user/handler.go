@@ -17,7 +17,7 @@ const (
 )
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	user, err := h.UserService.CurrentUser(r)
+	user, err := h.Service.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -41,7 +41,7 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.UserService.CurrentUser(r)
+	user, err := h.Service.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -52,7 +52,7 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newUser, err := h.UserService.UpdateUserEmail(r.Context(), user.ID, user.Email, body.NewEmail)
+	newUser, err := h.Service.UpdateUserEmail(r.Context(), user.ID, user.Email, body.NewEmail)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrEmailRequired),
@@ -91,7 +91,7 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.UserService.UpdateUserPassword(userID, request.CurrentPassword, request.NewPassword)
+	err = h.Service.UpdateUserPassword(userID, request.CurrentPassword, request.NewPassword)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrCurrentPasswordRequired),
@@ -125,7 +125,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	const maxAvatarBytes = 2 << 20 // 2 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxAvatarBytes)
 
-	url, err := h.UserService.UploadAvatar(r.Context(), r.Body, userID)
+	url, err := h.Service.UploadAvatar(r.Context(), r.Body, userID)
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			http.Error(w, "avatar is too large (max 2MB)", http.StatusRequestEntityTooLarge)
@@ -159,7 +159,7 @@ func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.UserService.DeleteAvatar(r.Context(), userID); err != nil {
+	if err := h.Service.DeleteAvatar(r.Context(), userID); err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return

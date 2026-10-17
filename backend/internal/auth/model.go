@@ -2,6 +2,7 @@ package auth
 
 import (
 	"database/sql"
+	"studify/internal/auth/emailconfirm"
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/mail"
@@ -9,12 +10,12 @@ import (
 )
 
 type Handler struct {
-	DB          *sql.DB
-	Token       *token.Service
-	Config      *config.Config
-	MailService *mail.Service
-	AuthService *Service
-	UserService *user.Service
+	DB                  *sql.DB
+	Token               *token.Service
+	Config              *config.Config
+	MailService         *mail.Service
+	UserService         *user.Service
+	EmailConfirmService *emailconfirm.Service
 }
 
 type ChallengeTokenResponse struct {
@@ -25,7 +26,7 @@ type UserRequest struct {
 	Email           string `json:"email"`
 	Password        string `json:"password"`
 	IsEmailVerified bool   `json:"is_email_verified"`
-	TOTPCode        string `json:"totp_code"` // temp!
+	TOTPCode        string `json:"totp_code"`
 }
 
 type TOTPRequest struct {

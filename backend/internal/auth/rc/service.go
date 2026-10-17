@@ -1,17 +1,12 @@
 package rc
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"math/big"
 	"studify/internal/util"
-)
-
-const (
-	codeLength = 12
-	codeCount  = 10
-	alphabet   = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 )
 
 func Generate() ([]string, error) {
@@ -49,7 +44,7 @@ func generateCode() (string, error) {
 	), nil
 }
 
-func SaveRecoveryCodes(db *sql.DB, userID int64, codes []string) (err error) {
+func SaveRecoveryCodes(ctx context.Context, db *sql.DB, userID int64, codes []string) (err error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
@@ -58,7 +53,7 @@ func SaveRecoveryCodes(db *sql.DB, userID int64, codes []string) (err error) {
 
 	for _, code := range codes {
 		hash := util.HashSHA256(code)
-		if err = InsertRecoveryCode(tx, userID, hash); err != nil {
+		if err = InsertRecoveryCode(ctx, tx, userID, hash); err != nil {
 			return fmt.Errorf("insert recovery code: %w", err)
 		}
 	}

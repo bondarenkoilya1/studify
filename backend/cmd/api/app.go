@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"studify/internal/auth/emailconfirm"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -42,13 +43,14 @@ type Handler struct {
 	Token                *token.Service // todo: rename to service
 	MailService          *mail.Service
 	Auth                 *auth.Handler
-	AuthService          *auth.Service
 	User                 *user.Handler
 	UserService          *user.Service
 	Mfa                  *mfa.Handler
 	MfaService           *mfa.Service
 	ResetPassword        *resetpassword.Handler
 	ResetPasswordService *resetpassword.Service
+	EmailConfirm         *emailconfirm.Handler
+	EmailConfirmService  *emailconfirm.Service
 	Subject              *subject.Handler
 	Task                 *task.Handler
 	Dashboard            *dashboard.Handler
@@ -93,10 +95,10 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		db,
 	)
 	mailService := mail.NewService(db, mailer, cfg)
-	authService := auth.NewService(db)
-	userService := user.NewService(db, mailService)
+	emailConfirmService := emailconfirm.NewService(db, mailService)
 	mfaService := mfa.NewService(db, cfg)
 	resetPasswordService := resetpassword.NewService(db, mailService)
+	userService := user.NewService(db, emailConfirmService)
 
 	// Handlers
 	h := &Handler{
@@ -105,22 +107,18 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		MailService: mailService,
 
 		Auth: &auth.Handler{
-			DB:          db,
-			Token:       tokenService,
-			Config:      cfg,
-			MailService: mailService,
-			AuthService: authService,
-			UserService: userService,
+			DB:                  db,
+			Token:               tokenService,
+			Config:              cfg,
+			MailService:         mailService,
+			EmailConfirmService: emailConfirmService,
+			UserService:         userService,
 		},
-		AuthService: authService,
 
-		User: &user.Handler{
-			DB:          db,
-			MailService: mailService,
-			UserService: userService,
-		},
+		User: &user.Handler{Service: userService},
 
 		Mfa: &mfa.Handler{
+			Token:       tokenService,
 			UserService: userService,
 			MfaService:  mfaService,
 		},
@@ -130,6 +128,13 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 			ResetPasswordService: resetPasswordService,
 		},
 		ResetPasswordService: resetPasswordService,
+
+		EmailConfirm: &emailconfirm.Handler{
+			Token:       tokenService,
+			Service:     emailConfirmService,
+			UserService: userService,
+		},
+		EmailConfirmService: emailConfirmService,
 
 		Subject:   &subject.Handler{DB: db},
 		Task:      &task.Handler{DB: db},

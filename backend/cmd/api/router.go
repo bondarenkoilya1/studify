@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"studify/internal/auth"
+	"studify/internal/auth/emailconfirm"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/resetpassword"
 	"studify/internal/dashboard"
@@ -38,6 +39,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 			registerAuthRoutes(r, h.Auth)
 			registerMfaRoutes(r, h.Mfa)
 			registerPasswordResetRoutes(r, h.ResetPassword)
+			registerEmailConfirmRoutes(r, h.EmailConfirm)
 		})
 
 		r.Group(func(r chi.Router) {
@@ -66,11 +68,6 @@ func registerAuthRoutes(r chi.Router, h *auth.Handler) {
 	r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
 	r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
 
-	r.Route("/confirm", func(r chi.Router) {
-		r.Use(middlewares.ValidateAuth(h.Token))
-		r.Post("/resend", h.ResendConfirmationMail)
-		r.Post("/", h.ConfirmEmail)
-	})
 }
 
 func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {
@@ -150,6 +147,14 @@ func registerPasswordResetRoutes(r chi.Router, h *resetpassword.Handler) {
 		r.Post("/request", h.RequestPasswordReset)
 		r.Post("/verify", h.VerifyResetPasswordToken)
 		r.Post("/", h.ResetPassword)
+	})
+}
+
+func registerEmailConfirmRoutes(r chi.Router, h *emailconfirm.Handler) {
+	r.Route("/confirm", func(r chi.Router) {
+		r.Use(middlewares.ValidateAuth(h.Token))
+		r.Post("/resend", h.ResendConfirmationMail)
+		r.Post("/", h.ConfirmEmail)
 	})
 }
 

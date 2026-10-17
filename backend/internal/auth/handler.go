@@ -20,10 +20,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type tokenResponse struct {
-	Token string `json:"confirm_email_token"`
-}
-
 func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	body := UserRequest{}
 
@@ -62,11 +58,10 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.MailService.SendConfirmationEmail(
-		newUser.Email,
-		internal.UserID(newUser.ID),
-	); err != nil {
-		slog.Error("failed to send confirmation email", slog.String("error", err.Error()))
+	if err := h.EmailConfirmService.SendConfirmationEmail(r.Context(), internal.UserID(newUser.ID), newUser.Email); err != nil {
+		slog.ErrorContext(r.Context(), "failed to send confirmation email",
+			slog.String("error", err.Error()),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -213,6 +208,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	encryptedSecret, err := mfa.GetUserTOTPKeyEncryptedByID(
+		r.Context(),
 		h.DB,
 		ch.UserID,
 	)
@@ -433,51 +429,4 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) rejectRefresh(w http.ResponseWriter) {
 	h.Token.ClearAuthCookies(w)
 	http.Error(w, "unauthorized", http.StatusUnauthorized)
-}
-
-func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
-	body := tokenResponse{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.Error("failed to decode request body", slog.String("error", err.Error()))
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.AuthService.ConfirmEmail(r.Context(), token.Token(body.Token)); err != nil {
-		if errors.Is(err, ErrInvalidConfirmationToken) {
-			http.Error(w, "invalid confirmation token", http.StatusBadRequest)
-			return
-		}
-
-		slog.Error("failed to confirm email", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.UserService.CurrentUser(r)
-	if err != nil {
-		if errors.Is(err, user.ErrUserNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
-			return
-		}
-
-		slog.Error("failed to get current user", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	if err = h.MailService.SendConfirmationEmail(
-		currentUser.Email,
-		internal.UserID(currentUser.ID),
-	); err != nil {
-		slog.Error("failed to send confirmation email", slog.String("error", err.Error()))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
 }
