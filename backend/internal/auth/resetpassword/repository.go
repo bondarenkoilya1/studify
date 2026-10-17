@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type ResetPasswordTokenRecord struct {
+type TokenRecord struct {
 	UserID    int64
 	TokenHash []byte
 	ExpiresAt time.Time
@@ -18,14 +18,14 @@ type ResetPasswordTokenRecord struct {
 
 const resetPasswordTokenType = "password_reset"
 
-func GetResetPasswordTokenByHash(ctx context.Context, db internal.DBTX, tokenHash []byte) (*ResetPasswordTokenRecord, error) {
+func GetResetPasswordTokenByHash(ctx context.Context, db internal.DBTX, tokenHash []byte) (*TokenRecord, error) {
 	query := `
 		SELECT user_id, token_hash, expires_at, created_at
 		FROM auth_tokens
 		WHERE token_hash = $1 AND type = $2;
 	`
 
-	token := &ResetPasswordTokenRecord{}
+	token := &TokenRecord{}
 	err := db.QueryRowContext(ctx, query, tokenHash, resetPasswordTokenType).Scan(
 		&token.UserID, &token.TokenHash, &token.ExpiresAt, &token.CreatedAt,
 	)

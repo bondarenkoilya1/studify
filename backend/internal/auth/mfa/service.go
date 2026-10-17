@@ -2,6 +2,7 @@ package mfa
 
 import (
 	"bytes"
+	"context"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
@@ -13,6 +14,7 @@ import (
 	"io"
 	"studify/internal"
 	rc "studify/internal/auth/recovery_codes"
+	"studify/internal/config"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -21,58 +23,80 @@ import (
 var ErrInvalidCode = errors.New("read TOTP code")
 
 type Service struct {
-	db *sql.DB
+	db  *sql.DB
+	cfg *config.Config
 }
 
-func NewService(db *sql.DB) *Service {
-	return &Service{db: db}
+func NewService(db *sql.DB, cfg *config.Config) *Service {
+	return &Service{db: db, cfg: cfg}
 }
 
-func (s *Service) validateTOTP(userID internal.UserID, code string, encryptionKey []byte) error {
-	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(s.db, int64(userID))
+func (s *Service) validateTOTP(ctx context.Context, userID internal.UserID, code string, encryptionKey []byte) error {
+	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(ctx, s.db, int64(userID))
 	if err != nil {
 		return fmt.Errorf("get user TOTP key: %w", err)
 	}
 
-	decryptedSecret, err := DecryptTOTPKey(encryptedSecret, encryptionKey)
+	secret, err := DecryptTOTPKey(encryptedSecret, encryptionKey)
 	if err != nil {
 		return fmt.Errorf("decrypt user TOTP key: %w", err)
 	}
-
-	valid := totp.Validate(code, decryptedSecret)
-	if !valid {
+	if !totp.Validate(code, secret) {
 		return ErrInvalidCode
 	}
 
 	return nil
 }
 
-func (s *Service) enableTOTP(userID internal.UserID) ([]string, error) {
-	if err := UpdateUserTOTPStatus(s.db, int64(userID), true); err != nil {
-		return nil, fmt.Errorf("enable user is_totp_enabled status: %w", err)
+func (s *Service) enableTOTP(ctx context.Context, userID internal.UserID) ([]string, error) {
+	if err := UpdateUserTOTPStatus(ctx, s.db, int64(userID), true); err != nil {
+		return nil, fmt.Errorf("enable user TOTP status: %w", err)
 	}
 
 	codes, err := rc.Generate()
 	if err != nil {
 		return nil, fmt.Errorf("generate recovery codes: %w", err)
 	}
-
-	if err = rc.SaveRecoveryCodes(s.db, int64(userID), codes); err != nil {
+	if err := rc.SaveRecoveryCodes(s.db, int64(userID), codes); err != nil {
 		return nil, fmt.Errorf("save recovery codes: %w", err)
 	}
 
 	return codes, nil
 }
 
+func (s *Service) generateTOTP(ctx context.Context, email string, userID int64) (*TOTPResponse, error) {
+	key, err := GenerateTOTPKey(email, s.cfg.AppName)
+	if err != nil {
+		return nil, fmt.Errorf("generate totp key: %w", err)
+	}
+
+	qr, err := GenerateTOTPQRCode(key)
+	if err != nil {
+		return nil, fmt.Errorf("generate totp qr code: %w", err)
+	}
+
+	secret := key.Secret() // отдаём пользователю, чтобы он мог ввести его вручную
+
+	encryptedSecret, err := EncryptTOTPKey(secret, s.cfg.TOTPEncryptionKey)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt totp key: %w", err)
+	}
+
+	if err = UpdateUserTOTPSecret(ctx, s.db, userID, encryptedSecret); err != nil {
+		return nil, fmt.Errorf("save totp secret for user %d: %w", userID, err)
+	}
+
+	return &TOTPResponse{
+		QRCode:  base64.StdEncoding.EncodeToString(qr),
+		TextKey: secret,
+	}, nil
+}
+
 func GenerateTOTPKey(email, issuer string) (*otp.Key, error) {
-	key, err := totp.Generate(totp.GenerateOpts{
-		Issuer:      issuer,
-		AccountName: email,
-	})
+	key, err := totp.Generate(totp.GenerateOpts{Issuer: issuer, AccountName: email})
 	if err != nil {
 		return nil, ErrFailedToGenerate
 	}
-
 	return key, nil
 }
 
@@ -82,40 +106,30 @@ func GenerateTOTPQRCode(key *otp.Key) ([]byte, error) {
 	if err != nil {
 		return nil, ErrFailedToGenerateQR
 	}
-
 	if err := png.Encode(&buf, img); err != nil {
 		return nil, ErrFailedToEncodeQR
 	}
-
 	return buf.Bytes(), nil
 }
 
 func EncryptTOTPKey(secret string, key []byte) (string, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return "", fmt.Errorf("generate aes cipher: %w", err)
+		return "", fmt.Errorf("create AES cipher: %w", err)
 	}
 
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", fmt.Errorf("generate gcm: %w", err)
+		return "", fmt.Errorf("create GCM: %w", err)
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
-
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return "", fmt.Errorf("generate nonce: %w", err)
 	}
 
-	cipherText := gcm.Seal(
-		nil,
-		nonce,
-		[]byte(secret),
-		nil,
-	)
-
-	result := append(nonce, cipherText...)
-	return base64.StdEncoding.EncodeToString(result), nil
+	ciphertext := gcm.Seal(nil, nonce, []byte(secret), nil)
+	return base64.StdEncoding.EncodeToString(append(nonce, ciphertext...)), nil
 }
 
 func DecryptTOTPKey(encrypted string, key []byte) (string, error) {
@@ -134,21 +148,11 @@ func DecryptTOTPKey(encrypted string, key []byte) (string, error) {
 		return "", fmt.Errorf("create GCM: %w", err)
 	}
 
-	nonceSize := gcm.NonceSize()
-	if len(data) < nonceSize {
-		return "", fmt.Errorf("encrypted secret is too short")
+	if len(data) < gcm.NonceSize() {
+		return "", errors.New("encrypted secret is too short")
 	}
 
-	nonce := data[:nonceSize]
-	ciphertext := data[nonceSize:]
-
-	secret, err := gcm.Open(
-		nil,
-		nonce,
-		ciphertext,
-		nil,
-	)
-
+	secret, err := gcm.Open(nil, data[:gcm.NonceSize()], data[gcm.NonceSize():], nil)
 	if err != nil {
 		return "", fmt.Errorf("decrypt TOTP secret: %w", err)
 	}

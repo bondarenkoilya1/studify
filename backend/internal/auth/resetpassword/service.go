@@ -122,7 +122,7 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 	return nil
 }
 
-func (s *Service) validateResetPasswordToken(t token.Token) (*ResetPasswordTokenRecord, error) {
+func (s *Service) validateResetPasswordToken(t token.Token) (*TokenRecord, error) {
 	hash := util.HashSHA256(string(t))
 
 	resetToken, err := GetResetPasswordTokenByHash(context.TODO(), s.db, []byte(hash))
