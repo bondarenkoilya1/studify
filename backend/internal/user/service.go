@@ -40,13 +40,13 @@ func avatarFilePath(avatarURL string) (string, bool) {
 	return filepath.Join(avatarsDir, filename), true
 }
 
-func (s *Service) CurrentUser(r *http.Request, db *sql.DB) (*User, error) {
+func (s *Service) CurrentUser(r *http.Request) (*User, error) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
 		return nil, err
 	}
 
-	currentUser, err := GetUserByID(db, userID)
+	currentUser, err := GetUserByID(s.db, userID)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			return nil, ErrUserNotFound

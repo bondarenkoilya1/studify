@@ -8,8 +8,9 @@ import (
 	"studify/internal"
 )
 
+// GenerateTOTP returns a QR code and a text key for setting up TOTP.
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.UserService.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -20,7 +21,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := h.MfaService.generateTOTP(r.Context(), currentUser.Email, currentUser.ID)
+	setup, err := h.MfaService.generateTOTP(r.Context(), currentUser.Email, currentUser.ID)
 	if err != nil {
 		slog.Error("failed to generate totp",
 			slog.Int64("user_id", currentUser.ID),
@@ -31,16 +32,17 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("failed to encode response",
+	if err = json.NewEncoder(w).Encode(setup); err != nil {
+		slog.Error("failed to encode totp setup",
 			slog.Int64("user_id", currentUser.ID),
 			slog.Any("error", err),
 		)
 	}
 }
 
+// ConfirmTOTPSetup checks the TOTP code, enables MFA and returns recovery codes.
 func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.UserService.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -58,36 +60,31 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.MfaService.validateTOTP(r.Context(), internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+	recoveryCodes, err := h.MfaService.confirmTOTPSetup(r.Context(), internal.UserID(currentUser.ID), body.Passcode)
+	if err != nil {
 		if errors.Is(err, ErrInvalidCode) {
-			slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
-			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+			http.Error(w, "invalid code", http.StatusBadRequest)
 			return
 		}
-
-		slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
-		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
-		return
-	}
-
-	codes, err := h.MfaService.enableTOTP(r.Context(), internal.UserID(currentUser.ID))
-	if err != nil {
-		slog.Error("failed to enable TOTP", slog.String("error", err.Error()))
+		slog.Error("failed to confirm totp setup",
+			slog.Int64("user_id", int64(currentUser.ID)),
+			slog.Any("error", err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	response := RecoveryCodesResponse{Codes: codes}
-
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("failed to encode response", slog.String("error", err.Error()))
-		return
+	if err = json.NewEncoder(w).Encode(recoveryCodes); err != nil {
+		slog.Error("failed to encode recovery codes",
+			slog.Int64("user_id", int64(currentUser.ID)),
+			slog.Any("error", err),
+		)
 	}
 }
 
 func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.UserService.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -105,35 +102,40 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.MfaService.validateTOTP(r.Context(), internal.UserID(currentUser.ID), body.Passcode, h.Config.TOTPEncryptionKey); err != nil {
+	if err = h.MfaService.verifyTOTP(r.Context(), internal.UserID(currentUser.ID), body.Passcode); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
-			slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
-			http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+			http.Error(w, "invalid code", http.StatusBadRequest)
 			return
 		}
-
-		slog.Error("failed to validate TOTP", slog.String("error", err.Error()))
-		http.Error(w, "Invalid TOTP Passcode", http.StatusBadRequest)
+		slog.Error("failed to verify totp",
+			slog.Int64("user_id", currentUser.ID),
+			slog.Any("error", err),
+		)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// DisableTOTP turns off TOTP for the current user.
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.UserService.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get current user", slog.String("error", err.Error()))
+		slog.Error("failed to get current user", slog.Any("error", err))
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	if err = DisableUserTOTP(r.Context(), h.DB, currentUser.ID); err != nil {
-		slog.Error("failed to disable user TOTP", slog.String("error", err.Error()))
+	if err = h.MfaService.disableTOTP(r.Context(), internal.UserID(currentUser.ID)); err != nil {
+		slog.Error("failed to disable totp",
+			slog.Int64("user_id", currentUser.ID),
+			slog.Any("error", err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

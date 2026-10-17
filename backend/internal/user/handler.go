@@ -17,7 +17,7 @@ const (
 )
 
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
-	user, err := h.UserService.CurrentUser(r, h.DB)
+	user, err := h.UserService.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
@@ -41,7 +41,7 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.UserService.CurrentUser(r, h.DB)
+	user, err := h.UserService.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)

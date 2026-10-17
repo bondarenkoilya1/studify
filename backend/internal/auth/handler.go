@@ -458,7 +458,7 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.UserService.CurrentUser(r, h.DB)
+	currentUser, err := h.UserService.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
 			http.Error(w, "user not found", http.StatusNotFound)
