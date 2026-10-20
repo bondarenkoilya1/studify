@@ -1,12 +1,13 @@
 package token
 
-// Refresh token
+import "errors"
 
+type AccessToken string
 type RefreshToken string
 type Token string
-type TokenHash string
 type TokenID string
 
-const (
-	authChallengeTokenType = "auth_challenge"
+var (
+	ErrEmptyTokenSubject = errors.New("empty token subject")
+	ErrEmptyTokenID      = errors.New("empty token id")
 )
