@@ -40,7 +40,7 @@ type application struct {
 // Handler holds all handlers and services needed by the router.
 type Handler struct {
 	Config               *config.Config
-	Token                *token.Service // todo: rename to service
+	TokenManager         *token.Manager
 	MailService          *mail.Service
 	Auth                 *auth.Handler
 	User                 *user.Handler
@@ -87,40 +87,31 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 
 	// Services
 	mailer := mail.NewMailer(cfg.SMTPAddr, "noreply@studify.com")
-	tokenService := token.NewService(
-		cfg.JWTAccessSecret,
-		cfg.JWTRefreshSecret,
-		cfg.Issuer,
-		cfg.IsProduction(),
-		db,
-	)
+	tokenManager := token.NewManager([]byte(cfg.JWTAccessSecret), []byte(cfg.JWTRefreshSecret), cfg.Issuer, config.AccessTokenTTL, config.RefreshTokenTTL)
+	cookiesService := token.NewCookies(cfg.IsProduction(), config.AccessTokenTTL, config.RefreshTokenTTL)
 	mailService := mail.NewService(db, mailer, cfg)
 	emailConfirmService := emailconfirm.NewService(db, mailService)
 	mfaService := mfa.NewService(db, cfg)
 	resetPasswordService := resetpassword.NewService(db, mailService)
 	userService := user.NewService(db, emailConfirmService)
+	authService := auth.NewService(db, tokenManager, cookiesService, emailConfirmService)
 
 	// Handlers
 	h := &Handler{
-		Config:      cfg,
-		Token:       tokenService,
-		MailService: mailService,
+		Config:       cfg,
+		TokenManager: tokenManager,
+		MailService:  mailService,
 
 		Auth: &auth.Handler{
-			DB:                  db,
-			Token:               tokenService,
-			Config:              cfg,
-			MailService:         mailService,
-			EmailConfirmService: emailConfirmService,
-			UserService:         userService,
+			Service: authService,
+			Cookies: cookiesService,
 		},
 
 		User: &user.Handler{Service: userService},
 
 		Mfa: &mfa.Handler{
-			Token:       tokenService,
 			UserService: userService,
-			MfaService:  mfaService,
+			Service:     mfaService,
 		},
 		MfaService: mfaService,
 
@@ -130,7 +121,6 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		ResetPasswordService: resetPasswordService,
 
 		EmailConfirm: &emailconfirm.Handler{
-			Token:       tokenService,
 			Service:     emailConfirmService,
 			UserService: userService,
 		},
