@@ -1,23 +1,13 @@
 package mfa
 
 import (
-	"errors"
-	"studify/internal/auth/token"
 	"studify/internal/user"
 )
 
 type Handler struct {
-	Token       *token.Service
 	UserService *user.Service
-	MfaService  *Service
+	Service     *Service
 }
-
-var (
-	ErrFailedToGenerate   = errors.New("failed to generate TOTP key")
-	ErrFailedToGenerateQR = errors.New("failed to generate qr code from key")
-	ErrFailedToEncodeQR   = errors.New("failed to encode key to QR-code")
-	ErrUserNotFound       = errors.New("user not found")
-)
 
 type Passcode struct {
 	Passcode string `json:"passcode"`

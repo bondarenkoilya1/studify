@@ -21,7 +21,7 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	setup, err := h.MfaService.generateTOTP(r.Context(), currentUser.Email, currentUser.ID)
+	setup, err := h.Service.generateTOTP(r.Context(), currentUser.Email, currentUser.ID)
 	if err != nil {
 		slog.Error("failed to generate totp",
 			slog.Int64("user_id", currentUser.ID),
@@ -60,7 +60,7 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recoveryCodes, err := h.MfaService.confirmTOTPSetup(r.Context(), internal.UserID(currentUser.ID), body.Passcode)
+	recoveryCodes, err := h.Service.confirmTOTPSetup(r.Context(), internal.UserID(currentUser.ID), body.Passcode)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCode) {
 			http.Error(w, "invalid code", http.StatusBadRequest)
@@ -102,7 +102,7 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.MfaService.verifyTOTP(r.Context(), internal.UserID(currentUser.ID), body.Passcode); err != nil {
+	if err = h.Service.verifyTOTP(r.Context(), internal.UserID(currentUser.ID), body.Passcode); err != nil {
 		if errors.Is(err, ErrInvalidCode) {
 			http.Error(w, "invalid code", http.StatusBadRequest)
 			return
@@ -131,7 +131,7 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.MfaService.disableTOTP(r.Context(), internal.UserID(currentUser.ID)); err != nil {
+	if err = h.Service.disableTOTP(r.Context(), internal.UserID(currentUser.ID)); err != nil {
 		slog.Error("failed to disable totp",
 			slog.Int64("user_id", currentUser.ID),
 			slog.Any("error", err),

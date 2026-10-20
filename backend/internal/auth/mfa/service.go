@@ -20,8 +20,6 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
-var ErrInvalidCode = errors.New("read TOTP code")
-
 type Service struct {
 	db  *sql.DB
 	cfg *config.Config
