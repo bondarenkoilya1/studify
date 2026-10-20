@@ -9,7 +9,7 @@ import (
 	"studify/internal/httpx"
 )
 
-func ValidateAuth(token *token.Service) func(http.Handler) http.Handler {
+func ValidateAuth(tokenManager *token.Manager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			accessTokenCookie, err := r.Cookie("access_token")
@@ -24,7 +24,7 @@ func ValidateAuth(token *token.Service) func(http.Handler) http.Handler {
 				return
 			}
 
-			userID, err := token.ParseAccessToken(accessTokenCookie.Value)
+			userID, err := tokenManager.ParseAccess(token.AccessToken(accessTokenCookie.Value))
 			if err != nil {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return

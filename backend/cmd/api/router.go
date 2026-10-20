@@ -34,16 +34,24 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
+	validateAuth := middlewares.ValidateAuth(h.TokenManager)
+
 	r.Route("/api", func(r chi.Router) {
+		// Public
 		r.Route("/auth", func(r chi.Router) {
 			registerAuthRoutes(r, h.Auth)
-			registerMfaRoutes(r, h.Mfa)
 			registerPasswordResetRoutes(r, h.ResetPassword)
-			registerEmailConfirmRoutes(r, h.EmailConfirm)
+
 		})
 
+		// Auth needed
 		r.Group(func(r chi.Router) {
-			r.Use(middlewares.ValidateAuth(h.Token))
+			r.Use(validateAuth)
+
+			r.Route("/auth", func(r chi.Router) {
+				registerMfaRoutes(r, h.Mfa)
+				registerEmailConfirmRoutes(r, h.EmailConfirm)
+			})
 
 			registerSubjectRoutes(r, h.Subject, h.Task)
 			registerTaskRoutes(r, h.Task)
@@ -53,7 +61,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(middlewares.ValidateAuth(h.Token))
+		r.Use(validateAuth)
 		registerStaticRoutes(r)
 	})
 
@@ -62,12 +70,12 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 func registerAuthRoutes(r chi.Router, h *auth.Handler) {
 	r.Post("/logout", h.LogoutUser)
-	r.Post("/refresh", h.RefreshTokens)
+	//r.Post("/logout-full", h.LogoutAllSessions)
+	//r.Post("/refresh", h.RefreshTokens)
 
-	r.With(middlewares.RequireJSON).Post("/register", h.RegisterUser)
-	r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
-	r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
-
+	r.With(middlewares.RequireJSON).Post("/register", h.Register)
+	//r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
+	//r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
 }
 
 func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {
@@ -128,8 +136,6 @@ func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
 
 func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 	r.Route("/totp", func(r chi.Router) {
-		r.Use(middlewares.ValidateAuth(h.Token))
-
 		r.Route("/setup", func(r chi.Router) {
 			r.Post("/", h.GenerateTOTP)
 			r.With(middlewares.RequireJSON).Post("/confirm", h.ConfirmTOTPSetup)
@@ -152,7 +158,6 @@ func registerPasswordResetRoutes(r chi.Router, h *resetpassword.Handler) {
 
 func registerEmailConfirmRoutes(r chi.Router, h *emailconfirm.Handler) {
 	r.Route("/confirm", func(r chi.Router) {
-		r.Use(middlewares.ValidateAuth(h.Token))
 		r.Post("/resend", h.ResendConfirmationMail)
 		r.Post("/", h.ConfirmEmail)
 	})
