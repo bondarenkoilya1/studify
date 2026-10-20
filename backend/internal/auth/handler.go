@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"studify/internal/auth/challenge"
 	"studify/internal/user"
 )
 
@@ -128,107 +129,57 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 //	}
 //}
 
-//func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
-//	body := totpReq{}
-//
-//	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-//		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
-//		return
-//	}
-//
-//	if body.ChallengeToken == "" {
-//		slog.Error("challenge token is required")
-//		http.Error(w, "challenge token is required", http.StatusBadRequest)
-//		return
-//	}
-//
-//	if body.Code == "" {
-//		slog.Error("TOTP code is required")
-//		http.Error(w, "TOTP code is required", http.StatusBadRequest)
-//		return
-//	}
-//
-//	hash := util.HashSHA256(body.ChallengeToken)
-//
-//	ch, err := challenge.GetAuthChallengeByTokenHash(h.DB, []byte(hash))
-//	if err != nil {
-//		if errors.Is(err, challenge.ErrChallengeTokenNotFound) {
-//			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
-//			return
-//		}
-//
-//		slog.Error("failed to get auth challenge", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	if time.Now().After(ch.ExpiresAt) {
-//		http.Error(w, "challenge token expired", http.StatusUnauthorized)
-//		return
-//	}
-//
-//	currentUser, err := user.GetUserByID(h.DB, ch.UserID)
-//	if err != nil {
-//		if errors.Is(err, user.ErrUserNotFound) {
-//			http.Error(w, "invalid or expired challenge token", http.StatusUnauthorized)
-//			return
-//		}
-//
-//		slog.Error("failed to get user for TOTP login", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	encryptedSecret, err := mfa.GetUserTOTPKeyEncryptedByID(
-//		r.Context(),
-//		h.DB,
-//		ch.UserID,
-//	)
-//	if err != nil {
-//		slog.Error("failed to get user TOTP key", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	decryptedSecret, err := mfa.DecryptTOTPKey(
-//		encryptedSecret,
-//		h.Config.TOTPEncryptionKey,
-//	)
-//	if err != nil {
-//		slog.Error("failed to decrypt user TOTP key", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	if !totp.Validate(body.Code, decryptedSecret) {
-//		http.Error(w, "invalid TOTP passcode", http.StatusBadRequest)
-//		return
-//	}
-//
-//	if err = challenge.DeleteAuthChallenge(h.DB, ch.ID); err != nil {
-//		slog.Error("failed to delete auth challenge", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	accessToken, refreshToken, _, err := h.Token.GenerateJWTTokens(r.Context(), internal.UserID(currentUser.ID))
-//	if err != nil {
-//
-//	}
-//
-//	if err := h.Token.IssueTokens(accessToken, refreshToken, w); err != nil {
-//		slog.Error("failed to issue tokens", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//	w.WriteHeader(http.StatusOK)
-//
-//	if err = json.NewEncoder(w).Encode(currentUser); err != nil {
-//		slog.Error("failed to encode user to JSON", slog.String("error", err.Error()))
-//	}
-//}
+func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
+	var body totpReq
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	currentUser, pair, err := h.Service.loginTOTP(
+		r.Context(),
+		body.ChallengeToken,
+		body.Code,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, user.ErrUserNotFound):
+			http.Error(w, "user not found", http.StatusUnauthorized)
+
+		case errors.Is(err, challenge.ErrChallengeTokenNotFound):
+			http.Error(w, "invalid or expired challenge", http.StatusUnauthorized)
+
+		case errors.Is(err, ErrInvalidTOTPCode):
+			http.Error(w, "invalid TOTP code", http.StatusUnauthorized)
+
+		case errors.Is(err, ErrChallengeExpired):
+			http.Error(w, "challenge expired", http.StatusUnauthorized)
+
+		case errors.Is(err, ErrRequiredChallengeToken),
+			errors.Is(err, ErrRequiredTOTPCode):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+
+		default:
+			slog.ErrorContext(r.Context(), "failed to complete TOTP login",
+				slog.String("error", err.Error()),
+			)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	h.Cookies.Set(w, pair)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(currentUser); err != nil {
+		slog.ErrorContext(r.Context(), "failed to encode user response",
+			slog.String("error", err.Error()),
+		)
+	}
+}
 
 func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	h.Cookies.Clear(w)

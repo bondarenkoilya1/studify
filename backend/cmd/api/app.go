@@ -94,7 +94,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	mfaService := mfa.NewService(db, cfg)
 	resetPasswordService := resetpassword.NewService(db, mailService)
 	userService := user.NewService(db, emailConfirmService)
-	authService := auth.NewService(db, tokenManager, cookiesService, emailConfirmService)
+	authService := auth.NewService(db, tokenManager, cookiesService, emailConfirmService, cfg)
 
 	// Handlers
 	h := &Handler{
