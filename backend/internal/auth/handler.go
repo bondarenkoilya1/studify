@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"studify/internal"
 	"studify/internal/auth/challenge"
 	"studify/internal/auth/credentials"
+	"studify/internal/httpx"
 	"studify/internal/user"
 )
 
@@ -300,10 +302,22 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 //	w.WriteHeader(http.StatusNoContent)
 //}
 
-//func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
-//	err := token.DeleteRefreshTokens(r.Context(), h.DB, 5)
-//	if err != nil {
-//	}
-//
-//	h.Token.ClearAuthCookies(w)
-//}
+func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	h.Cookies.Clear(w)
+
+	if err = h.Service.logoutAllSessions(r.Context(), internal.UserID(userID)); err != nil {
+		slog.ErrorContext(r.Context(), "failed to logout all sessions",
+			slog.String("error", err.Error()),
+		)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

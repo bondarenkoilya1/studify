@@ -192,22 +192,16 @@ func DeleteRefreshToken(ctx context.Context, db internal.DBTX, id int64) error {
 	return nil
 }
 
-func DeleteRefreshTokens(ctx context.Context, db internal.DBTX, userID int64) error {
-	query := `
-		DELETE FROM refresh_tokens WHERE user_id = $1;
+func RevokeAllRefreshTokens(ctx context.Context, q internal.DBTX, userID int64) error {
+	const query = `
+		UPDATE refresh_tokens
+		SET revoked_at = NOW()
+		WHERE user_id = $1
+			AND revoked_at IS NULL
 	`
 
-	result, err := db.ExecContext(ctx, query, userID)
-	if err != nil {
-		return fmt.Errorf("delete user refresh tokens: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("get deleted refresh tokens count: %w", err)
-	}
-	if rows == 0 {
-		return sql.ErrNoRows
+	if _, err := q.ExecContext(ctx, query, userID); err != nil {
+		return fmt.Errorf("revoke refresh tokens: %w", err)
 	}
 
 	return nil

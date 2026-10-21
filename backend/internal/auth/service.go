@@ -195,6 +195,14 @@ func (s *Service) logout(ctx context.Context, refreshToken token.RefreshToken) e
 	return nil
 }
 
+func (s *Service) logoutAllSessions(ctx context.Context, userID internal.UserID) error {
+	if err := token.RevokeAllRefreshTokens(ctx, s.db, int64(userID)); err != nil {
+		return fmt.Errorf("revoke all refresh tokens: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) newSession(ctx context.Context, q internal.DBTX, userID internal.UserID) (token.Pair, error) {
 	refresh, id, err := s.tokenManager.NewRefresh(userID)
 	if err != nil {
