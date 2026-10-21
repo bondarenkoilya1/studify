@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/pquerna/otp/totp"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
@@ -71,64 +72,61 @@ func (s *Service) register(ctx context.Context, email, password string) (*user.U
 	return newUser, pair, nil
 }
 
-//func (s *Service) login(email, password string) error {
-//	if err := credentials.ValidateCredentials(email, password, credentials.ActionLogin); err != nil {
-//		return err
-//	}
-//
-//	currentUser, err := user.GetUserByEmail(s.db, email)
-//	if err != nil {
-//		return err
-//	}
-//
-//	if err = bcrypt.CompareHashAndPassword(
-//		[]byte(currentUser.PasswordHash),
-//		[]byte(password),
-//	); err != nil {
-//		return err
-//	}
-//
-//	if currentUser.IsTOTPEnabled {
-//		challengeToken, err := token.GenerateAuthToken()
-//		if err != nil {
-//			return err
-//		}
-//
-//		hash := util.HashSHA256(string(challengeToken))
-//
-//		_, err = challenge.InsertAuthChallenge(
-//			s.db,
-//			currentUser.ID,
-//			[]byte(hash),
-//			time.Now().Add(config.ChallengeTokenTTL),
-//		)
-//		if err != nil {
-//			return err
-//		}
-//
-//		response := ChallengeTokenResponse{
-//			ChallengeToken: string(challengeToken),
-//		}
-//
-//		//todo!!! mb return _, _, isTotpEnabled := and then other service or actions in the handler
-//		//w.Header().Set("Content-Type", "application/json")
-//		//
-//		//if err := json.NewEncoder(w).Encode(response); err != nil {
-//		//	slog.Error("failed to encode response", slog.String("error", err.Error()))
-//		//}
-//		//
-//		//return
-//	}
-//
-//	//todo
-//	//if err := s.token.IssueTokens(internal.UserID(currentUser.ID), w); err != nil {
-//	//	slog.Error("failed to issue tokens", slog.String("error", err.Error()))
-//	//	http.Error(w, "internal server error", http.StatusInternalServerError)
-//	//	return
-//	//}
-//
-//	return nil
-//}
+func (s *Service) login(ctx context.Context, email, password string) (*loginResponse, error) {
+	// Validate
+	if err := credentials.ValidateCredentials(email, password, credentials.ActionLogin); err != nil {
+		return nil, err
+	}
+
+	currentUser, err := user.GetUserByEmail(s.db, email)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = bcrypt.CompareHashAndPassword(
+		[]byte(currentUser.PasswordHash),
+		[]byte(password),
+	); err != nil {
+		return nil, err
+	}
+
+	// Check on TOTP
+	var challengeToken token.Token
+
+	if currentUser.IsTOTPEnabled {
+		challengeToken, err = token.GenerateAuthToken()
+		if err != nil {
+			return nil, err
+		}
+
+		hash := util.HashSHA256(string(challengeToken))
+
+		_, err = challenge.InsertAuthChallenge(
+			s.db,
+			currentUser.ID,
+			[]byte(hash),
+			time.Now().Add(config.ChallengeTokenTTL),
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Data for login
+	pair, err := s.newSession(ctx, s.db, internal.UserID(currentUser.ID))
+	if err != nil {
+		return nil, fmt.Errorf("create session: %w", err)
+	}
+
+	response := &loginResponse{
+		User:           currentUser,
+		Pair:           pair,
+		IsTOTPRequired: currentUser.IsTOTPEnabled,
+		ChallengeToken: challengeToken,
+	}
+
+	return response, nil
+}
 
 func (s *Service) loginTOTP(ctx context.Context, challengeToken, code string) (*user.User, token.Pair, error) {
 	if challengeToken == "" {

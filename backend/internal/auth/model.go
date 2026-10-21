@@ -1,17 +1,13 @@
 package auth
 
 import (
-	"errors"
 	"studify/internal/auth/token"
+	"studify/internal/user"
 )
 
 type Handler struct {
 	Service *Service
 	Cookies *token.Cookies
-}
-
-type ChallengeTokenResponse struct {
-	ChallengeToken string `json:"challenge_token"`
 }
 
 type registerReq struct {
@@ -32,11 +28,9 @@ type totpReq struct {
 	Code           string `json:"code"`
 }
 
-var (
-	ErrInvalidToken           = errors.New("invalid refresh token")
-	ErrTokenNotFound          = errors.New("refresh token not found")
-	ErrRequiredChallengeToken = errors.New("challenge token is required")
-	ErrRequiredTOTPCode       = errors.New("TOTP code is required")
-	ErrChallengeExpired       = errors.New("challenge token expired")
-	ErrInvalidTOTPCode        = errors.New("invalid TOTP code")
-)
+type loginResponse struct {
+	User           *user.User
+	Pair           token.Pair
+	IsTOTPRequired bool
+	ChallengeToken token.Token
+}

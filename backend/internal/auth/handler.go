@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"studify/internal/auth/challenge"
+	"studify/internal/auth/credentials"
 	"studify/internal/user"
 )
 
@@ -42,92 +43,53 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
-//	body := userReq{}
-//
-//	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-//		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
-//		return
-//	}
-//
-//	if err := credentials.ValidateCredentials(body.Email, body.Password, credentials.ActionLogin); err != nil {
-//		http.Error(w, err.Error(), http.StatusBadRequest)
-//		return
-//	}
-//
-//	currentUser, err := user.GetUserByEmail(h.DB, body.Email)
-//	if err != nil {
-//		if !errors.Is(err, user.ErrUserNotFound) {
-//			slog.Error("failed to get user for login", slog.String("error", err.Error()))
-//			http.Error(w, "internal server error", http.StatusInternalServerError)
-//			return
-//		}
-//
-//		http.Error(w, "invalid email or password", http.StatusUnauthorized)
-//		return
-//	}
-//
-//	if err := bcrypt.CompareHashAndPassword(
-//		[]byte(currentUser.PasswordHash),
-//		[]byte(body.Password),
-//	); err != nil {
-//		http.Error(w, "invalid email or password", http.StatusUnauthorized)
-//		return
-//	}
-//
-//	if currentUser.IsTOTPEnabled {
-//		challengeToken, err := token.GenerateAuthToken()
-//		if err != nil {
-//			slog.Error("failed to generate challenge token", slog.String("error", err.Error()))
-//			http.Error(w, "internal server error", http.StatusInternalServerError)
-//			return
-//		}
-//
-//		hash := util.HashSHA256(string(challengeToken))
-//
-//		_, err = challenge.InsertAuthChallenge(
-//			h.DB,
-//			currentUser.ID,
-//			[]byte(hash),
-//			time.Now().Add(config.ChallengeTokenTTL),
-//		)
-//		if err != nil {
-//			slog.Error("failed to insert auth challenge", slog.String("error", err.Error()))
-//			http.Error(w, "internal server error", http.StatusInternalServerError)
-//			return
-//		}
-//
-//		response := ChallengeTokenResponse{
-//			ChallengeToken: string(challengeToken),
-//		}
-//
-//		w.Header().Set("Content-Type", "application/json")
-//
-//		if err := json.NewEncoder(w).Encode(response); err != nil {
-//			slog.Error("failed to encode response", slog.String("error", err.Error()))
-//		}
-//
-//		return
-//	}
-//
-//	accessToken, refreshToken, _, err := h.Token.GenerateJWTTokens(r.Context(), internal.UserID(currentUser.ID))
-//	if err != nil {
-//
-//	}
-//
-//	if err := h.Token.IssueTokens(accessToken, refreshToken, w); err != nil {
-//		slog.Error("failed to issue tokens", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//	w.WriteHeader(http.StatusOK)
-//
-//	if err := json.NewEncoder(w).Encode(currentUser); err != nil {
-//		slog.Error("failed to encode user to JSON", slog.String("error", err.Error()))
-//	}
-//}
+func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
+	body := userReq{}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	loginResponse, err := h.Service.login(r.Context(), body.Email, body.Password)
+	if err != nil {
+		switch {
+		case errors.Is(err, credentials.ErrInvalidEmail),
+			errors.Is(err, credentials.ErrInvalidPassword):
+			http.Error(w, "invalid email or password", http.StatusUnauthorized)
+		case errors.Is(err, user.ErrUserNotFound):
+			http.Error(w, "invalid email or password", http.StatusUnauthorized)
+		default:
+			slog.ErrorContext(r.Context(), "failed to login user",
+				slog.String("error", err.Error()),
+			)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if loginResponse.IsTOTPRequired {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(loginResponse); err != nil {
+			slog.ErrorContext(r.Context(), "failed to encode TOTP challenge response",
+				slog.String("error", err.Error()),
+			)
+		}
+		return
+	}
+
+	h.Cookies.Set(w, loginResponse.Pair)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(loginResponse.User); err != nil {
+		slog.ErrorContext(r.Context(), "failed to encode user response",
+			slog.String("error", err.Error()),
+		)
+	}
+}
 
 func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	var body totpReq

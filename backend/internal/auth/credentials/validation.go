@@ -22,6 +22,7 @@ var (
 	ErrEmptyEmail      = errors.New("email is empty")
 	ErrEmptyPassword   = errors.New("password is empty")
 	ErrInvalidEmail    = errors.New("invalid email")
+	ErrInvalidPassword = errors.New("invalid password")
 	ErrPasswordTooLong = errors.New("password is too long")
 	ErrEmailTooLong    = errors.New("email is too long")
 )
