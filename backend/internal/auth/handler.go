@@ -164,143 +164,24 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-//func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
-//	refreshTokenCookie, err := r.Cookie("refresh_token")
-//	if err != nil {
-//		if errors.Is(err, http.ErrNoCookie) {
-//			h.Service.rejectRefresh(w)
-//			return
-//		}
-//
-//		slog.Error("failed to get refresh token cookie", slog.String("error", err.Error()))
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	userID, refreshTokenID, err := h.Token.ParseRefreshToken(refreshTokenCookie.Value)
-//	if err != nil {
-//		slog.Error("failed to parse refresh token", slog.String("error", err.Error()))
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	tx, err := h.DB.BeginTx(r.Context(), nil)
-//	if err != nil {
-//		slog.Error("failed to begin refresh token transaction", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//	defer tx.Rollback()
-//
-//	refreshToken, err := token.GetRefreshTokenByTokenID(
-//		r.Context(),
-//		tx,
-//		string(refreshTokenID),
-//		true,
-//	)
-//	if err != nil {
-//		slog.Error("failed to get refresh token by token ID", slog.String("error", err.Error()))
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	isValid := util.CompareHashSHA256(refreshTokenCookie.Value, refreshToken.TokenHash)
-//	if !isValid {
-//		slog.Error("refresh token hash mismatch", slog.Any("token_id", refreshTokenID))
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	if internal.UserID(refreshToken.UserID) != userID {
-//		slog.Error("refresh token user ID mismatch",
-//			slog.Any("db_user_id", refreshToken.UserID),
-//			slog.Any("jwt_user_id", userID),
-//		)
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	if token.TokenID(refreshToken.TokenID) != refreshTokenID {
-//		slog.Error("refresh token ID mismatch",
-//			slog.String("db_token_id", refreshToken.TokenID),
-//			slog.Any("jwt_token_id", refreshTokenID),
-//		)
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	if refreshToken.RevokedAt != nil {
-//		slog.Error("refresh token is revoked", slog.Any("token_id", refreshTokenID))
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	if !refreshToken.ExpiresAt.After(time.Now()) {
-//		slog.Error("refresh token is expired", slog.Any("token_id", refreshTokenID))
-//		h.Service.rejectRefresh(w)
-//		return
-//	}
-//
-//	newRefreshToken, newRefreshTokenID, err := h.Token.GenerateRefreshToken(userID)
-//	if err != nil {
-//		slog.Error("failed to generate refresh token", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	newRefreshTokenHash := util.HashSHA256(string(newRefreshToken))
-//
-//	_, err = token.InsertRefreshToken(
-//		r.Context(),
-//		tx,
-//		int64(userID),
-//		string(newRefreshTokenID),
-//		newRefreshTokenHash,
-//		time.Now().Add(config.RefreshTokenTTL),
-//	)
-//	if err != nil {
-//		slog.Error("failed to insert refresh token", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	if err = token.ReplaceRefreshToken(
-//		r.Context(),
-//		tx,
-//		string(refreshTokenID),
-//		string(newRefreshTokenID),
-//	); err != nil {
-//		if errors.Is(err, sql.ErrNoRows) {
-//			slog.Error("refresh token was already revoked", slog.Any("token_id", refreshTokenID))
-//			h.Service.rejectRefresh(w)
-//			return
-//		}
-//
-//		slog.Error("failed to replace refresh token", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	if err = tx.Commit(); err != nil {
-//		slog.Error("failed to commit refresh token transaction", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	if err = h.Token.SetAccessTokenCookies(userID, w); err != nil {
-//		slog.Error("failed to set access token cookie", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	if err = h.Token.SetRefreshTokenCookies(newRefreshToken, w); err != nil {
-//		slog.Error("failed to set refresh token cookie", slog.String("error", err.Error()))
-//		http.Error(w, "internal server error", http.StatusInternalServerError)
-//		return
-//	}
-//
-//	w.WriteHeader(http.StatusNoContent)
-//}
+func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := h.Cookies.RefreshToken(r)
+	if err != nil {
+		h.Service.rejectRefresh(w)
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	pair, err := h.Service.refreshTokens(r.Context(), refreshToken)
+	if err != nil {
+		h.Service.rejectRefresh(w)
+		return
+	}
+
+	h.Cookies.Set(w, pair)
+
+	w.WriteHeader(http.StatusNoContent)
+}
 
 func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)

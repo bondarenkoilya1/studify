@@ -37,21 +37,22 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 	validateAuth := middlewares.ValidateAuth(h.TokenManager)
 
 	r.Route("/api", func(r chi.Router) {
-		// Public
 		r.Route("/auth", func(r chi.Router) {
+			// Public
 			registerAuthRoutes(r, h.Auth)
 			registerPasswordResetRoutes(r, h.ResetPassword)
 
-		})
+			// Protected
+			r.Group(func(r chi.Router) {
+				r.Use(validateAuth)
 
-		// Auth needed
-		r.Group(func(r chi.Router) {
-			r.Use(validateAuth)
-
-			r.Route("/auth", func(r chi.Router) {
 				registerMfaRoutes(r, h.Mfa)
 				registerEmailConfirmRoutes(r, h.EmailConfirm)
 			})
+		})
+
+		r.Group(func(r chi.Router) {
+			r.Use(validateAuth)
 
 			registerSubjectRoutes(r, h.Subject, h.Task)
 			registerTaskRoutes(r, h.Task)
@@ -70,12 +71,12 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 func registerAuthRoutes(r chi.Router, h *auth.Handler) {
 	r.Post("/logout", h.LogoutUser)
-	//r.Post("/logout-full", h.LogoutAllSessions)
-	//r.Post("/refresh", h.RefreshTokens)
+	r.Post("/logout-all", h.LogoutAllSessions)
+	r.Post("/refresh", h.RefreshTokens)
 
 	r.With(middlewares.RequireJSON).Post("/register", h.Register)
-	//r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
-	//r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
+	r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
+	r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
 }
 
 func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {

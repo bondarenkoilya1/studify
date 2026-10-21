@@ -45,6 +45,8 @@ func NewService(
 	}
 }
 
+// Handlers
+
 func (s *Service) register(ctx context.Context, email, password string) (*user.User, token.Pair, error) {
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionRegister); err != nil {
 		return nil, token.Pair{}, err
@@ -201,6 +203,95 @@ func (s *Service) logoutAllSessions(ctx context.Context, userID internal.UserID)
 	}
 
 	return nil
+}
+
+func (s *Service) refreshTokens(
+	ctx context.Context,
+	refreshToken token.RefreshToken,
+) (token.Pair, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return token.Pair{}, fmt.Errorf("begin refresh transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	userID, refreshTokenID, err := s.validateRefreshToken(
+		ctx,
+		tx,
+		refreshToken,
+	)
+	if err != nil {
+		return token.Pair{}, err
+	}
+
+	pair, err := s.newSession(ctx, tx, userID)
+	if err != nil {
+		return token.Pair{}, fmt.Errorf("create new session: %w", err)
+	}
+
+	_, newRefreshTokenID, err := s.tokenManager.ParseRefresh(pair.Refresh)
+	if err != nil {
+		return token.Pair{}, fmt.Errorf("parse new refresh token: %w", err)
+	}
+
+	if err = token.ReplaceRefreshToken(
+		ctx,
+		tx,
+		string(refreshTokenID),
+		string(newRefreshTokenID),
+	); err != nil {
+		return token.Pair{}, fmt.Errorf("replace refresh token: %w", err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return token.Pair{}, fmt.Errorf("commit refresh transaction: %w", err)
+	}
+
+	return pair, nil
+}
+
+// Helpers
+func (s *Service) validateRefreshToken(
+	ctx context.Context,
+	q internal.DBTX,
+	refreshToken token.RefreshToken,
+) (internal.UserID, token.TokenID, error) {
+	userID, refreshTokenID, err := s.tokenManager.ParseRefresh(refreshToken)
+	if err != nil {
+		return 0, "", fmt.Errorf("parse refresh token: %w", err)
+	}
+
+	record, err := token.GetRefreshTokenByTokenID(
+		ctx,
+		q,
+		string(refreshTokenID),
+		true,
+	)
+	if err != nil {
+		return 0, "", fmt.Errorf("get refresh token: %w", err)
+	}
+
+	if !util.CompareHashSHA256(string(refreshToken), record.TokenHash) {
+		return 0, "", fmt.Errorf("refresh token hash mismatch")
+	}
+
+	if internal.UserID(record.UserID) != userID {
+		return 0, "", fmt.Errorf("refresh token user ID mismatch")
+	}
+
+	if token.TokenID(record.TokenID) != refreshTokenID {
+		return 0, "", fmt.Errorf("refresh token ID mismatch")
+	}
+
+	if record.RevokedAt != nil {
+		return 0, "", fmt.Errorf("refresh token is revoked")
+	}
+
+	if !record.ExpiresAt.After(time.Now()) {
+		return 0, "", fmt.Errorf("refresh token is expired")
+	}
+
+	return userID, refreshTokenID, nil
 }
 
 func (s *Service) newSession(ctx context.Context, q internal.DBTX, userID internal.UserID) (token.Pair, error) {
