@@ -54,7 +54,7 @@ func buildMessage(sender, recipient, subject, body string) string {
 	b.WriteString("Subject: " + subject + "\r\n")
 	b.WriteString("MIME-Version: 1.0\r\n")
 	b.WriteString("Content-Type: text/plain; charset=UTF-8\r\n")
-	b.WriteString("\r\n") // пустая строка отделяет заголовки от тела
+	b.WriteString("\r\n")
 
 	b.WriteString(strings.ReplaceAll(body, "\n", "\r\n"))
 

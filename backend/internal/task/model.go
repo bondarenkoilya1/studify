@@ -1,12 +1,11 @@
 package task
 
 import (
-	"database/sql"
 	"time"
 )
 
 type Handler struct {
-	DB *sql.DB
+	Service *Service
 }
 
 type Task struct {
@@ -25,7 +24,7 @@ type Task struct {
 	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
-type UpdateTaskRequest struct {
+type updateTaskRequest struct {
 	Name          *string    `json:"name"`
 	Description   *string    `json:"description"`
 	SubjectID     *int64     `json:"subject_id"`

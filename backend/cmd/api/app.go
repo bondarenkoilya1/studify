@@ -95,6 +95,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	resetPasswordService := resetpassword.NewService(db, mailService)
 	userService := user.NewService(db, emailConfirmService)
 	authService := auth.NewService(db, tokenManager, cookiesService, emailConfirmService, cfg)
+	taskService := task.NewService(db)
 
 	// Handlers
 	h := &Handler{
@@ -127,7 +128,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		EmailConfirmService: emailConfirmService,
 
 		Subject:   &subject.Handler{DB: db},
-		Task:      &task.Handler{DB: db},
+		Task:      &task.Handler{Service: taskService},
 		Dashboard: &dashboard.Handler{DB: db},
 	}
 

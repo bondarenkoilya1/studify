@@ -11,320 +11,219 @@ import (
 	"studify/internal/httpx"
 )
 
+// respondError логирует ошибку и отправляет ответ клиенту.
+func respondError(w http.ResponseWriter, r *http.Request, status int, msg string, err error, attrs ...any) {
+	level := slog.LevelWarn
+	if status >= http.StatusInternalServerError {
+		level = slog.LevelError
+	}
+
+	args := append([]any{
+		slog.String("method", r.Method),
+		slog.String("path", r.URL.Path),
+		slog.Any("error", err),
+	}, attrs...)
+
+	slog.Log(r.Context(), level, msg, args...)
+	http.Error(w, msg, status)
+}
+
+func writeJSON(w http.ResponseWriter, r *http.Request, status int, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		slog.Error("failed to encode response",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.Any("error", err),
+		)
+	}
+}
+
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
 		return
 	}
 
-	task, err := GetTaskByID(h.DB, id, userID)
+	task, err := h.Service.getTask(id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Task was not found", http.StatusNotFound)
+			respondError(w, r, http.StatusNotFound, "task was not found", err,
+				slog.Int64("user_id", userID), slog.Int64("task_id", id))
 			return
 		}
 
-		slog.Error("failed to get task", slog.String("error", err.Error()))
-		http.Error(w, "Failed to get task", http.StatusInternalServerError)
+		respondError(w, r, http.StatusInternalServerError, "failed to get task", err,
+			slog.Int64("user_id", userID), slog.Int64("task_id", id))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(task); err != nil {
-		slog.Error("failed to encode task", slog.String("error", err.Error()))
-	}
+	writeJSON(w, r, http.StatusOK, task)
 }
 
 func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
-	tasks, err := GetTasksByUserID(h.DB, userID)
+	tasks, err := h.Service.getUserTasks(userID)
 	if err != nil {
-		slog.Error("failed to get tasks", slog.String("error", err.Error()))
-		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
+		respondError(w, r, http.StatusInternalServerError, "failed to get tasks", err,
+			slog.Int64("user_id", userID))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(tasks); err != nil {
-		slog.Error("failed to encode tasks", slog.String("error", err.Error()))
-	}
+	writeJSON(w, r, http.StatusOK, tasks)
 }
 
 func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
 	subjectID, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
 		return
 	}
 
-	tasks, err := GetTasksBySubjectID(h.DB, userID, subjectID)
+	tasks, err := h.Service.getSubjectsTasks(subjectID, userID)
 	if err != nil {
-		slog.Error("failed to get tasks by subject id", slog.String("error", err.Error()))
-		http.Error(w, "Failed to get tasks", http.StatusInternalServerError)
+		respondError(w, r, http.StatusInternalServerError, "failed to get tasks by subject", err,
+			slog.Int64("user_id", userID), slog.Int64("subject_id", subjectID))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err = json.NewEncoder(w).Encode(tasks); err != nil {
-		slog.Error("failed to encode tasks", slog.String("error", err.Error()))
-	}
+	writeJSON(w, r, http.StatusOK, tasks)
 }
 
 func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
 	var newTask Task
-
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		slog.Error("failed to decode task body", slog.String("error", err.Error()))
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		respondError(w, r, http.StatusBadRequest, "invalid JSON", err, slog.Int64("user_id", userID))
 		return
 	}
 
-	task, err := InsertTask(
-		h.DB,
-		userID,
-		newTask.Name,
-		newTask.Type,
-		newTask.Description,
-		newTask.EstimatedTime,
-		newTask.ScheduledAt,
-		newTask.Deadline,
-		newTask.Status,
-		newTask.Difficulty,
-		newTask.Priority,
-		newTask.SubjectID,
-	)
+	task, err := h.Service.addTask(userID, &newTask)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Subject not found", http.StatusNotFound)
+			respondError(w, r, http.StatusNotFound, "subject not found", err,
+				slog.Int64("user_id", userID))
 			return
 		}
 
-		slog.Error("failed to insert task", slog.String("error", err.Error()))
-		http.Error(w, "Failed to insert task", http.StatusInternalServerError)
+		respondError(w, r, http.StatusInternalServerError, "failed to insert task", err,
+			slog.Int64("user_id", userID))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	if err := json.NewEncoder(w).Encode(task); err != nil {
-		slog.Error("failed to encode task response", slog.String("error", err.Error()))
-	}
+	writeJSON(w, r, http.StatusCreated, task)
 }
 
 func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
 		return
 	}
 
 	var newTask Task
-
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		respondError(w, r, http.StatusBadRequest, "invalid JSON", err,
+			slog.Int64("user_id", userID), slog.Int64("task_id", id))
 		return
 	}
 
-	task, err := UpdateTask(
-		h.DB,
-		userID,
-		id,
-		newTask.Name,
-		newTask.Type,
-		newTask.Description,
-		newTask.EstimatedTime,
-		newTask.ScheduledAt,
-		newTask.Deadline,
-		newTask.Status,
-		newTask.Difficulty,
-		newTask.Priority,
-		newTask.SubjectID,
-	)
+	task, err := h.Service.replaceTask(userID, id, &newTask)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(
-				w,
-				fmt.Sprintf("No task with ID: %d", id),
-				http.StatusNotFound,
-			)
+			respondError(w, r, http.StatusNotFound, fmt.Sprintf("no task with ID: %d", id), err,
+				slog.Int64("user_id", userID))
 			return
 		}
 
-		slog.Error("failed to replace task", slog.String("error", err.Error()))
-		http.Error(w, "Failed to replace task", http.StatusInternalServerError)
+		respondError(w, r, http.StatusInternalServerError, "failed to replace task", err,
+			slog.Int64("user_id", userID), slog.Int64("task_id", id))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(task); err != nil {
-		slog.Error("failed to encode replaced task", slog.String("error", err.Error()))
-	}
+	writeJSON(w, r, http.StatusOK, task)
 }
 
 func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	var req UpdateTaskRequest
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if req.Name == nil &&
-		req.Description == nil &&
-		req.SubjectID == nil &&
-		req.Type == nil &&
-		req.EstimatedTime == nil &&
-		req.ScheduledAt == nil &&
-		req.Deadline == nil &&
-		req.Status == nil &&
-		req.Difficulty == nil &&
-		req.Priority == nil {
-		http.Error(w, "No fields to update", http.StatusBadRequest)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
 		return
 	}
 
-	task, err := GetTaskByID(h.DB, id, userID)
+	var req updateTaskRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, r, http.StatusBadRequest, "invalid JSON", err,
+			slog.Int64("user_id", userID), slog.Int64("task_id", id))
+		return
+	}
+
+	task, err := h.Service.updateTask(userID, id, &req)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Task not found", http.StatusNotFound)
-			return
+		switch {
+		case errors.Is(err, ErrNoFieldsToUpdate):
+			respondError(w, r, http.StatusBadRequest, "no fields to update", err,
+				slog.Int64("user_id", userID), slog.Int64("task_id", id))
+		case errors.Is(err, sql.ErrNoRows):
+			respondError(w, r, http.StatusNotFound, "task not found", err,
+				slog.Int64("user_id", userID), slog.Int64("task_id", id))
+		default:
+			respondError(w, r, http.StatusInternalServerError, "failed to update task", err,
+				slog.Int64("user_id", userID), slog.Int64("task_id", id))
 		}
-
-		slog.Error("failed to get task", slog.String("error", err.Error()))
-		http.Error(w, "Failed to get task", http.StatusInternalServerError)
 		return
 	}
 
-	if req.Name != nil {
-		task.Name = *req.Name
-	}
-
-	if req.Description != nil {
-		task.Description = *req.Description
-	}
-
-	if req.SubjectID != nil {
-		task.SubjectID = *req.SubjectID
-	}
-
-	if req.Type != nil {
-		task.Type = *req.Type
-	}
-
-	if req.EstimatedTime != nil {
-		task.EstimatedTime = req.EstimatedTime
-	}
-
-	if req.ScheduledAt != nil {
-		task.ScheduledAt = req.ScheduledAt
-	}
-
-	if req.Deadline != nil {
-		task.Deadline = req.Deadline
-	}
-
-	if req.Status != nil {
-		task.Status = *req.Status
-	}
-
-	if req.Difficulty != nil {
-		task.Difficulty = *req.Difficulty
-	}
-
-	if req.Priority != nil {
-		task.Priority = *req.Priority
-	}
-
-	updatedTask, err := UpdateTask(
-		h.DB,
-		userID,
-		id,
-		task.Name,
-		task.Type,
-		task.Description,
-		task.EstimatedTime,
-		task.ScheduledAt,
-		task.Deadline,
-		task.Status,
-		task.Difficulty,
-		task.Priority,
-		task.SubjectID,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Task not found", http.StatusNotFound)
-			return
-		}
-
-		slog.Error("failed to update task", slog.String("error", err.Error()))
-		http.Error(w, "Failed to update task", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(updatedTask); err != nil {
-		slog.Error("failed to encode task", slog.String("error", err.Error()))
-	}
+	writeJSON(w, r, http.StatusOK, task)
 }
 
 func (h *Handler) DeleteUserTasks(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
-	if err := DeleteTasksByUserID(h.DB, userID); err != nil {
-		slog.Error("failed to delete tasks", slog.String("error", err.Error()))
-		http.Error(w, "Failed to delete tasks", http.StatusInternalServerError)
+	if err := h.Service.deleteUserTasks(userID); err != nil {
+		respondError(w, r, http.StatusInternalServerError, "failed to delete tasks", err,
+			slog.Int64("user_id", userID))
 		return
 	}
 
@@ -334,28 +233,25 @@ func (h *Handler) DeleteUserTasks(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		respondError(w, r, http.StatusUnauthorized, "unauthorized", err)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
 		return
 	}
 
-	if err := DeleteTaskByID(h.DB, userID, id); err != nil {
+	if err := h.Service.deleteTask(userID, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(
-				w,
-				fmt.Sprintf("No task with ID: %d", id),
-				http.StatusNotFound,
-			)
+			respondError(w, r, http.StatusNotFound, fmt.Sprintf("no task with ID: %d", id), err,
+				slog.Int64("user_id", userID))
 			return
 		}
 
-		slog.Error("failed to delete task", slog.String("error", err.Error()))
-		http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+		respondError(w, r, http.StatusInternalServerError, "failed to delete task", err,
+			slog.Int64("user_id", userID), slog.Int64("task_id", id))
 		return
 	}
 
