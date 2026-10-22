@@ -46,6 +46,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 			r.Group(func(r chi.Router) {
 				r.Use(validateAuth)
 
+				r.Post("/logout-all", h.Auth.LogoutAllSessions)
 				registerMfaRoutes(r, h.Mfa)
 				registerEmailConfirmRoutes(r, h.EmailConfirm)
 			})
@@ -71,7 +72,6 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 func registerAuthRoutes(r chi.Router, h *auth.Handler) {
 	r.Post("/logout", h.LogoutUser)
-	r.Post("/logout-all", h.LogoutAllSessions)
 	r.Post("/refresh", h.RefreshTokens)
 
 	r.With(middlewares.RequireJSON).Post("/register", h.Register)

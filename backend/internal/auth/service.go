@@ -93,7 +93,10 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 	}
 
 	// Check on TOTP
-	var challengeToken token.Token
+	var (
+		pair           token.Pair
+		challengeToken token.Token
+	)
 
 	if currentUser.IsTOTPEnabled {
 		challengeToken, err = token.GenerateAuthToken()
@@ -112,12 +115,11 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	// Data for login
-	pair, err := s.newSession(ctx, s.db, internal.UserID(currentUser.ID))
-	if err != nil {
-		return nil, fmt.Errorf("create session: %w", err)
+	} else {
+		pair, err = s.newSession(ctx, s.db, internal.UserID(currentUser.ID))
+		if err != nil {
+			return nil, fmt.Errorf("create session: %w", err)
+		}
 	}
 
 	response := &loginResponse{

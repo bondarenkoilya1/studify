@@ -44,8 +44,10 @@ import type {
 import type {
   AvatarUploadResponse,
   BadRequestResponse,
+  ConflictResponse,
   EmailRequest,
   Error,
+  ForbiddenResponse,
   ImageTooLargeResponse,
   InternalErrorResponse,
   NotFoundResponse,
@@ -387,8 +389,8 @@ export const getUpdateUserEmailUrl = () => {
 };
 
 /**
- * Sets `is_email_verified` to false and sends a new confirmation email. The new email is
- * only trimmed, not format-validated. An email that is already taken returns 500.
+ * Sets `is_email_verified` to false and sends a new confirmation email. The new email must
+ * be a valid address and differ from the current one. An email that is already taken returns 409 Conflict.
  * The response has `is_totp_enabled: false` and `avatar_url: null` regardless of the
  * stored values; call GET /api/users/me for the full profile.
  * @summary Update the authenticated user's email
@@ -436,6 +438,7 @@ export const getUpdateUserEmailMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | ConflictResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -483,6 +486,7 @@ export type UpdateUserEmailMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | NotFoundResponse
+  | ConflictResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -496,6 +500,7 @@ export const useUpdateUserEmail = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | ConflictResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -525,7 +530,7 @@ export const getUpdateUserPasswordUrl = () => {
 
 /**
  * The new password must be 8-72 characters and differ from the current one.
- * A wrong current password returns 401.
+ * A wrong current password returns 403 Forbidden.
  * @summary Update the authenticated user's password
  */
 export const updateUserPassword = async (
@@ -571,6 +576,7 @@ export const getUpdateUserPasswordMutationOptions = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
@@ -618,6 +624,7 @@ export type UpdateUserPasswordMutationBody = PasswordRequest;
 export type UpdateUserPasswordMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
+  | ForbiddenResponse
   | NotFoundResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
@@ -631,6 +638,7 @@ export const useUpdateUserPassword = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse

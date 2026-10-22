@@ -31,6 +31,7 @@ export * from "./emailRequest";
 export * from "./error";
 export * from "./examType";
 export * from "./fileUploadResponse";
+export * from "./forbiddenResponse";
 export * from "./imageTooLargeResponse";
 export * from "./internalErrorResponse";
 export * from "./lecturer";

@@ -24,7 +24,7 @@ const (
 	thumbnailsDir       = "./data/thumbnails/"
 	thumbnailsPublicDir = "/static/thumbnails/"
 	filesDir            = "./data/files/"
-	filesPublicDir      = "/static/files"
+	filesPublicDir      = "/static/files/"
 )
 
 // thumbnailFilePath превращает публичный URL thumbnail в путь на диске.

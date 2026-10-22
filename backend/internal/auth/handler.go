@@ -73,7 +73,9 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	if loginResponse.IsTOTPRequired {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(loginResponse); err != nil {
+		if err := json.NewEncoder(w).Encode(challengeTokenResponse{
+			ChallengeToken: string(loginResponse.ChallengeToken),
+		}); err != nil {
 			slog.ErrorContext(r.Context(), "failed to encode TOTP challenge response",
 				slog.String("error", err.Error()),
 			)

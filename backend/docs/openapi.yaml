@@ -149,6 +149,22 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/auth/logout-all:
+    post:
+      tags: [Auth]
+      summary: Log out from all sessions
+      description: Revokes all active refresh tokens for the authenticated user and clears auth cookies.
+      operationId: logoutAllSessions
+      security:
+        - accessCookie: []
+      responses:
+        '204':
+          description: All active sessions were revoked and auth cookies were cleared.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/auth/refresh:
     post:
       tags: [Auth]
@@ -296,6 +312,7 @@ paths:
       summary: Request a password reset email
       description: |
         Sends a link `{APP_URL}/reset-password?token={token}`. The token is valid for 30 minutes.
+        If the email is not found, the endpoint returns 204 No Content to avoid user enumeration.
       operationId: requestPasswordReset
       security: []
       requestBody:
@@ -306,15 +323,9 @@ paths:
               $ref: '#/components/schemas/PasswordResetEmailRequest'
       responses:
         '204':
-          description: Password reset email was sent.
+          description: Password reset email was sent (or email does not exist, returning 204 to prevent enumeration).
         '400':
           $ref: '#/components/responses/BadRequest'
-        '404':
-          description: No user with this email exists.
-          content:
-            text/plain:
-              schema:
-                $ref: '#/components/schemas/Error'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -360,13 +371,15 @@ paths:
         '204':
           description: Password was updated and the reset token was deleted.
         '400':
-          description: Missing token, passwords do not match, invalid new password, or invalid/expired token.
+          description: Missing token, passwords do not match, or invalid new password.
           content:
             text/plain:
               schema:
                 $ref: '#/components/schemas/Error'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -887,8 +900,8 @@ paths:
       tags: [Profile]
       summary: Update the authenticated user's email
       description: |
-        Sets `is_email_verified` to false and sends a new confirmation email. The new email is
-        only trimmed, not format-validated. An email that is already taken returns 500.
+        Sets `is_email_verified` to false and sends a new confirmation email. The new email must
+        be a valid address and differ from the current one. An email that is already taken returns 409 Conflict.
         The response has `is_totp_enabled: false` and `avatar_url: null` regardless of the
         stored values; call GET /api/users/me for the full profile.
       operationId: updateUserEmail
@@ -913,6 +926,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -924,7 +939,7 @@ paths:
       summary: Update the authenticated user's password
       description: |
         The new password must be 8-72 characters and differ from the current one.
-        A wrong current password returns 401.
+        A wrong current password returns 403 Forbidden.
       operationId: updateUserPassword
       security:
         - accessCookie: []
@@ -941,6 +956,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '415':
@@ -1107,6 +1124,12 @@ components:
             $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Missing or invalid authentication cookies.
+      content:
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Action forbidden (e.g. invalid current password).
       content:
         text/plain:
           schema:

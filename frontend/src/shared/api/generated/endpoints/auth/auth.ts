@@ -389,6 +389,95 @@ export const useLogoutUser = <
 > => {
   return useMutation(getLogoutUserMutationOptions(options), queryClient);
 };
+export const getLogoutAllSessionsUrl = () => {
+  return `/api/auth/logout-all`;
+};
+
+/**
+ * Revokes all active refresh tokens for the authenticated user and clears auth cookies.
+ * @summary Log out from all sessions
+ */
+export const logoutAllSessions = async (
+  options?: Parameters<typeof fetcher>[1],
+): Promise<void> => {
+  return fetcher<void>(getLogoutAllSessionsUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getLogoutAllSessionsMutationKey = () =>
+  ["logoutAllSessions"] as const;
+
+export const getLogoutAllSessionsMutationOptions = <
+  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logoutAllSessions>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof fetcher>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof logoutAllSessions>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = getLogoutAllSessionsMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof logoutAllSessions>>,
+    void
+  > = () => {
+    return logoutAllSessions(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LogoutAllSessionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof logoutAllSessions>>
+>;
+
+export type LogoutAllSessionsMutationError = ErrorType<
+  UnauthorizedResponse | InternalErrorResponse
+>;
+
+/**
+ * @summary Log out from all sessions
+ */
+export const useLogoutAllSessions = <
+  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof logoutAllSessions>>,
+      TError,
+      void,
+      TContext
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof logoutAllSessions>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getLogoutAllSessionsMutationOptions(options), queryClient);
+};
 export const getRefreshTokensUrl = () => {
   return `/api/auth/refresh`;
 };

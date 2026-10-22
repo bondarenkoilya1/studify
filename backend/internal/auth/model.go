@@ -34,3 +34,7 @@ type loginResponse struct {
 	IsTOTPRequired bool
 	ChallengeToken token.Token
 }
+
+type challengeTokenResponse struct {
+	ChallengeToken string `json:"challenge_token"`
+}

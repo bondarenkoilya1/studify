@@ -42,8 +42,9 @@ A missing or invalid token returns `401 Unauthorized`.
 | `POST` | `/api/auth/login/totp` | – | Finish a TOTP login |
 | `POST` | `/api/auth/refresh` | refresh cookie | Rotate both cookies |
 | `POST` | `/api/auth/logout` | – | Revoke the refresh token and clear cookies |
+| `POST` | `/api/auth/logout-all` | ✓ | Revoke all active sessions and clear cookies |
 | `POST` | `/api/auth/confirm/resend` | ✓ | Send a new confirmation email |
-| `POST` | `/api/auth/confirm/{token}` | ✓ | Confirm the email address |
+| `POST` | `/api/auth/confirm/` | ✓ | Confirm the email address with a token body |
 
 ### Register
 
@@ -121,10 +122,13 @@ both cookies and returns `401`.
 `POST /api/auth/logout` revokes the refresh token when the cookie is present,
 clears both cookies, and returns `204 No Content`.
 
+`POST /api/auth/logout-all` revokes all active refresh tokens for the authenticated
+user, clears both cookies, and returns `204 No Content`.
+
 ### Email confirmation
 
-`POST /api/auth/confirm/{token}` marks the email as verified and returns
-`204 No Content`. It requires the user to be logged in. An invalid or expired
+`POST /api/auth/confirm/` marks the email as verified and returns
+`204 No Content`. It requires the user to be logged in and takes `{ "confirm_email_token": "..." }` in the JSON body. An invalid or expired
 token returns `400`.
 
 `POST /api/auth/confirm/resend` sends a new link and returns `204 No Content`.
