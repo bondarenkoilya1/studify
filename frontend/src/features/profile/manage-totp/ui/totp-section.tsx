@@ -7,6 +7,7 @@ import { toast } from "@/shared/ui/sonner";
 import { TotpEnabled } from "./totp-enabled";
 import { TotpEmailVerificationRequired } from "./totp-email-verification-required";
 import { CopyButton } from "@/shared/ui/copy-button";
+import { Image } from "@/shared/ui/image";
 import { TotpSetupConfirmationForm } from "./totp-setup-confirmation-form";
 
 export function TotpSection() {
@@ -95,9 +96,12 @@ function TotpSetup() {
             {qrCode && (
               <div className="mt-5 flex justify-center">
                 <div className="rounded-xl border bg-white p-3 shadow-sm">
-                  <img
+                  <Image
                     src={`data:image/png;base64,${qrCode}`}
                     alt="TOTP QR Code"
+                    size="custom"
+                    fit="contain"
+                    containerClassName="size-40 bg-transparent"
                     className="size-40"
                   />
                 </div>

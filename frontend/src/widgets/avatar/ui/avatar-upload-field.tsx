@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { Avatar } from "@/widgets/avatar/ui/avatar";
+import { useState } from "react";
+import { ImageUpload } from "@/shared/ui/image";
+import { toAbsoluteUrl } from "@/shared/utils";
 import { avatarUploadSchema } from "@/widgets/avatar/model/schema";
 import { useUploadAvatar } from "@/widgets/avatar/model/use-upload-avatar";
 import { cn } from "@/shared/lib/cn";
@@ -17,20 +18,8 @@ export function AvatarUploadField({
   size = 96,
   className,
 }: AvatarUploadFieldProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const uploadAvatar = useUploadAvatar();
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-
-  const resetPreview = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-  };
 
   const handleFileSelect = (file: File) => {
     setError(null);
@@ -41,12 +30,8 @@ export function AvatarUploadField({
       return;
     }
 
-    setPreviewUrl(URL.createObjectURL(file));
-
     uploadAvatar.mutate(file, {
-      onSuccess: resetPreview,
       onError: (err) => {
-        resetPreview();
         setError(err.message || "Не удалось обновить аватар");
       },
     });
@@ -54,13 +39,18 @@ export function AvatarUploadField({
 
   return (
     <div className={cn("flex flex-col items-center gap-2", className)}>
-      <Avatar
-        email={email}
-        avatarUrl={previewUrl ?? currentAvatarUrl}
+      <ImageUpload
+        src={currentAvatarUrl}
+        resolveUrl={toAbsoluteUrl}
+        fallback={email}
+        shape="circle"
         size={size}
-        disabled={uploadAvatar.isPending}
+        alt={`Аватар ${email}`}
         loading={uploadAvatar.isPending}
+        disabled={uploadAvatar.isPending}
+        containerClassName="bg-transparent border border-border/60 text-foreground"
         onFileSelect={handleFileSelect}
+        onFileReject={(reason) => setError(reason)}
       />
 
       <div className="h-4">

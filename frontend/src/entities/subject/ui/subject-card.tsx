@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import type React from "react";
 import { CalendarDays, GraduationCap, type LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
+import { Image } from "@/shared/ui/image";
+import { cn } from "@/shared/lib/cn";
 import { DeleteSubjectButton } from "@/features/subject/delete-subject";
 import {
   LECTURER_POSITIONS,
@@ -58,8 +60,6 @@ function MetaRow({
 }
 
 export function SubjectCard({ subject }: { subject: Subject }) {
-  const [imageError, setImageError] = useState(false);
-
   const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
   const gradient =
     gradients && gradients[hashIndex(subject.id, gradients.length)];
@@ -91,9 +91,6 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   const visibleLecturers = lecturerGroups.slice(0, MAX_LECTURER_ROWS);
   const hiddenCount = lecturerGroups.length - visibleLecturers.length;
   const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
-  const thumbUrl = subject.thumbnail_url
-    ? toAbsoluteUrl(subject.thumbnail_url)
-    : null;
 
   return (
     <div className="group relative h-[300px] rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.14)]">
@@ -104,20 +101,19 @@ export function SubjectCard({ subject }: { subject: Subject }) {
       >
         {/* Header */}
         <div className="flex min-h-11 items-center gap-3.5 pr-8">
-          {thumbUrl && !imageError ? (
-            <img
-              src={thumbUrl}
-              alt="Subject thumbnail"
-              onError={() => setImageError(true)}
-              className="size-11 shrink-0 rounded-[13px] object-cover shadow-sm"
-            />
-          ) : (
-            <div
-              className={`flex size-11 shrink-0 items-center justify-center rounded-[13px] bg-gradient-to-br ${gradient} text-[14px] font-semibold text-white shadow-sm`}
-            >
-              {subject.name.slice(0, 2).toUpperCase()}
-            </div>
-          )}
+          <Image
+            src={subject.thumbnail_url}
+            resolveUrl={toAbsoluteUrl}
+            alt={subject.name}
+            fallback={subject.name}
+            shape="rounded"
+            size="custom"
+            containerClassName={cn(
+              "size-11 shrink-0 rounded-[13px] shadow-sm text-[14px] font-semibold text-white",
+              `bg-gradient-to-br ${gradient}`,
+            )}
+            className="rounded-[13px]"
+          />
 
           <h3
             title={subject.name}
