@@ -21,6 +21,7 @@ import { Route as ProtectedSettingsRouteImport } from './routes/_protected/setti
 import { Route as ProtectedConfirmTokenRouteImport } from './routes/_protected/confirm/$token'
 import { Route as ProtectedSettingsProfileRouteImport } from './routes/_protected/settings/profile'
 import { Route as ProtectedSettingsSecurityRouteImport } from './routes/_protected/settings/security'
+import { Route as ProtectedSettingsSessionsRouteImport } from './routes/_protected/settings/sessions'
 import { Route as ProtectedSubjectsIndexRouteImport } from './routes/_protected/subjects/index'
 import { Route as ProtectedSubjectsIdRouteImport } from './routes/_protected/subjects/$id'
 
@@ -84,6 +85,12 @@ const ProtectedSettingsSecurityRoute =
     path: '/security',
     getParentRoute: () => ProtectedSettingsRoute,
   } as any)
+const ProtectedSettingsSessionsRoute =
+  ProtectedSettingsSessionsRouteImport.update({
+    id: '/sessions',
+    path: '/sessions',
+    getParentRoute: () => ProtectedSettingsRoute,
+  } as any)
 const ProtectedSubjectsIndexRoute = ProtectedSubjectsIndexRouteImport.update({
   id: '/subjects/',
   path: '/subjects/',
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
+  '/settings/sessions': typeof ProtectedSettingsSessionsRoute
   '/subjects/$id': typeof ProtectedSubjectsIdRoute
   '/subjects/': typeof ProtectedSubjectsIndexRoute
 }
@@ -120,6 +128,7 @@ export interface FileRoutesByTo {
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
+  '/settings/sessions': typeof ProtectedSettingsSessionsRoute
   '/subjects/$id': typeof ProtectedSubjectsIdRoute
   '/subjects': typeof ProtectedSubjectsIndexRoute
 }
@@ -137,6 +146,7 @@ export interface FileRoutesById {
   '/_protected/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/_protected/settings/profile': typeof ProtectedSettingsProfileRoute
   '/_protected/settings/security': typeof ProtectedSettingsSecurityRoute
+  '/_protected/settings/sessions': typeof ProtectedSettingsSessionsRoute
   '/_protected/subjects/$id': typeof ProtectedSubjectsIdRoute
   '/_protected/subjects/': typeof ProtectedSubjectsIndexRoute
 }
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
+    | '/settings/sessions'
     | '/subjects/$id'
     | '/subjects/'
   fileRoutesByTo: FileRoutesByTo
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
+    | '/settings/sessions'
     | '/subjects/$id'
     | '/subjects'
   id:
@@ -183,6 +195,7 @@ export interface FileRouteTypes {
     | '/_protected/confirm/$token'
     | '/_protected/settings/profile'
     | '/_protected/settings/security'
+    | '/_protected/settings/sessions'
     | '/_protected/subjects/$id'
     | '/_protected/subjects/'
   fileRoutesById: FileRoutesById
@@ -279,6 +292,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedSettingsSecurityRouteImport
       parentRoute: typeof ProtectedSettingsRoute
     }
+    '/_protected/settings/sessions': {
+      id: '/_protected/settings/sessions'
+      path: '/sessions'
+      fullPath: '/settings/sessions'
+      preLoaderRoute: typeof ProtectedSettingsSessionsRouteImport
+      parentRoute: typeof ProtectedSettingsRoute
+    }
     '/_protected/subjects/': {
       id: '/_protected/subjects/'
       path: '/subjects'
@@ -324,11 +344,13 @@ const ProtectedConfirmRouteWithChildren =
 interface ProtectedSettingsRouteChildren {
   ProtectedSettingsProfileRoute: typeof ProtectedSettingsProfileRoute
   ProtectedSettingsSecurityRoute: typeof ProtectedSettingsSecurityRoute
+  ProtectedSettingsSessionsRoute: typeof ProtectedSettingsSessionsRoute
 }
 
 const ProtectedSettingsRouteChildren: ProtectedSettingsRouteChildren = {
   ProtectedSettingsProfileRoute: ProtectedSettingsProfileRoute,
   ProtectedSettingsSecurityRoute: ProtectedSettingsSecurityRoute,
+  ProtectedSettingsSessionsRoute: ProtectedSettingsSessionsRoute,
 }
 
 const ProtectedSettingsRouteWithChildren =

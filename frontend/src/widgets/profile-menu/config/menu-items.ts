@@ -1,14 +1,19 @@
-import { Shield, User } from "lucide-react";
+import { Settings, Shield, User } from "lucide-react";
 
 export const profileMenuItems = [
   {
-    label: "Profile",
+    label: "Профиль",
     to: "/settings/profile",
     icon: User,
   },
   {
-    label: "Security",
+    label: "Безопасности",
     to: "/settings/security",
     icon: Shield,
+  },
+  {
+    label: "Настройки",
+    to: "/settings/sessions",
+    icon: Settings,
   },
 ] as const;

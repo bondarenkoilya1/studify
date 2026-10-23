@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Shield, User } from "lucide-react";
+import { Laptop, Shield, User } from "lucide-react";
 import { useCurrentUser } from "@/entities/user";
 import { cn } from "@/shared/lib/cn";
 import { AvatarUploadField } from "@/widgets/avatar";
@@ -100,6 +100,18 @@ function SettingsSidebar() {
       >
         <Shield className="h-4 w-4" />
         Пароль и безопасность
+      </Link>
+
+      <Link
+        to="/settings/sessions"
+        activeOptions={{ exact: true }}
+        className={cn(linkClass, inactiveClass)}
+        activeProps={{
+          className: activeClass,
+        }}
+      >
+        <Laptop className="h-4 w-4" />
+        Сессии
       </Link>
     </nav>
   );
