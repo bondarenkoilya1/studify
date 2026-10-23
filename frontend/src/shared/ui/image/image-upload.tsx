@@ -117,7 +117,9 @@ export const ImageUpload = forwardRef<HTMLDivElement, ImageUploadProps>(
       e.target.value = "";
     };
 
-    const handleTriggerClick = () => {
+    const handleTriggerClick = (e: MouseEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
       if (disabled || readOnly || loading) return;
       inputRef.current?.click();
     };
@@ -126,6 +128,7 @@ export const ImageUpload = forwardRef<HTMLDivElement, ImageUploadProps>(
       if (disabled || readOnly || loading) return;
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
+        e.stopPropagation();
         inputRef.current?.click();
       }
     };
@@ -203,6 +206,7 @@ export const ImageUpload = forwardRef<HTMLDivElement, ImageUploadProps>(
         tabIndex={isInteractive && !loading ? 0 : undefined}
         aria-label={alt}
         aria-disabled={disabled || loading}
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={handleTriggerClick}
         onKeyDown={handleKeyDown}
         onDragEnter={handleDragEnter}
@@ -231,6 +235,7 @@ export const ImageUpload = forwardRef<HTMLDivElement, ImageUploadProps>(
           disabled={disabled || readOnly || loading}
           className="sr-only"
           onChange={handleInputChange}
+          onClick={(e) => e.stopPropagation()}
           tabIndex={-1}
         />
 

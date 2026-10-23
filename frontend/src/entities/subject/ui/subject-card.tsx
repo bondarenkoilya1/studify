@@ -2,8 +2,10 @@ import type React from "react";
 import { CalendarDays, GraduationCap, type LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
-import { Image } from "@/shared/ui/image";
+import { ImageUpload } from "@/shared/ui/image";
 import { cn } from "@/shared/lib/cn";
+import { toast } from "@/shared/ui/sonner";
+import { useUploadSubjectThumbnail } from "../model/use-upload-subject-thumbnail";
 import { DeleteSubjectButton } from "@/features/subject/delete-subject";
 import {
   LECTURER_POSITIONS,
@@ -60,6 +62,8 @@ function MetaRow({
 }
 
 export function SubjectCard({ subject }: { subject: Subject }) {
+  const uploadThumbnail = useUploadSubjectThumbnail();
+
   const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
   const gradient =
     gradients && gradients[hashIndex(subject.id, gradients.length)];
@@ -92,6 +96,17 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   const hiddenCount = lecturerGroups.length - visibleLecturers.length;
   const hasMeta = visibleLecturers.length > 0 || Boolean(examDate);
 
+  const handleThumbnailSelect = (file: File) => {
+    uploadThumbnail.mutate({
+      id: subject.id,
+      data: file,
+    });
+  };
+
+  const handleThumbnailReject = (reason: string) => {
+    toast.error(reason);
+  };
+
   return (
     <div className="group relative h-[300px] rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.14)]">
       <Link
@@ -101,13 +116,19 @@ export function SubjectCard({ subject }: { subject: Subject }) {
       >
         {/* Header */}
         <div className="flex min-h-11 items-center gap-3.5 pr-8">
-          <Image
+          <ImageUpload
             src={subject.thumbnail_url}
             resolveUrl={toAbsoluteUrl}
             alt={subject.name}
             fallback={subject.name}
             shape="rounded"
             size="custom"
+            maxSizeBytes={2 * 1024 * 1024}
+            accept="image/png, image/jpeg, image/webp"
+            loading={uploadThumbnail.isPending}
+            disabled={uploadThumbnail.isPending}
+            onFileSelect={handleThumbnailSelect}
+            onFileReject={handleThumbnailReject}
             containerClassName={cn(
               "size-11 shrink-0 rounded-[13px] shadow-sm text-[14px] font-semibold text-white",
               `bg-gradient-to-br ${gradient}`,
