@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-// todo: decide int either int64 or 32, 16, 8
-
 type Handler struct {
 	DB *sql.DB
 }

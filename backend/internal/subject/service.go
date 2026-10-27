@@ -71,5 +71,3 @@ func validateCreateSubjectRequest(req *CreateSubjectRequest) error {
 
 	return nil
 }
-
-// DB
