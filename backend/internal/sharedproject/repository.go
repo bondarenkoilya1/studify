@@ -1,4 +1,4 @@
-package subject
+package sharedproject
 
 import (
 	"database/sql"
@@ -8,17 +8,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
-
-var ErrSharedProjectAlreadyExists = errors.New("shared project already exists")
-
-type SharedProject struct {
-	ID              int64  `json:"id"`
-	UserID          int64  `json:"user_id"`
-	Name            string `json:"name"`
-	URL             string `json:"url"`
-	Author          string `json:"author"`
-	AuthorAvatarURL string `json:"author_avatar_url"`
-}
 
 func scanSharedProject(scanner interface{ Scan(dest ...any) error }) (*SharedProject, error) {
 	p := &SharedProject{}
@@ -107,7 +96,7 @@ func UpdateSharedProject(db internal.DBTX, userID, id int64, name, url, author, 
 }
 
 func DeleteSharedProjectByID(db internal.DBTX, userID, id int64) error {
-	result, err := db.Exec(`DELETE FROM shared_projects WHERE id = $1 AND user_id = $2;`, id, userID)
+	result, err := db.Exec(`DELETE FROM shared_projecs WHERE id = $1 AND user_id = $2;`, id, userID)
 	if err != nil {
 		return fmt.Errorf("delete shared project: %w", err)
 	}
