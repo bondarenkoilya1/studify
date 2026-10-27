@@ -1,20 +1,8 @@
 package subject
 
 import (
-	"encoding/json"
 	"errors"
-	"log/slog"
-	"net/http"
 )
-
-func writeJSON(w http.ResponseWriter, status int, value any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(value); err != nil {
-		slog.Error("failed to encode JSON response", slog.String("error", err.Error()))
-	}
-}
 
 func validateCourse(course *int) error {
 	if course == nil {

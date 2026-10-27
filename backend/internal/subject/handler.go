@@ -16,6 +16,7 @@ import (
 	"studify/internal/httpx"
 	"studify/internal/media"
 	"studify/internal/user"
+	"studify/internal/util"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -62,7 +63,7 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, subject)
+	util.WriteJSON(w, r, http.StatusOK, subject)
 }
 
 func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +80,7 @@ func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, subjects)
+	util.WriteJSON(w, r, http.StatusOK, subjects)
 }
 
 func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +135,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, createdSubject)
+	util.WriteJSON(w, r, http.StatusCreated, createdSubject)
 }
 
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
@@ -210,7 +211,7 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, subject)
+	util.WriteJSON(w, r, http.StatusOK, subject)
 }
 
 func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
@@ -361,7 +362,7 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, subject)
+	util.WriteJSON(w, r, http.StatusOK, subject)
 }
 
 func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
@@ -476,7 +477,7 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, thumbnail{ThumbnailURL: thumbnailURL})
+	util.WriteJSON(w, r, http.StatusOK, thumbnail{ThumbnailURL: thumbnailURL})
 }
 
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
@@ -519,5 +520,5 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, fileResponse{FileURL: path})
+	util.WriteJSON(w, r, http.StatusOK, fileResponse{FileURL: path})
 }

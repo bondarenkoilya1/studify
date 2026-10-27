@@ -3,10 +3,11 @@ package sharedproject
 import (
 	"encoding/json"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"studify/internal/httpx"
+	"studify/internal/util"
 )
 
 type Handler struct {
@@ -23,7 +24,7 @@ type createSharedProjectRequest struct {
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -31,7 +32,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var req createSharedProjectRequest
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json body")
+		writeError(w, r, http.StatusBadRequest, "invalid json body")
 		return
 	}
 
@@ -43,51 +44,47 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		AuthorAvatarURL: req.AuthorAvatarURL,
 	})
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, project)
+	util.WriteJSON(w, r, http.StatusCreated, project)
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid id")
+		writeError(w, r, http.StatusBadRequest, "invalid id")
 		return
 	}
 
 	project, err := h.Service.getSharedProjectByID(id)
 	if err != nil {
-		handleServiceError(w, err)
+		handleServiceError(w, r, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, project)
+	util.WriteJSON(w, r, http.StatusOK, project)
 }
 
-func handleServiceError(w http.ResponseWriter, err error) {
+func handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidInput):
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrSharedProjectNotFound):
-		writeError(w, http.StatusNotFound, "shared project not found")
+		writeError(w, r, http.StatusNotFound, "shared project not found")
 	case errors.Is(err, ErrSharedProjectAlreadyExists):
-		writeError(w, http.StatusConflict, "shared project already exists")
+		writeError(w, r, http.StatusConflict, "shared project already exists")
 	default:
-		log.Printf("shared project handler: %v", err)
-		writeError(w, http.StatusInternalServerError, "internal server error")
+		slog.Error("shared project handler failed",
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.Any("error", err),
+		)
+		writeError(w, r, http.StatusInternalServerError, "internal server error")
 	}
 }
 
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		log.Printf("write json: %v", err)
-	}
-}
-
-func writeError(w http.ResponseWriter, status int, message string) {
-	writeJSON(w, status, map[string]string{"error": message})
+func writeError(w http.ResponseWriter, r *http.Request, status int, message string) {
+	util.WriteJSON(w, r, status, map[string]string{"error": message})
 }

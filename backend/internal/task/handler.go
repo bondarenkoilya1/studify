@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"studify/internal/util"
 
 	"studify/internal/httpx"
 )
@@ -26,19 +27,6 @@ func respondError(w http.ResponseWriter, r *http.Request, status int, msg string
 
 	slog.Log(r.Context(), level, msg, args...)
 	http.Error(w, msg, status)
-}
-
-func writeJSON(w http.ResponseWriter, r *http.Request, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		slog.Error("failed to encode response",
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-			slog.Any("error", err),
-		)
-	}
 }
 
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +55,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, r, http.StatusOK, task)
+	util.WriteJSON(w, r, http.StatusOK, task)
 }
 
 func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +72,7 @@ func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, r, http.StatusOK, tasks)
+	util.WriteJSON(w, r, http.StatusOK, tasks)
 }
 
 func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +95,7 @@ func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, r, http.StatusOK, tasks)
+	util.WriteJSON(w, r, http.StatusOK, tasks)
 }
 
 func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
@@ -136,7 +124,7 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, r, http.StatusCreated, task)
+	util.WriteJSON(w, r, http.StatusCreated, task)
 }
 
 func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
@@ -172,7 +160,7 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, r, http.StatusOK, task)
+	util.WriteJSON(w, r, http.StatusOK, task)
 }
 
 func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
@@ -211,7 +199,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, r, http.StatusOK, task)
+	util.WriteJSON(w, r, http.StatusOK, task)
 }
 
 func (h *Handler) DeleteUserTasks(w http.ResponseWriter, r *http.Request) {
