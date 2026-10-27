@@ -35,6 +35,22 @@ func (s *Service) createSharedProject(in createSharedProjectInput) (*SharedProje
 	return project, nil
 }
 
+func (s *Service) getSharedProjectByID(id int64) (*SharedProject, error) {
+	if id <= 0 {
+		return nil, fmt.Errorf("%w: id must be positive", ErrInvalidInput)
+	}
+
+	project, err := GetSharedProjectByID(s.db, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrSharedProjectNotFound
+		}
+		return nil, fmt.Errorf("get shared project: %w", err)
+	}
+
+	return project, nil
+}
+
 func validateURL(raw string) error {
 	u, err := url.ParseRequestURI(raw)
 	if err != nil {
