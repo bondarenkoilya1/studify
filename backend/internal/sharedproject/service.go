@@ -51,6 +51,15 @@ func (s *Service) getSharedProjectByID(id int64) (*SharedProject, error) {
 	return project, nil
 }
 
+func (s *Service) getSharedProjectsByUserID(userID int64) ([]SharedProject, error) {
+	projects, err := GetSharedProjectsByUserID(s.db, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get shared projects by user id: %w", err)
+	}
+
+	return projects, nil
+}
+
 func validateURL(raw string) error {
 	u, err := url.ParseRequestURI(raw)
 	if err != nil {

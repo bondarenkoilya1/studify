@@ -44,16 +44,17 @@ func GetSharedProjectByID(db internal.DBTX, id int64) (*SharedProject, error) {
 	return p, nil
 }
 
-func GetSharedProjects(db internal.DBTX) ([]SharedProject, error) {
+func GetSharedProjectsByUserID(db internal.DBTX, userID int64) ([]SharedProject, error) {
 	const query = `
-		SELECT id, user_id, name, url, author, author_avatar_url
-		FROM shared_projects
-		ORDER BY id DESC;
-	`
+       SELECT id, user_id, name, url, author, author_avatar_url
+       FROM shared_projects
+       WHERE user_id = $1
+       ORDER BY id DESC;
+    `
 
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, userID)
 	if err != nil {
-		return nil, fmt.Errorf("get shared projects: %w", err)
+		return nil, fmt.Errorf("get shared projects by user id: %w", err)
 	}
 	defer rows.Close()
 
