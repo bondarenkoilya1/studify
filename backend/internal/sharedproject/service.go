@@ -60,6 +60,21 @@ func (s *Service) getSharedProjectsByUserID(userID int64) ([]SharedProject, erro
 	return projects, nil
 }
 
+func (s *Service) deleteSharedProject(userID, id int64) error {
+	if id <= 0 {
+		return fmt.Errorf("%w: id must be positive", ErrInvalidInput)
+	}
+
+	if err := DeleteSharedProjectByID(s.db, userID, id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrSharedProjectNotFound
+		}
+		return fmt.Errorf("delete shared project: %w", err)
+	}
+
+	return nil
+}
+
 func validateURL(raw string) error {
 	u, err := url.ParseRequestURI(raw)
 	if err != nil {

@@ -83,6 +83,27 @@ func (h *Handler) GetUserProjects(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, r, http.StatusOK, projects)
 }
 
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	if err := h.Service.deleteSharedProject(userID, id); err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidInput):

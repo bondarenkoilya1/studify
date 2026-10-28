@@ -97,7 +97,7 @@ func UpdateSharedProject(db internal.DBTX, userID, id int64, name, url, author, 
 }
 
 func DeleteSharedProjectByID(db internal.DBTX, userID, id int64) error {
-	result, err := db.Exec(`DELETE FROM shared_projecs WHERE id = $1 AND user_id = $2;`, id, userID)
+	result, err := db.Exec(`DELETE FROM shared_projects WHERE id = $1 AND user_id = $2;`, id, userID)
 	if err != nil {
 		return fmt.Errorf("delete shared project: %w", err)
 	}
