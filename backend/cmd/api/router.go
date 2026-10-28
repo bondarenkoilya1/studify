@@ -8,6 +8,7 @@ import (
 	"studify/internal/auth/resetpassword"
 	"studify/internal/dashboard"
 	"studify/internal/middlewares"
+	"studify/internal/sharedproject"
 	"studify/internal/subject"
 	"studify/internal/task"
 	"studify/internal/user"
@@ -59,6 +60,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h.User)
 			registerDashboardRoutes(r, h.Dashboard)
+			registerSharedProjectRoutes(r, h.SharedProjectHandler)
 		})
 	})
 
@@ -167,4 +169,17 @@ func registerEmailConfirmRoutes(r chi.Router, h *emailconfirm.Handler) {
 func registerStaticRoutes(r chi.Router) {
 	fs := http.FileServer(http.Dir("data"))
 	r.Get("/static/*", http.StripPrefix("/static/", fs).ServeHTTP)
+}
+
+func registerSharedProjectRoutes(r chi.Router, h *sharedproject.Handler) {
+	r.Route("/shared-projects", func(r chi.Router) {
+		r.Get("/", h.GetUserProjects)
+		r.With(middlewares.RequireJSON).Post("/", h.Create)
+
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", h.GetByID)
+			r.Delete("/", h.Delete)
+			r.With(middlewares.RequireJSON).Put("/", h.Update)
+		})
+	})
 }

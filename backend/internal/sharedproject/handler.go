@@ -104,6 +104,43 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+
+	var req sharedProjectRequest
+	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid json body")
+		return
+	}
+
+	project, err := h.Service.updateSharedProject(updateSharedProjectInput{
+		UserID:          userID,
+		ID:              id,
+		Name:            req.Name,
+		URL:             req.URL,
+		Author:          req.Author,
+		AuthorAvatarURL: req.AuthorAvatarURL,
+	})
+	if err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+
+	util.WriteJSON(w, r, http.StatusOK, project)
+}
+
 func handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidInput):
