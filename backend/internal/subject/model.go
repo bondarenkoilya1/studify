@@ -1,12 +1,11 @@
 package subject
 
 import (
-	"database/sql"
 	"time"
 )
 
 type Handler struct {
-	DB *sql.DB
+	Service *Service
 }
 
 type Lecturer struct {

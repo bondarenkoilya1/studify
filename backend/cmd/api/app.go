@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"studify/internal/auth/emailconfirm"
+	"studify/internal/sharedproject"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -54,6 +55,7 @@ type Handler struct {
 	Subject              *subject.Handler
 	Task                 *task.Handler
 	Dashboard            *dashboard.Handler
+	SharedProjectHandler *sharedproject.Handler
 }
 
 type Metrics struct {
@@ -96,6 +98,8 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	userService := user.NewService(db, emailConfirmService)
 	authService := auth.NewService(db, tokenManager, cookiesService, emailConfirmService, cfg)
 	taskService := task.NewService(db)
+	subjectService := subject.NewService(db)
+	sharedProjectService := sharedproject.NewService(db)
 
 	// Handlers
 	h := &Handler{
@@ -127,9 +131,11 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		},
 		EmailConfirmService: emailConfirmService,
 
-		Subject:   &subject.Handler{DB: db},
+		Subject:   &subject.Handler{Service: subjectService},
 		Task:      &task.Handler{Service: taskService},
 		Dashboard: &dashboard.Handler{DB: db},
+
+		SharedProjectHandler: &sharedproject.Handler{Service: sharedProjectService},
 	}
 
 	return &application{
