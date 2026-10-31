@@ -7,14 +7,21 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { cn } from "@/shared/lib/cn";
 
 type DialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
+  className?: string;
 };
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({
+  open,
+  onOpenChange,
+  children,
+  className,
+}: DialogProps) {
   const [mounted, setMounted] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +71,10 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="relative z-10 w-full max-w-2xl rounded-[28px] border border-black/5 bg-background p-6 shadow-2xl outline-none animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out"
+        className={cn(
+          "relative z-10 w-full max-w-2xl rounded-[28px] border border-black/5 bg-background p-6 shadow-2xl outline-none animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out",
+          className,
+        )}
       >
         {children}
       </div>

@@ -84,7 +84,10 @@ function SharePage() {
                   </h3>
                   <div className="flex shrink-0 items-center gap-1.5">
                     <div className="opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-                      <DeleteSharedProjectButton id={project.id} />
+                      <DeleteSharedProjectButton
+                        id={project.id}
+                        projectName={project.name}
+                      />
                     </div>
                     <a
                       href={project.url}

@@ -226,7 +226,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
       {/* Action Button */}
       <div className="absolute right-4 top-4 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <DeleteSubjectButton id={subject.id} />
+        <DeleteSubjectButton id={subject.id} subjectName={subject.name} />
       </div>
     </div>
   );
