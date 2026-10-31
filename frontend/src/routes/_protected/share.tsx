@@ -5,7 +5,10 @@ import { ExternalLink, Plus, Share2 } from "lucide-react";
 import { useGetUserSharedProjects } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { Avatar } from "@/widgets/avatar";
-import { CreateSharedProjectDialog } from "@/features/shared-project";
+import {
+  CreateSharedProjectDialog,
+  DeleteSharedProjectButton,
+} from "@/features/shared-project";
 
 export const Route = createFileRoute("/_protected/share")({
   component: SharePage,
@@ -79,15 +82,20 @@ function SharePage() {
                   <h3 className="line-clamp-2 text-lg font-semibold tracking-tight text-foreground">
                     {project.name}
                   </h3>
-                  <a
-                    href={project.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    title="Открыть ссылку"
-                  >
-                    <ExternalLink className="size-4" />
-                  </a>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <div className="opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                      <DeleteSharedProjectButton id={project.id} />
+                    </div>
+                    <a
+                      href={project.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      title="Открыть ссылку"
+                    >
+                      <ExternalLink className="size-4" />
+                    </a>
+                  </div>
                 </div>
 
                 <p className="mt-2 line-clamp-1 break-all text-xs text-muted-foreground">
