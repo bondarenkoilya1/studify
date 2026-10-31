@@ -1,3 +1,5 @@
+import { Controller } from "react-hook-form";
+
 import {
   Dialog,
   DialogBody,
@@ -10,6 +12,8 @@ import {
 import { Button } from "@/shared/ui/button";
 import { FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
+import { Checkbox } from "@/shared/ui/checkbox";
+import { Avatar } from "@/widgets/avatar";
 
 import { useCreateSharedProjectForm } from "../model/use-create-shared-project-form";
 
@@ -25,6 +29,9 @@ export function CreateSharedProjectDialog({
   const form = useCreateSharedProjectForm(() => {
     onOpenChange(false);
   });
+
+  const useProfileName = form.watch("use_profile_name");
+  const useProfileAvatar = form.watch("use_profile_avatar");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,7 +67,10 @@ export function CreateSharedProjectDialog({
             )}
           </FormField>
 
-          <FormField htmlFor="shared-project-url" label="Ссылка на проект / материалы">
+          <FormField
+            htmlFor="shared-project-url"
+            label="Ссылка на проект / материалы"
+          >
             <Input
               id="shared-project-url"
               type="url"
@@ -76,39 +86,151 @@ export function CreateSharedProjectDialog({
             )}
           </FormField>
 
-          <FormField htmlFor="shared-project-author" label="Автор">
-            <Input
-              id="shared-project-author"
-              placeholder="Ваше имя или псевдоним"
-              controlSize="large"
-              aria-invalid={Boolean(form.formState.errors.author)}
-              {...form.register("author")}
-            />
-            {form.formState.errors.author?.message && (
-              <p className="mt-1 text-[13px] text-red-500">
-                {form.formState.errors.author.message}
-              </p>
-            )}
-          </FormField>
+          {/* Карточка авторства: каноны UX с интерактивными опциями */}
+          <div className="space-y-3.5 rounded-2xl border border-border/80 bg-muted/30 p-4">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Данные автора
+            </div>
 
-          <FormField
-            htmlFor="shared-project-avatar"
-            label="Ссылка на аватарку автора (опционально)"
-          >
-            <Input
-              id="shared-project-avatar"
-              type="url"
-              placeholder="https://avatars.githubusercontent.com/..."
-              controlSize="large"
-              aria-invalid={Boolean(form.formState.errors.author_avatar_url)}
-              {...form.register("author_avatar_url")}
-            />
-            {form.formState.errors.author_avatar_url?.message && (
-              <p className="mt-1 text-[13px] text-red-500">
-                {form.formState.errors.author_avatar_url.message}
-              </p>
-            )}
-          </FormField>
+            {/* Опция 1: Имя профиля */}
+            <div className="space-y-2">
+              <label
+                htmlFor="use-profile-name"
+                className="flex cursor-pointer select-none items-start gap-3"
+              >
+                <Controller
+                  control={form.control}
+                  name="use_profile_name"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="use-profile-name"
+                      checked={field.value}
+                      onCheckedChange={(checked) =>
+                        field.onChange(Boolean(checked))
+                      }
+                      className="mt-0.5"
+                    />
+                  )}
+                />
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      Использовать имя профиля
+                    </span>
+                    {form.profileName && (
+                      <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                        {form.profileName}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {useProfileName
+                      ? "Имя автора будет автоматически взято из вашего профиля"
+                      : "Вы можете указать любое другое имя или псевдоним ниже"}
+                  </p>
+                </div>
+              </label>
+
+              {!useProfileName && (
+                <div className="pt-2 pl-8">
+                  <FormField
+                    htmlFor="custom-author"
+                    label="Своё имя или псевдоним"
+                  >
+                    <Input
+                      id="custom-author"
+                      placeholder="Например, Иван Иванов или псевдоним"
+                      controlSize="medium"
+                      aria-invalid={Boolean(
+                        form.formState.errors.custom_author,
+                      )}
+                      {...form.register("custom_author")}
+                    />
+                    {form.formState.errors.custom_author?.message && (
+                      <p className="mt-1 text-[13px] text-red-500">
+                        {form.formState.errors.custom_author.message}
+                      </p>
+                    )}
+                  </FormField>
+                </div>
+              )}
+            </div>
+
+            <div className="h-px bg-border/60" />
+
+            {/* Опция 2: Аватарка профиля */}
+            <div className="space-y-2">
+              <label
+                htmlFor="use-profile-avatar"
+                className="flex cursor-pointer select-none items-start gap-3"
+              >
+                <Controller
+                  control={form.control}
+                  name="use_profile_avatar"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="use-profile-avatar"
+                      checked={field.value}
+                      disabled={!form.hasProfileAvatar}
+                      onCheckedChange={(checked) =>
+                        field.onChange(Boolean(checked))
+                      }
+                      className="mt-0.5"
+                    />
+                  )}
+                />
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">
+                      Использовать аватарку профиля
+                    </span>
+                    {form.hasProfileAvatar && (
+                      <Avatar
+                        email={form.user?.email ?? "user"}
+                        avatarUrl={form.user?.avatar_url}
+                        size={22}
+                      />
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {form.hasProfileAvatar
+                      ? useProfileAvatar
+                        ? "Текущая фотография из профиля будет прикреплена к предмету"
+                        : "Аватарка профиля не будет прикреплена"
+                      : "В вашем профиле ещё не установлена аватарка"}
+                  </p>
+                </div>
+              </label>
+
+              {!useProfileAvatar && (
+                <div className="pt-2 pl-8">
+                  <FormField
+                    htmlFor="custom-avatar-url"
+                    label="Ссылка на другую аватарку (необязательно)"
+                  >
+                    <Input
+                      id="custom-avatar-url"
+                      type="url"
+                      placeholder="https://avatars.githubusercontent.com/..."
+                      controlSize="medium"
+                      aria-invalid={Boolean(
+                        form.formState.errors.custom_avatar_url,
+                      )}
+                      {...form.register("custom_avatar_url")}
+                    />
+                    {form.formState.errors.custom_avatar_url?.message && (
+                      <p className="mt-1 text-[13px] text-red-500">
+                        {form.formState.errors.custom_avatar_url.message}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Оставьте пустым, если не хотите прикреплять изображение
+                    </p>
+                  </FormField>
+                </div>
+              )}
+            </div>
+          </div>
 
           <DialogFooter>
             <Button

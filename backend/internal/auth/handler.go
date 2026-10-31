@@ -82,6 +82,11 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	//
+	//ua := useragent.Parse(r.UserAgent())
+	//userOS := ua.OS
+	//userBrowser := ua.Name
+	//userDevice := ua.Device
 
 	h.Cookies.Set(w, loginResponse.Pair)
 

@@ -4,6 +4,7 @@ import { ExternalLink, Plus, Share2 } from "lucide-react";
 
 import { useGetUserSharedProjects } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
+import { Avatar } from "@/widgets/avatar";
 import { CreateSharedProjectDialog } from "@/features/shared-project";
 
 export const Route = createFileRoute("/_protected/share")({
@@ -96,21 +97,11 @@ function SharePage() {
 
               <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  {project.author_avatar_url ? (
-                    <img
-                      src={project.author_avatar_url}
-                      alt={project.author}
-                      className="size-6 rounded-full object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display =
-                          "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                      {project.author.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
+                  <Avatar
+                    email={project.author}
+                    avatarUrl={project.author_avatar_url}
+                    size={24}
+                  />
                   <span className="font-medium text-foreground">
                     {project.author}
                   </span>

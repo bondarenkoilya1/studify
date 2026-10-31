@@ -7,28 +7,15 @@ import {
   type ApiError,
   invalidateGetUserSharedProjects,
   NetworkError,
-  type SharedProjectRequest,
   useCreateSharedProject,
 } from "@/shared/api";
 import { useCurrentUser } from "@/entities/user";
 import { toast } from "@/shared/ui/sonner";
+import { toAbsoluteUrl } from "@/shared/utils";
 import {
   createSharedProjectSchema,
   type CreateSharedProjectFormValues,
 } from "./schema";
-
-function toCreateSharedProjectRequest(
-  values: CreateSharedProjectFormValues,
-  fallbackAvatarUrl?: string | null,
-): SharedProjectRequest {
-  return {
-    name: values.name.trim(),
-    url: values.url.trim(),
-    author: values.author.trim(),
-    author_avatar_url:
-      values.author_avatar_url?.trim() || fallbackAvatarUrl || "",
-  };
-}
 
 function getSharedProjectErrorMessage(error: ApiError): string {
   if (error instanceof NetworkError) {
@@ -44,11 +31,16 @@ export function useCreateSharedProjectForm(onSuccess?: () => void) {
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
 
+  const profileName = user?.email ? (user.email.split("@")[0] ?? "") : "";
+  const hasProfileAvatar = Boolean(user?.avatar_url);
+
   const defaultValues: DefaultValues<CreateSharedProjectFormValues> = {
     name: "",
     url: "",
-    author: user?.email ? (user.email.split("@")[0] ?? "") : "",
-    author_avatar_url: user?.avatar_url ?? "",
+    use_profile_name: true,
+    custom_author: "",
+    use_profile_avatar: hasProfileAvatar,
+    custom_avatar_url: "",
   };
 
   const form = useForm<CreateSharedProjectFormValues>({
@@ -56,15 +48,12 @@ export function useCreateSharedProjectForm(onSuccess?: () => void) {
     defaultValues,
   });
 
-  // Keep author prefilled if user loads after mount
+  // Sync avatar checkbox state if user data loads after initial mount
   useEffect(() => {
-    if (user?.email && !form.getValues("author")) {
-      form.setValue("author", user.email.split("@")[0] ?? "");
+    if (user?.avatar_url && !form.formState.isDirty) {
+      form.setValue("use_profile_avatar", true);
     }
-    if (user?.avatar_url && !form.getValues("author_avatar_url")) {
-      form.setValue("author_avatar_url", user.avatar_url);
-    }
-  }, [user, form]);
+  }, [user?.avatar_url, form]);
 
   const mutation = useCreateSharedProject({
     mutation: {
@@ -79,8 +68,10 @@ export function useCreateSharedProjectForm(onSuccess?: () => void) {
         form.reset({
           name: "",
           url: "",
-          author: user?.email ? (user.email.split("@")[0] ?? "") : "",
-          author_avatar_url: user?.avatar_url ?? "",
+          use_profile_name: true,
+          custom_author: "",
+          use_profile_avatar: Boolean(user?.avatar_url),
+          custom_avatar_url: "",
         });
         form.clearErrors("root");
         onSuccess?.();
@@ -88,16 +79,32 @@ export function useCreateSharedProjectForm(onSuccess?: () => void) {
     },
   });
 
-  const submit = form.handleSubmit((values) =>
+  const submit = form.handleSubmit((values) => {
+    const author = values.use_profile_name
+      ? (profileName || "Студент")
+      : (values.custom_author?.trim() || "Студент");
+
+    const author_avatar_url = values.use_profile_avatar
+      ? (user?.avatar_url ? toAbsoluteUrl(user.avatar_url) : "")
+      : (values.custom_avatar_url?.trim() || "");
+
     mutation.mutate({
-      data: toCreateSharedProjectRequest(values, user?.avatar_url),
-    }),
-  );
+      data: {
+        name: values.name.trim(),
+        url: values.url.trim(),
+        author,
+        author_avatar_url,
+      },
+    });
+  });
 
   return {
     ...form,
     submit,
     isPending: mutation.isPending,
     error: mutation.error,
+    user,
+    profileName,
+    hasProfileAvatar,
   };
 }
