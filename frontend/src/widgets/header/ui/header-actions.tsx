@@ -1,5 +1,9 @@
+import { Link } from "@tanstack/react-router";
+import { Share2 } from "lucide-react";
+
 import { LoginButton } from "@/features/auth/login-by-email";
 import { RegisterButton } from "@/features/auth/register-by-email";
+import { Button } from "@/shared/ui/button";
 import { ProfileMenu } from "@/widgets/profile-menu";
 
 export function HeaderActions({
@@ -12,7 +16,15 @@ export function HeaderActions({
   return (
     <div className="ml-auto flex items-center gap-4">
       {email ? (
-        <ProfileMenu email={email} avatarUrl={avatarUrl} />
+        <>
+          <Link to="/share">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Share2 className="size-4" />
+              <span>Поделиться проектом</span>
+            </Button>
+          </Link>
+          <ProfileMenu email={email} avatarUrl={avatarUrl} />
+        </>
       ) : (
         <>
           <LoginButton />

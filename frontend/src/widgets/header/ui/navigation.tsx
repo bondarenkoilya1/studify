@@ -29,6 +29,15 @@ export function HeaderNavigation() {
         Дашборд
       </Link>
       <Link
+        to="/share"
+        className={linkClass}
+        activeProps={{
+          className: "text-studify-text",
+        }}
+      >
+        Общие проекты
+      </Link>
+      <Link
         to="/"
         className={`${linkClass} group/nav flex items-center gap-2`}
         activeProps={{ className: "text-studify-text" }}

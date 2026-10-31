@@ -18,6 +18,7 @@ import { Route as GuestResetPasswordRouteImport } from './routes/_guest/reset-pa
 import { Route as ProtectedConfirmRouteImport } from './routes/_protected/confirm'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
+import { Route as ProtectedShareRouteImport } from './routes/_protected/share'
 import { Route as ProtectedConfirmTokenRouteImport } from './routes/_protected/confirm/$token'
 import { Route as ProtectedSettingsProfileRouteImport } from './routes/_protected/settings/profile'
 import { Route as ProtectedSettingsSecurityRouteImport } from './routes/_protected/settings/security'
@@ -68,6 +69,11 @@ const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedShareRoute = ProtectedShareRouteImport.update({
+  id: '/share',
+  path: '/share',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ProtectedConfirmTokenRoute = ProtectedConfirmTokenRouteImport.update({
   id: '/$token',
   path: '/$token',
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/confirm': typeof ProtectedConfirmRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
+  '/share': typeof ProtectedShareRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/confirm': typeof ProtectedConfirmRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
+  '/share': typeof ProtectedShareRoute
   '/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/_protected/confirm': typeof ProtectedConfirmRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
+  '/_protected/share': typeof ProtectedShareRoute
   '/_protected/confirm/$token': typeof ProtectedConfirmTokenRoute
   '/_protected/settings/profile': typeof ProtectedSettingsProfileRoute
   '/_protected/settings/security': typeof ProtectedSettingsSecurityRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/confirm'
     | '/dashboard'
     | '/settings'
+    | '/share'
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/confirm'
     | '/dashboard'
     | '/settings'
+    | '/share'
     | '/confirm/$token'
     | '/settings/profile'
     | '/settings/security'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/_protected/confirm'
     | '/_protected/dashboard'
     | '/_protected/settings'
+    | '/_protected/share'
     | '/_protected/confirm/$token'
     | '/_protected/settings/profile'
     | '/_protected/settings/security'
@@ -269,6 +281,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof ProtectedSettingsRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/share': {
+      id: '/_protected/share'
+      path: '/share'
+      fullPath: '/share'
+      preLoaderRoute: typeof ProtectedShareRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/confirm/$token': {
@@ -360,6 +379,7 @@ interface ProtectedRouteChildren {
   ProtectedConfirmRoute: typeof ProtectedConfirmRouteWithChildren
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRouteWithChildren
+  ProtectedShareRoute: typeof ProtectedShareRoute
   ProtectedSubjectsIdRoute: typeof ProtectedSubjectsIdRoute
   ProtectedSubjectsIndexRoute: typeof ProtectedSubjectsIndexRoute
 }
@@ -368,6 +388,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedConfirmRoute: ProtectedConfirmRouteWithChildren,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedSettingsRoute: ProtectedSettingsRouteWithChildren,
+  ProtectedShareRoute: ProtectedShareRoute,
   ProtectedSubjectsIdRoute: ProtectedSubjectsIdRoute,
   ProtectedSubjectsIndexRoute: ProtectedSubjectsIndexRoute,
 }
