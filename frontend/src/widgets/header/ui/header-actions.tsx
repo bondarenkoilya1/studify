@@ -3,7 +3,8 @@ import { Share2 } from "lucide-react";
 
 import { LoginButton } from "@/features/auth/login-by-email";
 import { RegisterButton } from "@/features/auth/register-by-email";
-import { Button } from "@/shared/ui/button";
+import { buttonVariants } from "@/shared/ui/button";
+import { cn } from "@/shared/lib/cn";
 import { ProfileMenu } from "@/widgets/profile-menu";
 
 export function HeaderActions({
@@ -17,11 +18,15 @@ export function HeaderActions({
     <div className="ml-auto flex items-center gap-4">
       {email ? (
         <>
-          <Link to="/share">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Share2 className="size-4" />
-              <span>Поделиться проектом</span>
-            </Button>
+          <Link
+            to="/share"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "gap-2",
+            )}
+          >
+            <Share2 className="size-4" />
+            <span>Поделиться проектом</span>
           </Link>
           <ProfileMenu email={email} avatarUrl={avatarUrl} />
         </>

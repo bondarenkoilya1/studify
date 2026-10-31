@@ -1,15 +1,14 @@
-import { Button } from "@/shared/ui/button";
+import { Link } from "@tanstack/react-router";
+import { buttonVariants } from "@/shared/ui/button";
+import { cn } from "@/shared/lib/cn";
 
 export function RegisterButton() {
   return (
-    <Button
-      type="button"
-      variant="secondary"
-      size="default"
-      onClick={() => (window.location.href = "/register")}
-      className="px-6"
+    <Link
+      to="/register"
+      className={cn(buttonVariants({ variant: "secondary", size: "default" }), "px-6")}
     >
       Create account
-    </Button>
+    </Link>
   );
 }

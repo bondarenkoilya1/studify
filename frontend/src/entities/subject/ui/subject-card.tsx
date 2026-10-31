@@ -189,24 +189,28 @@ export function SubjectCard({ subject }: { subject: Subject }) {
             {isUniversity ? "Университет" : "Личный"}
           </span>
 
-          {subject.course && subject.term && (
+          {(subject.course || subject.term) && (
             <span className="flex shrink-0 overflow-hidden rounded-full border border-black/[0.04] text-[11px] font-medium">
-              <span
-                className={`px-2.5 py-0.5 ${
-                  COURSE_COLORS[subject.course] ??
-                  "bg-neutral-100 text-neutral-600"
-                }`}
-              >
-                {subject.course} курс
-              </span>
+              {subject.course && (
+                <span
+                  className={`px-2.5 py-0.5 ${
+                    COURSE_COLORS[subject.course] ??
+                    "bg-neutral-100 text-neutral-600"
+                  }`}
+                >
+                  {subject.course} курс
+                </span>
+              )}
 
-              <span
-                className={`border-l border-black/[0.06] px-2.5 py-0.5 ${
-                  TERM_COLORS[subject.term] ?? "bg-neutral-100 text-neutral-600"
-                }`}
-              >
-                {subject.term} семестр
-              </span>
+              {subject.term && (
+                <span
+                  className={`px-2.5 py-0.5 ${
+                    subject.course ? "border-l border-black/[0.06] " : ""
+                  }${TERM_COLORS[subject.term] ?? "bg-neutral-100 text-neutral-600"}`}
+                >
+                  {subject.term} семестр
+                </span>
+              )}
             </span>
           )}
 

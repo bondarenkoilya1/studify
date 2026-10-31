@@ -95,7 +95,7 @@ export function TaskCard({ task }: TaskCardProps) {
   return (
     <article
       className={`
-        group relative cursor-pointer overflow-hidden rounded-[20px]
+        group relative overflow-hidden rounded-[20px]
         border border-black/[0.06]
         bg-white p-5
         shadow-[0_1px_2px_rgba(0,0,0,0.03)]

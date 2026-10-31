@@ -1,15 +1,14 @@
-import { Button } from "@/shared/ui/button";
+import { Link } from "@tanstack/react-router";
+import { buttonVariants } from "@/shared/ui/button";
+import { cn } from "@/shared/lib/cn";
 
 export function LoginButton() {
   return (
-    <Button
-      type="button"
-      variant="primary"
-      size="default"
-      onClick={() => (window.location.href = "/login")}
-      className="px-6"
+    <Link
+      to="/login"
+      className={cn(buttonVariants({ variant: "primary", size: "default" }), "px-6")}
     >
       Войти
-    </Button>
+    </Link>
   );
 }
