@@ -4,5 +4,6 @@ export * from "./auth-reset-password/auth-reset-password";
 export * from "./auth-totp/auth-totp";
 export * from "./dashboard/dashboard";
 export * from "./profile/profile";
+export * from "./shared-projects/shared-projects";
 export * from "./subjects/subjects";
 export * from "./tasks/tasks";

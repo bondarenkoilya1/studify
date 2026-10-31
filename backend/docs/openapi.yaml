@@ -33,6 +33,8 @@ tags:
     description: Subject and lecturer management
   - name: Tasks
     description: Study task management
+  - name: Shared Projects
+    description: Shared project management
   - name: Profile
     description: Current authenticated user account operations
   - name: Static
@@ -874,6 +876,138 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/shared-projects:
+    get:
+      tags: [Shared Projects]
+      summary: List shared projects of the authenticated user
+      description: Returns all shared projects owned by the authenticated user, newest first.
+      operationId: getUserSharedProjects
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: List of shared projects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SharedProject'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [Shared Projects]
+      summary: Create a shared project
+      description: |
+        Creates a shared project for the authenticated user.
+        `name`, `url`, and `author` are required. `url` must start with http or https, and must be unique.
+      operationId: createSharedProject
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SharedProjectRequest'
+      responses:
+        '201':
+          description: Shared project created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedProject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/SharedProjectConflict'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/shared-projects/{id}:
+    parameters:
+      - $ref: '#/components/parameters/NumericId'
+    get:
+      tags: [Shared Projects]
+      summary: Get a shared project by ID
+      description: Retrieves a single shared project by its ID.
+      operationId: getSharedProject
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Shared project found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedProject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Shared Projects]
+      summary: Update a shared project
+      description: |
+        Updates an existing shared project owned by the authenticated user.
+        `name`, `url`, and `author` are required. `url` must start with http or https, and must be unique.
+      operationId: updateSharedProject
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SharedProjectRequest'
+      responses:
+        '200':
+          description: Shared project updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedProject'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SharedProjectConflict'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Shared Projects]
+      summary: Delete a shared project
+      description: Deletes a shared project by ID for the authenticated user.
+      operationId: deleteSharedProject
+      security:
+        - accessCookie: []
+      responses:
+        '204':
+          description: Shared project was deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/users/me:
     get:
       tags: [Profile]
@@ -1160,6 +1294,12 @@ components:
             $ref: '#/components/schemas/Error'
     SubjectConflict:
       description: The user already has a subject with this name.
+      content:
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/Error'
+    SharedProjectConflict:
+      description: A shared project with this URL already exists.
       content:
         text/plain:
           schema:
@@ -1789,3 +1929,60 @@ components:
           type: string
           description: Token from the confirmation link sent by email.
           example: Xk3pN8vQ2mR7tY1wZ5cB9dF4gH6jL0sA2eU8iO3qT7y
+
+    SharedProject:
+      type: object
+      required:
+        - id
+        - user_id
+        - name
+        - url
+        - author
+        - author_avatar_url
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 1
+        name:
+          type: string
+          example: Distributed Systems Notes
+        url:
+          type: string
+          format: uri
+          example: https://github.com/studify-community/distributed-systems
+        author:
+          type: string
+          example: Alex River
+        author_avatar_url:
+          type: string
+          example: https://avatars.githubusercontent.com/u/1234567
+
+    SharedProjectRequest:
+      type: object
+      required:
+        - name
+        - url
+        - author
+      properties:
+        name:
+          type: string
+          minLength: 1
+          example: Distributed Systems Notes
+        url:
+          type: string
+          format: uri
+          example: https://github.com/studify-community/distributed-systems
+        author:
+          type: string
+          minLength: 1
+          example: Alex River
+        author_avatar_url:
+          type: string
+          example: https://avatars.githubusercontent.com/u/1234567

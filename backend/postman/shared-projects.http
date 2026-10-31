@@ -1,0 +1,42 @@
+@baseUrl = http://localhost:8080
+@projectId = 1
+
+### Get all user shared projects
+GET {{baseUrl}}/api/shared-projects
+Accept: application/json
+
+
+### Create a shared project
+POST {{baseUrl}}/api/shared-projects
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Distributed Systems Notes",
+  "url": "https://github.com/studify-community/distributed-systems",
+  "author": "Alex River",
+  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567"
+}
+
+
+### Get one shared project
+GET {{baseUrl}}/api/shared-projects/{{projectId}}
+Accept: application/json
+
+
+### Update one shared project
+PUT {{baseUrl}}/api/shared-projects/{{projectId}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "name": "Distributed Systems Notes (Updated)",
+  "url": "https://github.com/studify-community/distributed-systems",
+  "author": "Alex River",
+  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567"
+}
+
+
+### Delete one shared project
+DELETE {{baseUrl}}/api/shared-projects/{{projectId}}
+Accept: application/json

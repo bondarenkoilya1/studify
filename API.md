@@ -463,6 +463,65 @@ Task response:
 `PATCH /api/tasks/{id}` changes only the fields it receives. Values are not
 validated, and an invalid one returns `500`.
 
+## Shared projects
+
+All shared projects routes require authentication via `access_token` cookie.
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/shared-projects` | ✓ | List shared projects of the authenticated user, newest first |
+| `POST` | `/api/shared-projects` | ✓ | Create a new shared project |
+| `GET` | `/api/shared-projects/{id}` | ✓ | Get a shared project by ID |
+| `PUT` | `/api/shared-projects/{id}` | ✓ | Update an existing shared project owned by the user |
+| `DELETE` | `/api/shared-projects/{id}` | ✓ | Delete a shared project owned by the user |
+
+Shared project response:
+
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "name": "Distributed Systems Notes",
+  "url": "https://github.com/studify-community/distributed-systems",
+  "author": "Alex River",
+  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567"
+}
+```
+
+| Field | Values |
+| --- | --- |
+| `id` | Positive integer identifier |
+| `user_id` | ID of the user who owns the project |
+| `name` | Required, non-empty string |
+| `url` | Required, valid HTTP/HTTPS URL, unique across all shared projects (`409 Conflict` on duplicate) |
+| `author` | Required, non-empty string |
+| `author_avatar_url` | String (can be empty) |
+
+### Create and update
+
+`POST /api/shared-projects` creates a shared project for the authenticated user and returns `201 Created`:
+
+```json
+{
+  "name": "Distributed Systems Notes",
+  "url": "https://github.com/studify-community/distributed-systems",
+  "author": "Alex River",
+  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567"
+}
+```
+
+- If `name` or `author` is empty, or `url` is not a valid HTTP/HTTPS URL, returns `400 Bad Request`.
+- If a project with this `url` already exists, returns `409 Conflict`.
+
+`PUT /api/shared-projects/{id}` updates an existing shared project owned by the authenticated user and returns `200 OK`. The request body has the same shape as create.
+- Modifying another user's project returns `404 Not Found`.
+
+### Get and delete
+
+- `GET /api/shared-projects` returns `200 OK` with an array of all shared projects owned by the authenticated user, ordered by ID descending.
+- `GET /api/shared-projects/{id}` returns `200 OK` with the shared project by its ID. An unknown ID returns `404 Not Found`.
+- `DELETE /api/shared-projects/{id}` deletes the project owned by the authenticated user and returns `204 No Content`. Deleting a non-existent or another user's project returns `404 Not Found`.
+
 ## Files and monitoring
 
 `GET /static/{path}` serves uploaded files, for example
