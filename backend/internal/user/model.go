@@ -1,7 +1,10 @@
 package user
 
+import "studify/internal/auth/session"
+
 type Handler struct {
-	Service *Service
+	Service        *Service
+	SessionService *session.Service
 }
 
 type User struct {

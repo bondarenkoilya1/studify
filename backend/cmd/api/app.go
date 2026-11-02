@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"studify/internal/auth/emailconfirm"
+	"studify/internal/auth/session"
 	"studify/internal/sharedproject"
 	"time"
 
@@ -56,6 +57,7 @@ type Handler struct {
 	Task                 *task.Handler
 	Dashboard            *dashboard.Handler
 	SharedProjectHandler *sharedproject.Handler
+	SessionService       *session.Service
 }
 
 type Metrics struct {
@@ -100,6 +102,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	taskService := task.NewService(db)
 	subjectService := subject.NewService(db)
 	sharedProjectService := sharedproject.NewService(db)
+	sessionService := session.NewService(db)
 
 	// Handlers
 	h := &Handler{
@@ -112,7 +115,10 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 			Cookies: cookiesService,
 		},
 
-		User: &user.Handler{Service: userService},
+		User: &user.Handler{
+			Service:        userService,
+			SessionService: sessionService,
+		},
 
 		Mfa: &mfa.Handler{
 			UserService: userService,
@@ -136,6 +142,8 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		Dashboard: &dashboard.Handler{DB: db},
 
 		SharedProjectHandler: &sharedproject.Handler{Service: sharedProjectService},
+
+		SessionService: sessionService,
 	}
 
 	return &application{

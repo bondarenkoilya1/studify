@@ -3,15 +3,15 @@ package user
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
 	"log/slog"
 	"net"
 	"net/http"
+	"studify/internal"
+	"studify/internal/auth/session"
 	"studify/internal/httpx"
 	"studify/internal/media"
-	"time"
 
 	"github.com/mileusna/useragent"
 )
@@ -33,25 +33,28 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// WORKING ON
 	ua := useragent.Parse(r.UserAgent())
-	lastLogin := time.Now().Format("02 Jan 2006 15:04 MST")
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		ip = ""
-		slog.Error("")
+		ip = r.RemoteAddr
 	}
-	fmt.Printf(
-		"\n┌─── User Session ───────────────────\n"+
-			"│ OS:         %s\n"+
-			"│ Browser:    %s\n"+
-			"│ Device:     %s\n"+
-			"│ IP:         %s\n"+
-			"│ Last Login: %v\n"+
-			"└────────────────────────────────────\n",
-		ua.OS, ua.Name, ua.Device, ip, lastLogin,
-	)
-	//
+
+	sessionData := session.Input{
+		OS:      ua.OS,
+		Browser: ua.Name,
+		Device:  ua.Device,
+		Country: ip,
+	}
+
+	if _, err = h.SessionService.CreateSession(r.Context(), internal.UserID(user.ID), sessionData); err != nil {
+		if errors.Is(err, session.ErrInvalidInput) {
+			http.Error(w, "invalid session data", http.StatusBadRequest)
+			return
+		}
+		slog.Error("failed to create session", slog.String("error", err.Error()))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(user); err != nil {

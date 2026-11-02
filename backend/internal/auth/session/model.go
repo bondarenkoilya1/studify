@@ -11,3 +11,11 @@ type Session struct {
 	Country   string
 	LastLogin time.Time
 }
+
+// Input holds the client details taken from the request (User-Agent, GeoIP, etc.).
+type Input struct {
+	OS      string
+	Browser string
+	Device  string
+	Country string
+}

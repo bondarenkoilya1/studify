@@ -51,8 +51,10 @@ migrate-up:
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000008_create_lecturers_table.up.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000009_create_subjects_files_table.up.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000010_create_shared_projects_table.up.sql
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000011_create_sessions_table.up.sql
 
 migrate-down:
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000011_create_sessions_table.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000010_create_shared_projects_table.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000009_create_subjects_files_table.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000008_create_lecturers_table.down.sql
