@@ -18,7 +18,21 @@ func NewService(db *sql.DB) *Service {
 // CreateSession stores a new session for the user (called after a successful login)
 // and returns it with the generated ID and last_login filled in.
 func (s *Service) CreateSession(ctx context.Context, userID internal.UserID, in Input) (*Session, error) {
-	sess := &Session{
+	sessions, err := s.listSessions(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("create session for user %d: %w", userID, err)
+	}
+
+	for _, existing := range sessions {
+		if isSameClient(existing, in) {
+			if err := TouchSession(ctx, s.db, existing); err != nil {
+				return nil, fmt.Errorf("touch session %d: %w", existing.ID, err)
+			}
+			return existing, nil
+		}
+	}
+
+	newSess := &Session{
 		UserID:  int64(userID),
 		OS:      in.OS,
 		Browser: in.Browser,
@@ -26,11 +40,11 @@ func (s *Service) CreateSession(ctx context.Context, userID internal.UserID, in 
 		Country: in.Country,
 	}
 
-	if err := InsertSession(ctx, s.db, sess); err != nil {
+	if err := InsertSession(ctx, s.db, newSess); err != nil {
 		return nil, fmt.Errorf("create session for user %d: %w", userID, err)
 	}
 
-	return sess, nil
+	return newSess, nil
 }
 
 // getSession returns one session if it belongs to the user.
@@ -93,4 +107,11 @@ func (s *Service) revokeAllSessions(ctx context.Context, userID internal.UserID)
 	}
 
 	return nil
+}
+
+func isSameClient(sess *Session, in Input) bool {
+	return sess.OS == in.OS &&
+		sess.Browser == in.Browser &&
+		sess.Device == in.Device &&
+		sess.Country == in.Country
 }

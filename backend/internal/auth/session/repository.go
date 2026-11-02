@@ -130,3 +130,22 @@ func DeleteSessionsByUserID(ctx context.Context, db internal.DBTX, userID int64)
 
 	return nil
 }
+
+func TouchSession(ctx context.Context, db internal.DBTX, s *Session) error {
+	query := `
+		UPDATE sessions
+		SET last_login = NOW()
+		WHERE id = $1 AND user_id = $2
+		RETURNING last_login;
+	`
+
+	err := db.QueryRowContext(ctx, query, s.ID, s.UserID).Scan(&s.LastLogin)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFoundSession
+		}
+		return fmt.Errorf("touch session: %w", err)
+	}
+
+	return nil
+}
