@@ -3,12 +3,17 @@ package user
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
 	"log/slog"
+	"net"
 	"net/http"
 	"studify/internal/httpx"
 	"studify/internal/media"
+	"time"
+
+	"github.com/mileusna/useragent"
 )
 
 const (
@@ -27,6 +32,26 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	// WORKING ON
+	ua := useragent.Parse(r.UserAgent())
+	lastLogin := time.Now().Format("02 Jan 2006 15:04 MST")
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		ip = ""
+		slog.Error("")
+	}
+	fmt.Printf(
+		"\n┌─── User Session ───────────────────\n"+
+			"│ OS:         %s\n"+
+			"│ Browser:    %s\n"+
+			"│ Device:     %s\n"+
+			"│ IP:         %s\n"+
+			"│ Last Login: %v\n"+
+			"└────────────────────────────────────\n",
+		ua.OS, ua.Name, ua.Device, ip, lastLogin,
+	)
+	//
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(user); err != nil {
