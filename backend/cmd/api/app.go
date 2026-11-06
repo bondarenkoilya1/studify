@@ -57,6 +57,7 @@ type Handler struct {
 	Task                 *task.Handler
 	Dashboard            *dashboard.Handler
 	SharedProjectHandler *sharedproject.Handler
+	Session              *session.Handler
 	SessionService       *session.Service
 }
 
@@ -143,6 +144,9 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 
 		SharedProjectHandler: &sharedproject.Handler{Service: sharedProjectService},
 
+		Session: &session.Handler{
+			Service: sessionService,
+		},
 		SessionService: sessionService,
 	}
 

@@ -45,6 +45,10 @@ A missing or invalid token returns `401 Unauthorized`.
 | `POST` | `/api/auth/logout-all` | ✓ | Revoke all active sessions and clear cookies |
 | `POST` | `/api/auth/confirm/resend` | ✓ | Send a new confirmation email |
 | `POST` | `/api/auth/confirm/` | ✓ | Confirm the email address with a token body |
+| `GET` | `/api/auth/sessions` | ✓ | List active user sessions |
+| `DELETE` | `/api/auth/sessions` | ✓ | Revoke all active sessions |
+| `GET` | `/api/auth/sessions/{id}` | ✓ | Get a session by ID |
+| `DELETE` | `/api/auth/sessions/{id}` | ✓ | Revoke a session by ID |
 
 ### Register
 
@@ -268,6 +272,51 @@ Undecodable or oversized images return `400`.
 
 `DELETE /api/users/me/avatar` sets `avatar_url` to `null` and returns
 `204 No Content`.
+
+## Sessions
+
+All session routes require authentication via `access_token` cookie.
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| `GET` | `/api/auth/sessions` | ✓ | List all active sessions of the authenticated user, newest first |
+| `DELETE` | `/api/auth/sessions` | ✓ | Revoke all active sessions of the authenticated user |
+| `GET` | `/api/auth/sessions/{id}` | ✓ | Get a specific session of the authenticated user by ID |
+| `DELETE` | `/api/auth/sessions/{id}` | ✓ | Revoke a specific session of the authenticated user by ID |
+
+Session response:
+
+```json
+{
+  "id": 1,
+  "user_id": 1,
+  "os": "macOS",
+  "browser": "Chrome",
+  "device": "Computer",
+  "country": "127.0.0.1",
+  "last_login": "2026-11-02T19:50:00Z"
+}
+```
+
+| Field | Values |
+| --- | --- |
+| `id` | Positive integer identifier |
+| `user_id` | ID of the authenticated user |
+| `os` | Operating system identified from User-Agent |
+| `browser` | Browser name identified from User-Agent |
+| `device` | Device type identified from User-Agent |
+| `country` | IP address or country of the client |
+| `last_login` | RFC3339 timestamp of the last login / activity |
+
+### List and get
+
+- `GET /api/auth/sessions` returns `200 OK` with an array of active sessions belonging to the authenticated user, ordered by `last_login` descending.
+- `GET /api/auth/sessions/{id}` returns `200 OK` with a single session by its ID. If the session doesn't exist or belongs to another user, returns `404 Not Found`.
+
+### Revoke
+
+- `DELETE /api/auth/sessions/{id}` revokes (deletes) a specific session owned by the authenticated user and returns `204 No Content`. If the session is not found or belongs to another user, returns `404 Not Found`.
+- `DELETE /api/auth/sessions` revokes (deletes) all active sessions owned by the authenticated user and returns `204 No Content`.
 
 ## Dashboard
 
