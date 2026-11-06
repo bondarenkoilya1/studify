@@ -7,3 +7,5 @@ backend/.env
 backend/data
 
 ai
+
+future_ci.yaml

@@ -20,11 +20,12 @@ func respondError(w http.ResponseWriter, r *http.Request, status int, msg string
 	}
 
 	args := append([]any{
-		slog.String("method", r.Method),
-		slog.String("path", r.URL.Path),
-		slog.Any("error", err),
+		util.AttrMethod(r.Method),
+		util.AttrPath(r.URL.Path),
+		util.AttrAnyError(err),
 	}, attrs...)
 
+	//nolint:sloglint // helper function forwards dynamic error message
 	slog.Log(r.Context(), level, msg, args...)
 	http.Error(w, msg, status)
 }
@@ -38,7 +39,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, util.AttrUserID(userID))
 		return
 	}
 
@@ -46,12 +47,12 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, "task was not found", err,
-				slog.Int64("user_id", userID), slog.Int64("task_id", id))
+				util.AttrUserID(userID), util.AttrTaskID(id))
 			return
 		}
 
 		respondError(w, r, http.StatusInternalServerError, "failed to get task", err,
-			slog.Int64("user_id", userID), slog.Int64("task_id", id))
+			util.AttrUserID(userID), util.AttrTaskID(id))
 		return
 	}
 
@@ -68,7 +69,7 @@ func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 	tasks, err := h.Service.getUserTasks(userID)
 	if err != nil {
 		respondError(w, r, http.StatusInternalServerError, "failed to get tasks", err,
-			slog.Int64("user_id", userID))
+			util.AttrUserID(userID))
 		return
 	}
 
@@ -84,14 +85,14 @@ func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
 
 	subjectID, err := httpx.GetID(r)
 	if err != nil {
-		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, util.AttrUserID(userID))
 		return
 	}
 
 	tasks, err := h.Service.getSubjectsTasks(subjectID, userID)
 	if err != nil {
 		respondError(w, r, http.StatusInternalServerError, "failed to get tasks by subject", err,
-			slog.Int64("user_id", userID), slog.Int64("subject_id", subjectID))
+			util.AttrUserID(userID), util.AttrSubjectID(subjectID))
 		return
 	}
 
@@ -107,7 +108,7 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 
 	var newTask Task
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		respondError(w, r, http.StatusBadRequest, "invalid JSON", err, slog.Int64("user_id", userID))
+		respondError(w, r, http.StatusBadRequest, "invalid JSON", err, util.AttrUserID(userID))
 		return
 	}
 
@@ -115,12 +116,12 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, "subject not found", err,
-				slog.Int64("user_id", userID))
+				util.AttrUserID(userID))
 			return
 		}
 
 		respondError(w, r, http.StatusInternalServerError, "failed to insert task", err,
-			slog.Int64("user_id", userID))
+			util.AttrUserID(userID))
 		return
 	}
 
@@ -136,14 +137,14 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, util.AttrUserID(userID))
 		return
 	}
 
 	var newTask Task
 	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
 		respondError(w, r, http.StatusBadRequest, "invalid JSON", err,
-			slog.Int64("user_id", userID), slog.Int64("task_id", id))
+			util.AttrUserID(userID), util.AttrTaskID(id))
 		return
 	}
 
@@ -151,12 +152,12 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, fmt.Sprintf("no task with ID: %d", id), err,
-				slog.Int64("user_id", userID))
+				util.AttrUserID(userID))
 			return
 		}
 
 		respondError(w, r, http.StatusInternalServerError, "failed to replace task", err,
-			slog.Int64("user_id", userID), slog.Int64("task_id", id))
+			util.AttrUserID(userID), util.AttrTaskID(id))
 		return
 	}
 
@@ -172,14 +173,14 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, util.AttrUserID(userID))
 		return
 	}
 
 	var req updateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondError(w, r, http.StatusBadRequest, "invalid JSON", err,
-			slog.Int64("user_id", userID), slog.Int64("task_id", id))
+			util.AttrUserID(userID), util.AttrTaskID(id))
 		return
 	}
 
@@ -188,13 +189,13 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, ErrNoFieldsToUpdate):
 			respondError(w, r, http.StatusBadRequest, "no fields to update", err,
-				slog.Int64("user_id", userID), slog.Int64("task_id", id))
+				util.AttrUserID(userID), util.AttrTaskID(id))
 		case errors.Is(err, sql.ErrNoRows):
 			respondError(w, r, http.StatusNotFound, "task not found", err,
-				slog.Int64("user_id", userID), slog.Int64("task_id", id))
+				util.AttrUserID(userID), util.AttrTaskID(id))
 		default:
 			respondError(w, r, http.StatusInternalServerError, "failed to update task", err,
-				slog.Int64("user_id", userID), slog.Int64("task_id", id))
+				util.AttrUserID(userID), util.AttrTaskID(id))
 		}
 		return
 	}
@@ -211,7 +212,7 @@ func (h *Handler) DeleteUserTasks(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Service.deleteUserTasks(userID); err != nil {
 		respondError(w, r, http.StatusInternalServerError, "failed to delete tasks", err,
-			slog.Int64("user_id", userID))
+			util.AttrUserID(userID))
 		return
 	}
 
@@ -227,19 +228,19 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		respondError(w, r, http.StatusBadRequest, err.Error(), err, slog.Int64("user_id", userID))
+		respondError(w, r, http.StatusBadRequest, err.Error(), err, util.AttrUserID(userID))
 		return
 	}
 
 	if err := h.Service.deleteTask(userID, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, fmt.Sprintf("no task with ID: %d", id), err,
-				slog.Int64("user_id", userID))
+				util.AttrUserID(userID))
 			return
 		}
 
 		respondError(w, r, http.StatusInternalServerError, "failed to delete task", err,
-			slog.Int64("user_id", userID), slog.Int64("task_id", id))
+			util.AttrUserID(userID), util.AttrTaskID(id))
 		return
 	}
 

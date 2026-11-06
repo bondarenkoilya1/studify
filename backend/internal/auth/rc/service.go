@@ -49,7 +49,7 @@ func SaveRecoveryCodes(ctx context.Context, db *sql.DB, userID int64, codes []st
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	for _, code := range codes {
 		hash := util.HashSHA256(code)

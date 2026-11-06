@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"studify/internal/httpx"
+	"studify/internal/util"
 )
 
 func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
@@ -17,9 +18,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	totalSubjects, err := GetSubjectsCount(h.DB, userID)
 	if err != nil {
-		slog.Error("failed to get dashboard subjects count",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to get dashboard subjects count",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -27,9 +28,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	totalTasks, err := GetTasksCount(h.DB, userID)
 	if err != nil {
-		slog.Error("failed to get dashboard tasks count",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to get dashboard tasks count",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -37,9 +38,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	totalCompletedTasks, err := GetCompletedTasksCount(h.DB, userID)
 	if err != nil {
-		slog.Error("failed to get dashboard completed tasks count",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to get dashboard completed tasks count",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -47,9 +48,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	totalOngoingTasks, err := GetOngoingTasksCount(h.DB, userID)
 	if err != nil {
-		slog.Error("failed to get dashboard ongoing tasks count",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to get dashboard ongoing tasks count",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -57,9 +58,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	totalNotCompletedTasks, err := GetNotCompletedTasksCount(h.DB, userID)
 	if err != nil {
-		slog.Error("failed to get dashboard not completed tasks count",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to get dashboard not completed tasks count",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -75,9 +76,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	nearestDeadlineTask, err := GetNearestDeadlineTask(h.DB, userID)
 	if err != nil {
-		slog.Error("failed to get nearest deadline task",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to get nearest deadline task",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -85,9 +86,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 
 	overdueTasks, err := GetOverdueTasks(h.DB, userID)
 	if err != nil {
-		slog.Error("failed to get overdue tasks",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to get overdue tasks",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -107,9 +108,9 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		slog.Error("failed to encode dashboard response",
-			slog.Any("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to encode dashboard response",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 	}
 }

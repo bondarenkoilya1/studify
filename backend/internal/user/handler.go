@@ -12,6 +12,7 @@ import (
 	"studify/internal/auth/session"
 	"studify/internal/httpx"
 	"studify/internal/media"
+	"studify/internal/util"
 
 	"github.com/mileusna/useragent"
 )
@@ -28,7 +29,9 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get current user", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get current user",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -51,14 +54,18 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid session data", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to create session", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to create session",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(user); err != nil {
-		slog.Error("failed to encode current user to JSON", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to encode current user to JSON",
+			util.AttrError(err),
+		)
 	}
 }
 
@@ -75,7 +82,9 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get current user", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get current user",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -90,8 +99,10 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrEmailTaken):
 			http.Error(w, err.Error(), http.StatusConflict)
 		default:
-			slog.Error("failed to update user email",
-				slog.Int64("user_id", user.ID), slog.String("error", err.Error()))
+			slog.ErrorContext(r.Context(), "failed to update user email",
+				util.AttrUserID(user.ID),
+				util.AttrError(err),
+			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
@@ -99,7 +110,9 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(newUser); err != nil {
-		slog.Error("failed to encode current user to JSON", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to encode current user to JSON",
+			util.AttrError(err),
+		)
 	}
 }
 
@@ -114,7 +127,9 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		slog.Error("failed to get user id", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get user id",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -131,8 +146,10 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrUserNotFound):
 			http.Error(w, "user not found", http.StatusNotFound)
 		default:
-			slog.Error("failed to update user password",
-				slog.Int64("user_id", userID), slog.String("error", err.Error()))
+			slog.ErrorContext(r.Context(), "failed to update user password",
+				util.AttrUserID(userID),
+				util.AttrError(err),
+			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
@@ -168,7 +185,10 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrUserNotFound):
 			http.Error(w, "user not found", http.StatusNotFound)
 		default:
-			slog.Error("failed to upload avatar", slog.Int64("user_id", userID), slog.String("error", err.Error()))
+			slog.ErrorContext(r.Context(), "failed to upload avatar",
+				util.AttrUserID(userID),
+				util.AttrError(err),
+			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
@@ -176,7 +196,9 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(avatarResponse{AvatarURL: url}); err != nil {
-		slog.Error("failed to encode avatar response", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to encode avatar response",
+			util.AttrError(err),
+		)
 	}
 }
 
@@ -192,8 +214,10 @@ func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to delete avatar",
-			slog.Int64("user_id", userID), slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to delete avatar",
+			util.AttrUserID(userID),
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

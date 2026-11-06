@@ -8,12 +8,15 @@ import (
 	"studify/internal"
 	"studify/internal/auth/token"
 	"studify/internal/user"
+	"studify/internal/util"
 )
 
 func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 	body := tokenResponse{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.Error("failed to decode request body", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to decode request body",
+			util.AttrError(err),
+		)
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -24,7 +27,9 @@ func (h *Handler) ConfirmEmail(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.Error("failed to confirm email", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to confirm email",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -40,14 +45,16 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		slog.Error("failed to get current user", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get current user",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err := h.Service.SendConfirmationEmail(r.Context(), internal.UserID(currentUser.ID), currentUser.Email); err != nil {
 		slog.ErrorContext(r.Context(), "failed to send confirmation email",
-			slog.String("error", err.Error()),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

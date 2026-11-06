@@ -164,7 +164,7 @@ func InsertSubject(
 	if err != nil {
 		return nil, fmt.Errorf("begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	s, err := insertSubjectTx(
 		tx, userID, name, note, subjectType, scope, examType,

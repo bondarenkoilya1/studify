@@ -45,7 +45,9 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.Error("failed to get subject", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get subject",
+			util.AttrError(err),
+		)
 		http.Error(w, "Failed to get subject", http.StatusInternalServerError)
 		return
 	}
@@ -62,7 +64,9 @@ func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
 
 	subjects, err := h.Service.getUserSubjects(userID)
 	if err != nil {
-		slog.Error("failed to get subjects", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get subjects",
+			util.AttrError(err),
+		)
 		http.Error(w, "Failed to get subjects", http.StatusInternalServerError)
 		return
 	}
@@ -96,9 +100,9 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.Error("failed to insert subject",
-			slog.Int64("user_id", userID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to insert subject",
+			util.AttrUserID(userID),
+			util.AttrError(err),
 		)
 		http.Error(w, "failed to insert subject", http.StatusInternalServerError)
 		return
@@ -140,10 +144,10 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrSubjectAlreadyExists):
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
 		default:
-			slog.Error("failed to replace subject",
-				slog.Int64("user_id", userID),
-				slog.Int64("subject_id", id),
-				slog.String("error", err.Error()),
+			slog.ErrorContext(r.Context(), "failed to replace subject",
+				util.AttrUserID(userID),
+				util.AttrSubjectID(id),
+				util.AttrError(err),
 			)
 			http.Error(w, "Failed to replace subject", http.StatusInternalServerError)
 		}
@@ -188,10 +192,10 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, ErrSubjectAlreadyExists):
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
 		default:
-			slog.Error("failed to update subject",
-				slog.Int64("user_id", userID),
-				slog.Int64("subject_id", id),
-				slog.String("error", err.Error()),
+			slog.ErrorContext(r.Context(), "failed to update subject",
+				util.AttrUserID(userID),
+				util.AttrSubjectID(id),
+				util.AttrError(err),
 			)
 			http.Error(w, "Failed to update subject", http.StatusInternalServerError)
 		}
@@ -209,7 +213,9 @@ func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Service.deleteUserSubjects(userID); err != nil {
-		slog.Error("failed to delete subjects", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to delete subjects",
+			util.AttrError(err),
+		)
 		http.Error(w, "Failed to delete subjects", http.StatusInternalServerError)
 		return
 	}
@@ -236,7 +242,9 @@ func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		slog.Error("failed to delete subject", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to delete subject",
+			util.AttrError(err),
+		)
 		http.Error(w, "Failed to delete subject", http.StatusInternalServerError)
 		return
 	}
@@ -277,10 +285,10 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, user.ErrUserNotFound):
 			http.Error(w, "subject not found", http.StatusNotFound)
 		default:
-			slog.Error("failed to upload thumbnail",
-				slog.Int64("user_id", userID),
-				slog.Int64("subject_id", subjectID),
-				slog.String("error", err.Error()),
+			slog.ErrorContext(r.Context(), "failed to upload thumbnail",
+				util.AttrUserID(userID),
+				util.AttrSubjectID(subjectID),
+				util.AttrError(err),
 			)
 			http.Error(w, "failed to save thumbnail", http.StatusInternalServerError)
 		}
@@ -305,7 +313,9 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		slog.Error("failed to get file", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get file",
+			util.AttrError(err),
+		)
 		http.Error(w, "invalid data", http.StatusBadRequest)
 		return
 	}
@@ -313,10 +323,10 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	path, err := h.Service.uploadFile(userID, subjectID, file, header.Filename)
 	if err != nil {
-		slog.Error("failed to upload file",
-			slog.Int64("user_id", userID),
-			slog.Int64("subject_id", subjectID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(r.Context(), "failed to upload file",
+			util.AttrUserID(userID),
+			util.AttrSubjectID(subjectID),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

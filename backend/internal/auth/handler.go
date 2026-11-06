@@ -11,6 +11,7 @@ import (
 	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/user"
+	"studify/internal/util"
 )
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +29,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user with such email already exists", http.StatusConflict)
 		default:
 			slog.ErrorContext(r.Context(), "failed to register user",
-				slog.String("error", err.Error()),
+				util.AttrError(err),
 			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
@@ -41,7 +42,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 
 	if err := json.NewEncoder(w).Encode(newUser); err != nil {
-		slog.Error("failed to encode user to JSON", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to encode user to JSON",
+			util.AttrError(err),
+		)
 	}
 }
 
@@ -63,7 +66,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		default:
 			slog.ErrorContext(r.Context(), "failed to login user",
-				slog.String("error", err.Error()),
+				util.AttrError(err),
 			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
@@ -77,7 +80,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 			ChallengeToken: string(loginResponse.ChallengeToken),
 		}); err != nil {
 			slog.ErrorContext(r.Context(), "failed to encode TOTP challenge response",
-				slog.String("error", err.Error()),
+				util.AttrError(err),
 			)
 		}
 		return
@@ -90,7 +93,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(loginResponse.User); err != nil {
 		slog.ErrorContext(r.Context(), "failed to encode user response",
-			slog.String("error", err.Error()),
+			util.AttrError(err),
 		)
 	}
 }
@@ -128,7 +131,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 
 		default:
 			slog.ErrorContext(r.Context(), "failed to complete TOTP login",
-				slog.String("error", err.Error()),
+				util.AttrError(err),
 			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
@@ -142,7 +145,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(currentUser); err != nil {
 		slog.ErrorContext(r.Context(), "failed to encode user response",
-			slog.String("error", err.Error()),
+			util.AttrError(err),
 		)
 	}
 }
@@ -158,7 +161,9 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.Service.logout(r.Context(), refreshToken)
 	if err != nil && !errors.Is(err, ErrInvalidToken) && !errors.Is(err, ErrTokenNotFound) {
-		slog.ErrorContext(r.Context(), "logout failed", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "logout failed",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -196,7 +201,7 @@ func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
 
 	if err = h.Service.logoutAllSessions(r.Context(), internal.UserID(userID)); err != nil {
 		slog.ErrorContext(r.Context(), "failed to logout all sessions",
-			slog.String("error", err.Error()),
+			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

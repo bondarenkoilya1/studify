@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"studify/internal"
+	"studify/internal/util"
 )
 
 // GenerateTOTP returns a QR code and a text key for setting up TOTP.
@@ -16,16 +17,18 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get current user", slog.Any("error", err))
+		slog.ErrorContext(r.Context(), "failed to get current user",
+			util.AttrAnyError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	setup, err := h.Service.generateTOTP(r.Context(), currentUser.Email, currentUser.ID)
 	if err != nil {
-		slog.Error("failed to generate totp",
-			slog.Int64("user_id", currentUser.ID),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "failed to generate totp",
+			util.AttrUserID(currentUser.ID),
+			util.AttrAnyError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -33,9 +36,9 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(setup); err != nil {
-		slog.Error("failed to encode totp setup",
-			slog.Int64("user_id", currentUser.ID),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "failed to encode totp setup",
+			util.AttrUserID(currentUser.ID),
+			util.AttrAnyError(err),
 		)
 	}
 }
@@ -48,14 +51,18 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get current user", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get current user",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	body := Passcode{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.Error("failed to decode request body", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to decode request body",
+			util.AttrError(err),
+		)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -66,9 +73,9 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid code", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to confirm totp setup",
-			slog.Int64("user_id", int64(currentUser.ID)),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "failed to confirm totp setup",
+			util.AttrUserID(int64(currentUser.ID)),
+			util.AttrAnyError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -76,9 +83,9 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(recoveryCodes); err != nil {
-		slog.Error("failed to encode recovery codes",
-			slog.Int64("user_id", int64(currentUser.ID)),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "failed to encode recovery codes",
+			util.AttrUserID(int64(currentUser.ID)),
+			util.AttrAnyError(err),
 		)
 	}
 }
@@ -90,14 +97,18 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get current user", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to get current user",
+			util.AttrError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	body := Passcode{}
 	if err = json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.Error("failed to decode request body", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to decode request body",
+			util.AttrError(err),
+		)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -107,9 +118,9 @@ func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid code", http.StatusBadRequest)
 			return
 		}
-		slog.Error("failed to verify totp",
-			slog.Int64("user_id", currentUser.ID),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "failed to verify totp",
+			util.AttrUserID(currentUser.ID),
+			util.AttrAnyError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
@@ -126,15 +137,17 @@ func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "user not found", http.StatusNotFound)
 			return
 		}
-		slog.Error("failed to get current user", slog.Any("error", err))
+		slog.ErrorContext(r.Context(), "failed to get current user",
+			util.AttrAnyError(err),
+		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	if err = h.Service.disableTOTP(r.Context(), internal.UserID(currentUser.ID)); err != nil {
-		slog.Error("failed to disable totp",
-			slog.Int64("user_id", currentUser.ID),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "failed to disable totp",
+			util.AttrUserID(currentUser.ID),
+			util.AttrAnyError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
