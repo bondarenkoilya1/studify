@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"studify/internal/auth/token"
 	"studify/internal/user"
+	"studify/internal/util"
 )
 
 func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	body := email{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.Error("failed to decode request body", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to decode request body",
+			util.AttrError(err),
+		)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -24,10 +27,12 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, user.ErrUserNotFound):
 			// Клиенту не раскрываем, что такого email нет
-			slog.Info("password reset requested for unknown email")
+			slog.InfoContext(r.Context(), "password reset requested for unknown email")
 			w.WriteHeader(http.StatusNoContent)
 		default:
-			slog.Error("failed to request password reset", slog.String("error", err.Error()))
+			slog.ErrorContext(r.Context(), "failed to request password reset",
+				util.AttrError(err),
+			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
@@ -39,7 +44,9 @@ func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Request) {
 	body := tokenResponse{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.Error("failed to decode request body", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to decode request body",
+			util.AttrError(err),
+		)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
@@ -50,10 +57,14 @@ func (h *Handler) VerifyResetPasswordToken(w http.ResponseWriter, r *http.Reques
 		case errors.Is(err, ErrMissingToken):
 			http.Error(w, "missing token", http.StatusBadRequest)
 		case errors.Is(err, ErrInvalidResetToken):
-			slog.Warn("reset token validation failed", slog.String("error", err.Error()))
+			slog.WarnContext(r.Context(), "reset token validation failed",
+				util.AttrError(err),
+			)
 			http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
 		default:
-			slog.Error("failed to verify reset token", slog.String("error", err.Error()))
+			slog.ErrorContext(r.Context(), "failed to verify reset token",
+				util.AttrError(err),
+			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
@@ -66,7 +77,9 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var body changePasswordRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.Error("failed to decode request body", slog.String("error", err.Error()))
+		slog.ErrorContext(r.Context(), "failed to decode request body",
+			util.AttrError(err),
+		)
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -84,10 +97,14 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, ErrInvalidPassword):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, ErrInvalidResetToken):
-			slog.Warn("reset token rejected", slog.String("error", err.Error()))
+			slog.WarnContext(r.Context(), "reset token rejected",
+				util.AttrError(err),
+			)
 			http.Error(w, "invalid or expired reset token", http.StatusUnprocessableEntity)
 		default:
-			slog.Error("failed to reset password", slog.String("error", err.Error()))
+			slog.ErrorContext(r.Context(), "failed to reset password",
+				util.AttrError(err),
+			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 		}
 		return

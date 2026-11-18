@@ -150,10 +150,10 @@ func handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, ErrSharedProjectAlreadyExists):
 		writeError(w, r, http.StatusConflict, "shared project already exists")
 	default:
-		slog.Error("shared project handler failed",
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "shared project handler failed",
+			util.AttrMethod(r.Method),
+			util.AttrPath(r.URL.Path),
+			util.AttrAnyError(err),
 		)
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
 	}

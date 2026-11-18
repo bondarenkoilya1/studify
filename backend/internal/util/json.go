@@ -11,10 +11,10 @@ func WriteJSON(w http.ResponseWriter, r *http.Request, status int, v any) {
 	w.WriteHeader(status)
 
 	if err := json.NewEncoder(w).Encode(v); err != nil {
-		slog.Error("failed to encode response",
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-			slog.Any("error", err),
+		slog.ErrorContext(r.Context(), "failed to encode response",
+			AttrMethod(r.Method),
+			AttrPath(r.URL.Path),
+			AttrAnyError(err),
 		)
 	}
 }

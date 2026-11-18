@@ -15,6 +15,7 @@ import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as GuestResetPasswordRouteImport } from './routes/_guest/reset-password'
+import { Route as ProtectedCalendarRouteImport } from './routes/_protected/calendar'
 import { Route as ProtectedConfirmRouteImport } from './routes/_protected/confirm'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
@@ -53,6 +54,11 @@ const GuestResetPasswordRoute = GuestResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => GuestRoute,
+} as any)
+const ProtectedCalendarRoute = ProtectedCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedConfirmRoute = ProtectedConfirmRouteImport.update({
   id: '/confirm',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/reset-password': typeof GuestResetPasswordRoute
+  '/calendar': typeof ProtectedCalendarRoute
   '/confirm': typeof ProtectedConfirmRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/reset-password': typeof GuestResetPasswordRoute
+  '/calendar': typeof ProtectedCalendarRoute
   '/confirm': typeof ProtectedConfirmRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
   '/_guest/reset-password': typeof GuestResetPasswordRoute
+  '/_protected/calendar': typeof ProtectedCalendarRoute
   '/_protected/confirm': typeof ProtectedConfirmRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/calendar'
     | '/confirm'
     | '/dashboard'
     | '/settings'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/reset-password'
+    | '/calendar'
     | '/confirm'
     | '/dashboard'
     | '/settings'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/_guest/login'
     | '/_guest/register'
     | '/_guest/reset-password'
+    | '/_protected/calendar'
     | '/_protected/confirm'
     | '/_protected/dashboard'
     | '/_protected/settings'
@@ -261,6 +273,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/reset-password'
       preLoaderRoute: typeof GuestResetPasswordRouteImport
       parentRoute: typeof GuestRoute
+    }
+    '/_protected/calendar': {
+      id: '/_protected/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof ProtectedCalendarRouteImport
+      parentRoute: typeof ProtectedRoute
     }
     '/_protected/confirm': {
       id: '/_protected/confirm'
@@ -376,6 +395,7 @@ const ProtectedSettingsRouteWithChildren =
   ProtectedSettingsRoute._addFileChildren(ProtectedSettingsRouteChildren)
 
 interface ProtectedRouteChildren {
+  ProtectedCalendarRoute: typeof ProtectedCalendarRoute
   ProtectedConfirmRoute: typeof ProtectedConfirmRouteWithChildren
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRouteWithChildren
@@ -385,6 +405,7 @@ interface ProtectedRouteChildren {
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedCalendarRoute: ProtectedCalendarRoute,
   ProtectedConfirmRoute: ProtectedConfirmRouteWithChildren,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedSettingsRoute: ProtectedSettingsRouteWithChildren,

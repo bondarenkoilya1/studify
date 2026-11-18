@@ -27,6 +27,8 @@ tags:
     description: MFA setup and verification
   - name: Auth / Reset Password
     description: Password reset requests, validation, and completion
+  - name: Auth / Sessions
+    description: Active user session management
   - name: Dashboard
     description: Dashboard overview and task statistics
   - name: Subjects
@@ -382,6 +384,86 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/sessions:
+    get:
+      tags: [Auth / Sessions]
+      summary: List all active sessions of the authenticated user
+      description: Returns all active sessions for the current user, ordered by last login descending.
+      operationId: getUserSessions
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: List of active sessions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Session'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Auth / Sessions]
+      summary: Revoke all active sessions of the authenticated user
+      description: Revokes all active session records for the current user.
+      operationId: revokeAllUserSessions
+      security:
+        - accessCookie: []
+      responses:
+        '204':
+          description: All active sessions were revoked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/auth/sessions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/NumericId'
+    get:
+      tags: [Auth / Sessions]
+      summary: Get a session by ID
+      description: Retrieves a single session by its ID for the authenticated user.
+      operationId: getSession
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Session found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Auth / Sessions]
+      summary: Revoke a session by ID
+      description: Revokes a single session by its ID for the authenticated user.
+      operationId: revokeSession
+      security:
+        - accessCookie: []
+      responses:
+        '204':
+          description: Session was revoked.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1986,3 +2068,41 @@ components:
         author_avatar_url:
           type: string
           example: https://avatars.githubusercontent.com/u/1234567
+
+    Session:
+      type: object
+      required:
+        - id
+        - user_id
+        - os
+        - browser
+        - device
+        - country
+        - last_login
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          minimum: 1
+          example: 1
+        os:
+          type: string
+          example: macOS
+        browser:
+          type: string
+          example: Chrome
+        device:
+          type: string
+          example: Computer
+        country:
+          type: string
+          example: 127.0.0.1
+        last_login:
+          type: string
+          format: date-time
+          example: '2026-11-02T19:50:00Z'

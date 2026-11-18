@@ -86,7 +86,7 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 	if err != nil {
 		return fmt.Errorf("begin reset password tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if err = user.UpdateUserPassword(ctx, tx, tokenRecord.UserID, hash); err != nil {
 		return fmt.Errorf("update user password: %w", err)
@@ -105,17 +105,17 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 
 	currentUser, err := user.GetUserByID(s.db, tokenRecord.UserID)
 	if err != nil {
-		slog.Error("failed to get user for new password email",
-			slog.Int64("user_id", tokenRecord.UserID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(ctx, "failed to get user for new password email",
+			util.AttrUserID(tokenRecord.UserID),
+			util.AttrError(err),
 		)
 		return nil
 	}
 
 	if err = s.mailService.SendNewPasswordEmail(currentUser.Email); err != nil {
-		slog.Error("failed to send new password email",
-			slog.Int64("user_id", tokenRecord.UserID),
-			slog.String("error", err.Error()),
+		slog.ErrorContext(ctx, "failed to send new password email",
+			util.AttrUserID(tokenRecord.UserID),
+			util.AttrError(err),
 		)
 	}
 

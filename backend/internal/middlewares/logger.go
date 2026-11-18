@@ -3,6 +3,7 @@ package middlewares
 import (
 	"log/slog"
 	"net/http"
+	"studify/internal/util"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,7 +40,7 @@ func RequestID(next http.Handler) http.Handler {
 			correlationID = uuid.New().String()
 		}
 
-		ctx = slogctx.Prepend(ctx, slog.String("correlation_id", correlationID))
+		ctx = slogctx.Prepend(ctx, util.AttrCorrelationID(correlationID))
 
 		r = r.WithContext(ctx)
 
@@ -65,10 +66,10 @@ func RequestLogger(next http.Handler) http.Handler {
 		slog.InfoContext(
 			r.Context(),
 			"request completed",
-			slog.String("method", r.Method),
-			slog.String("path", r.URL.Path),
-			slog.Int("status", status),
-			slog.Duration("duration", time.Since(start)),
+			util.AttrMethod(r.Method),
+			util.AttrPath(r.URL.Path),
+			util.AttrStatus(status),
+			util.AttrDuration(time.Since(start)),
 		)
 	})
 }

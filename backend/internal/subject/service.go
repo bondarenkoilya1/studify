@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"studify/internal/media"
+	"studify/internal/util"
 )
 
 var ErrNoFieldsToUpdate = errors.New("no fields to update")
@@ -198,7 +199,10 @@ func (s *Service) uploadThumbnail(userID, subjectID int64, body io.Reader) (stri
 	if oldURL != nil && *oldURL != "" {
 		path, ok := thumbnailFilePath(*oldURL)
 		if !ok {
-			slog.Error("unexpected thumbnail url", slog.String("url", *oldURL), slog.Int64("subject_id", subjectID))
+			slog.Error("unexpected thumbnail url",
+				util.AttrURL(*oldURL),
+				util.AttrSubjectID(subjectID),
+			)
 		} else {
 			removeFile(path)
 		}
@@ -237,7 +241,10 @@ func thumbnailFilePath(thumbnailURL string) (string, bool) {
 
 func removeFile(path string) {
 	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-		slog.Error("failed to delete file", slog.String("path", path), slog.String("error", err.Error()))
+		slog.Error("failed to delete file",
+			util.AttrPath(path),
+			util.AttrError(err),
+		)
 	}
 }
 

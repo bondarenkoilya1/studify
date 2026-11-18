@@ -47,9 +47,9 @@ func (s *Service) CreateSession(ctx context.Context, userID internal.UserID, in 
 	return newSess, nil
 }
 
-// getSession returns one session if it belongs to the user.
+// GetSession returns one session if it belongs to the user.
 // Returns ErrNotFoundSession if it doesn't exist or belongs to someone else.
-func (s *Service) getSession(ctx context.Context, userID internal.UserID, sessionID int64) (*Session, error) {
+func (s *Service) GetSession(ctx context.Context, userID internal.UserID, sessionID int64) (*Session, error) {
 	sess, err := GetSessionByID(ctx, s.db, sessionID)
 	if err != nil {
 		return nil, fmt.Errorf("get session %d: %w", sessionID, err)
@@ -62,8 +62,12 @@ func (s *Service) getSession(ctx context.Context, userID internal.UserID, sessio
 	return sess, nil
 }
 
-// listSessions returns all active sessions of the user, newest first.
-func (s *Service) listSessions(ctx context.Context, userID internal.UserID) ([]*Session, error) {
+// func (s *Service) getSession(ctx context.Context, userID internal.UserID, sessionID int64) (*Session, error) {
+// 	return s.GetSession(ctx, userID, sessionID)
+// }
+
+// ListSessions returns all active sessions of the user, newest first.
+func (s *Service) ListSessions(ctx context.Context, userID internal.UserID) ([]*Session, error) {
 	sessions, err := ListSessionsByUserID(ctx, s.db, int64(userID))
 	if err != nil {
 		return nil, fmt.Errorf("list sessions for user %d: %w", userID, err)
@@ -72,9 +76,13 @@ func (s *Service) listSessions(ctx context.Context, userID internal.UserID) ([]*
 	return sessions, nil
 }
 
-// updateSession refreshes the client details and last_login of the user's session.
+func (s *Service) listSessions(ctx context.Context, userID internal.UserID) ([]*Session, error) {
+	return s.ListSessions(ctx, userID)
+}
+
+// UpdateSession refreshes the client details and last_login of the user's session.
 // Returns ErrNotFoundSession if the session doesn't exist or belongs to someone else.
-func (s *Service) updateSession(ctx context.Context, userID internal.UserID, sessionID int64, in Input) (*Session, error) {
+func (s *Service) UpdateSession(ctx context.Context, userID internal.UserID, sessionID int64, in Input) (*Session, error) {
 	sess := &Session{
 		ID:      sessionID,
 		UserID:  int64(userID),
@@ -91,8 +99,12 @@ func (s *Service) updateSession(ctx context.Context, userID internal.UserID, ses
 	return sess, nil
 }
 
-// revokeSession deletes one session of the user (log out a single device).
-func (s *Service) revokeSession(ctx context.Context, userID internal.UserID, sessionID int64) error {
+// func (s *Service) updateSession(ctx context.Context, userID internal.UserID, sessionID int64, in Input) (*Session, error) {
+// 	return s.UpdateSession(ctx, userID, sessionID, in)
+// }
+
+// RevokeSession deletes one session of the user (log out a single device).
+func (s *Service) RevokeSession(ctx context.Context, userID internal.UserID, sessionID int64) error {
 	if err := DeleteSession(ctx, s.db, sessionID, int64(userID)); err != nil {
 		return fmt.Errorf("revoke session %d: %w", sessionID, err)
 	}
@@ -100,14 +112,22 @@ func (s *Service) revokeSession(ctx context.Context, userID internal.UserID, ses
 	return nil
 }
 
-// revokeAllSessions deletes every session of the user (log out everywhere).
-func (s *Service) revokeAllSessions(ctx context.Context, userID internal.UserID) error {
+// func (s *Service) revokeSession(ctx context.Context, userID internal.UserID, sessionID int64) error {
+// 	return s.RevokeSession(ctx, userID, sessionID)
+// }
+
+// RevokeAllSessions deletes every session of the user (log out everywhere).
+func (s *Service) RevokeAllSessions(ctx context.Context, userID internal.UserID) error {
 	if err := DeleteSessionsByUserID(ctx, s.db, int64(userID)); err != nil {
 		return fmt.Errorf("revoke all sessions for user %d: %w", userID, err)
 	}
 
 	return nil
 }
+
+// func (s *Service) revokeAllSessions(ctx context.Context, userID internal.UserID) error {
+// 	return s.RevokeAllSessions(ctx, userID)
+// }
 
 func isSameClient(sess *Session, in Input) bool {
 	return sess.OS == in.OS &&

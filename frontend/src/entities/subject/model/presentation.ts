@@ -55,6 +55,91 @@ export const SCOPE_DOT_COLORS: Record<string, string> = {
   other: "bg-gray-400",
 };
 
+export interface SubjectPresentation {
+  gradient: string;
+  backgroundColor: string;
+  borderColor: string;
+}
+
+const SCOPE_CALENDAR_COLORS: Record<
+  string,
+  Array<{ backgroundColor: string; borderColor: string }>
+> = {
+  technology: [
+    { backgroundColor: "#dbeafe", borderColor: "#2563eb" },
+    { backgroundColor: "#dbeafe", borderColor: "#1d4ed8" },
+    { backgroundColor: "#e0e7ff", borderColor: "#4338ca" },
+    { backgroundColor: "#cffafe", borderColor: "#0891b2" },
+  ],
+  healthcare: [
+    { backgroundColor: "#ffe4e6", borderColor: "#e11d48" },
+    { backgroundColor: "#ffe4e6", borderColor: "#be123c" },
+    { backgroundColor: "#fee2e2", borderColor: "#b91c1c" },
+    { backgroundColor: "#fce7f3", borderColor: "#e11d48" },
+  ],
+  humanities: [
+    { backgroundColor: "#fef3c7", borderColor: "#d97706" },
+    { backgroundColor: "#fef3c7", borderColor: "#b45309" },
+    { backgroundColor: "#ffedd5", borderColor: "#c2410c" },
+    { backgroundColor: "#ffedd5", borderColor: "#d97706" },
+  ],
+  business: [
+    { backgroundColor: "#d1fae5", borderColor: "#059669" },
+    { backgroundColor: "#d1fae5", borderColor: "#047857" },
+    { backgroundColor: "#ccfbf1", borderColor: "#0f766e" },
+    { backgroundColor: "#ccfbf1", borderColor: "#0d9488" },
+  ],
+  social: [
+    { backgroundColor: "#ede9fe", borderColor: "#7c3aed" },
+    { backgroundColor: "#f3e8ff", borderColor: "#7c3aed" },
+    { backgroundColor: "#e0e7ff", borderColor: "#4338ca" },
+    { backgroundColor: "#fce7f3", borderColor: "#c026d3" },
+  ],
+  science: [
+    { backgroundColor: "#cffafe", borderColor: "#0891b2" },
+    { backgroundColor: "#e0f2fe", borderColor: "#0369a1" },
+    { backgroundColor: "#cffafe", borderColor: "#0f766e" },
+    { backgroundColor: "#ccfbf1", borderColor: "#0d9488" },
+  ],
+  other: [
+    { backgroundColor: "#f4f4f5", borderColor: "#52525b" },
+    { backgroundColor: "#f1f5f9", borderColor: "#334155" },
+    { backgroundColor: "#f4f4f5", borderColor: "#52525b" },
+    { backgroundColor: "#f4f4f5", borderColor: "#52525b" },
+  ],
+};
+
+export function hashSubjectIndex(
+  subjectId: string | number,
+  length: number,
+): number {
+  return (
+    Math.abs(
+      String(subjectId)
+        .split("")
+        .reduce((acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0, 0),
+    ) % length
+  );
+}
+
+export function getSubjectPresentation(
+  scope: string,
+  subjectId: string | number,
+): SubjectPresentation {
+  const gradients =
+    SCOPE_GRADIENTS[scope] ?? SCOPE_GRADIENTS.other!;
+  const colors =
+    SCOPE_CALENDAR_COLORS[scope] ?? SCOPE_CALENDAR_COLORS.other!;
+  const index = hashSubjectIndex(subjectId, gradients.length);
+
+  return {
+    gradient: gradients[index] ?? gradients[0]!,
+    backgroundColor:
+      colors[index]?.backgroundColor ?? colors[0]!.backgroundColor,
+    borderColor: colors[index]?.borderColor ?? colors[0]!.borderColor,
+  };
+}
+
 export const COURSE_COLORS: Record<number, string> = {
   1: "bg-blue-50 text-blue-700",
   2: "bg-emerald-50 text-emerald-700",

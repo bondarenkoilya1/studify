@@ -79,7 +79,7 @@ func (s *Service) ConfirmEmail(ctx context.Context, t token.Token) error {
 	if err != nil {
 		return fmt.Errorf("begin confirm email transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	tokenRecord, err := s.ValidateConfirmationToken(ctx, t)
 	if err != nil {

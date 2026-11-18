@@ -15,7 +15,7 @@ import {
 import type { Subject } from "@/shared/api";
 import {
   SCOPE_DOT_COLORS,
-  SCOPE_GRADIENTS,
+  getSubjectPresentation,
 } from "@/entities/subject/model/presentation";
 import { toAbsoluteUrl } from "@/shared/utils";
 
@@ -37,13 +37,6 @@ const TERM_COLORS: Record<number, string> = {
   4: "bg-orange-50 text-orange-700",
 };
 
-const hashIndex = (val: string | number, max: number) =>
-  Math.abs(
-    String(val)
-      .split("")
-      .reduce((acc, ch) => ((acc << 5) - acc + ch.charCodeAt(0)) | 0, 0),
-  ) % max;
-
 function MetaRow({
   icon: Icon,
   children,
@@ -64,9 +57,7 @@ function MetaRow({
 export function SubjectCard({ subject }: { subject: Subject }) {
   const uploadThumbnail = useUploadSubjectThumbnail();
 
-  const gradients = SCOPE_GRADIENTS[subject.scope] ?? SCOPE_GRADIENTS.other;
-  const gradient =
-    gradients && gradients[hashIndex(subject.id, gradients.length)];
+  const { gradient } = getSubjectPresentation(subject.scope, subject.id);
   const isUniversity = subject.type === "university";
   const lecturers = subject.lecturers ?? [];
 

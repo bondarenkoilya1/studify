@@ -1,6 +1,7 @@
 export * from "./auth/auth";
 export * from "./auth-confirm/auth-confirm";
 export * from "./auth-reset-password/auth-reset-password";
+export * from "./auth-sessions/auth-sessions";
 export * from "./auth-totp/auth-totp";
 export * from "./dashboard/dashboard";
 export * from "./profile/profile";

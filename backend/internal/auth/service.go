@@ -215,7 +215,7 @@ func (s *Service) refreshTokens(
 	if err != nil {
 		return token.Pair{}, fmt.Errorf("begin refresh transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	userID, refreshTokenID, err := s.validateRefreshToken(
 		ctx,

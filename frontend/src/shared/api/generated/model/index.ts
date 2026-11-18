@@ -44,6 +44,7 @@ export * from "./passwordResetEmailRequest";
 export * from "./passwordResetRequest";
 export * from "./passwordResetTokenRequest";
 export * from "./recoveryCodesResponse";
+export * from "./session";
 export * from "./sharedProject";
 export * from "./sharedProjectConflictResponse";
 export * from "./sharedProjectRequest";

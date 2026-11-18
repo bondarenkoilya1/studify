@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"studify/internal/auth/token"
 	"studify/internal/httpx"
+	"studify/internal/util"
 )
 
 func ValidateAuth(tokenManager *token.Manager) func(http.Handler) http.Handler {
@@ -18,7 +19,9 @@ func ValidateAuth(tokenManager *token.Manager) func(http.Handler) http.Handler {
 				case errors.Is(err, http.ErrNoCookie):
 					http.Error(w, "unauthorized", http.StatusUnauthorized)
 				default:
-					slog.Error("failed to read cookie", slog.String("error", err.Error()))
+					slog.ErrorContext(r.Context(), "failed to read cookie",
+						util.AttrError(err),
+					)
 					http.Error(w, "failed to read cookie", http.StatusInternalServerError)
 				}
 				return

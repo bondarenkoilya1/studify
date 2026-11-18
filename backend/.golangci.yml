@@ -3,11 +3,24 @@ linters:
   enable:
     - misspell
     - revive
+    - sloglint
   settings:
     revive:
       rules:
         - name: exported
           disabled: true
+    sloglint:
+      attr-only: true
+      context: scope
+      static-msg: true
+      msg-style: lowercased
+      no-raw-keys: true
+      forbidden-keys:
+        - time
+        - level
+        - msg
+        - source
+      args-on-sep-lines: true
   exclusions:
     generated: lax
     presets:

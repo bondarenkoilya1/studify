@@ -6,6 +6,7 @@ import (
 	"studify/internal/auth/emailconfirm"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/resetpassword"
+	"studify/internal/auth/session"
 	"studify/internal/dashboard"
 	"studify/internal/middlewares"
 	"studify/internal/sharedproject"
@@ -50,6 +51,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 				r.Post("/logout-all", h.Auth.LogoutAllSessions)
 				registerMfaRoutes(r, h.Mfa)
 				registerEmailConfirmRoutes(r, h.EmailConfirm)
+				registerSessionRoutes(r, h.Session)
 			})
 		})
 
@@ -163,6 +165,18 @@ func registerEmailConfirmRoutes(r chi.Router, h *emailconfirm.Handler) {
 	r.Route("/confirm", func(r chi.Router) {
 		r.Post("/resend", h.ResendConfirmationMail)
 		r.Post("/", h.ConfirmEmail)
+	})
+}
+
+func registerSessionRoutes(r chi.Router, h *session.Handler) {
+	r.Route("/sessions", func(r chi.Router) {
+		r.Get("/", h.GetUserSessions)
+		r.Delete("/", h.RevokeAllSessions)
+
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", h.GetSession)
+			r.Delete("/", h.RevokeSession)
+		})
 	})
 }
 

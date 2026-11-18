@@ -16,6 +16,7 @@ import (
 	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/media"
+	"studify/internal/util"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -80,7 +81,7 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 	if err != nil {
 		return nil, fmt.Errorf("begin update user email tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	newUser, err := updateEmail(ctx, tx, userID, newEmail)
 	if err != nil {
@@ -93,7 +94,7 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 
 	if err = s.emailConfirmService.SendConfirmationEmail(ctx, internal.UserID(newUser.ID), newUser.Email); err != nil {
 		slog.ErrorContext(ctx, "failed to send confirmation email",
-			slog.String("error", err.Error()),
+			util.AttrError(err),
 		)
 		return nil, fmt.Errorf("send confirmation email: %w", err)
 	}
@@ -154,7 +155,10 @@ func (s *Service) UploadAvatar(ctx context.Context, rc io.Reader, userID int64) 
 	oldURL, err := ReplaceUserAvatar(ctx, s.db, userID, avatarURL)
 	if err != nil {
 		if rmErr := os.Remove(filepath.Join(avatarsDir, filename)); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
-			slog.Error("failed to delete orphaned avatar file", "error", rmErr, "user_id", userID)
+			slog.ErrorContext(ctx, "failed to delete orphaned avatar file",
+				util.AttrAnyError(rmErr),
+				util.AttrUserID(userID),
+			)
 		}
 		return "", err
 	}
@@ -162,9 +166,16 @@ func (s *Service) UploadAvatar(ctx context.Context, rc io.Reader, userID int64) 
 	if oldURL != nil && *oldURL != "" {
 		path, ok := avatarFilePath(*oldURL)
 		if !ok {
-			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
+			slog.ErrorContext(ctx, "unexpected avatar url",
+				util.AttrURL(*oldURL),
+				util.AttrUserID(userID),
+			)
 		} else if rmErr := os.Remove(path); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
-			slog.Error("failed to delete previous avatar file", "error", rmErr, "path", path, "user_id", userID)
+			slog.ErrorContext(ctx, "failed to delete previous avatar file",
+				util.AttrAnyError(rmErr),
+				util.AttrPath(path),
+				util.AttrUserID(userID),
+			)
 		}
 	}
 
@@ -180,9 +191,16 @@ func (s *Service) DeleteAvatar(ctx context.Context, userID int64) error {
 	if oldURL != nil && *oldURL != "" {
 		path, ok := avatarFilePath(*oldURL)
 		if !ok {
-			slog.Error("unexpected avatar url", "url", *oldURL, "user_id", userID)
+			slog.ErrorContext(ctx, "unexpected avatar url",
+				util.AttrURL(*oldURL),
+				util.AttrUserID(userID),
+			)
 		} else if rmErr := os.Remove(path); rmErr != nil && !errors.Is(rmErr, os.ErrNotExist) {
-			slog.Error("failed to delete avatar file", "error", rmErr, "path", path, "user_id", userID)
+			slog.ErrorContext(ctx, "failed to delete avatar file",
+				util.AttrAnyError(rmErr),
+				util.AttrPath(path),
+				util.AttrUserID(userID),
+			)
 		}
 	}
 
