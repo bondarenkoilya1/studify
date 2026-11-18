@@ -59,7 +59,7 @@ function SubjectFilesSidebar({ files }: { files: SubjectFile[] }) {
   }
 
   return (
-    <aside className="w-full shrink-0 lg:w-[320px]">
+    <aside className="w-full shrink-0 lg:w-72">
       <div className="rounded-[20px] border border-gray-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <h2 className="text-[17px] font-semibold tracking-tight text-gray-900">
           Материалы курса
@@ -136,8 +136,8 @@ function SubjectPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
-      <div className="mx-auto flex max-w-[1024px] flex-col gap-8 px-5 py-12 sm:px-8 lg:flex-row">
-        <main className="w-full max-w-[640px] flex-1">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row">
+        <main className="min-w-0 flex-1">
           <Link
             to="/subjects"
             className="
