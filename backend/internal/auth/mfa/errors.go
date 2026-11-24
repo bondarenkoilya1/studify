@@ -8,4 +8,5 @@ var (
 	ErrFailedToEncodeQR   = errors.New("failed to encode key to QR-code")
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidCode        = errors.New("read TOTP code")
+	ErrAlreadyEnabled     = errors.New("TOTP already enabled")
 )

@@ -3,9 +3,10 @@ package rc
 import (
 	"context"
 	"crypto/rand"
-	"database/sql"
 	"fmt"
 	"math/big"
+	"strings"
+	"studify/internal"
 	"studify/internal/util"
 )
 
@@ -44,22 +45,28 @@ func generateCode() (string, error) {
 	), nil
 }
 
-func SaveRecoveryCodes(ctx context.Context, db *sql.DB, userID int64, codes []string) (err error) {
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
+func Normalize(code string) (string, bool) {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	if len(code) == codeLength+2 && code[4] == '-' && code[9] == '-' {
+		code = code[:4] + code[5:9] + code[10:]
 	}
-	defer func() { _ = tx.Rollback() }()
-
-	for _, code := range codes {
-		hash := util.HashSHA256(code)
-		if err = InsertRecoveryCode(ctx, tx, userID, hash); err != nil {
-			return fmt.Errorf("insert recovery code: %w", err)
+	if len(code) != codeLength {
+		return "", false
+	}
+	for _, char := range code {
+		if !strings.ContainsRune(alphabet, char) {
+			return "", false
 		}
 	}
+	return code[:4] + "-" + code[4:8] + "-" + code[8:], true
+}
 
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
+func SaveRecoveryCodes(ctx context.Context, db internal.DBTX, userID int64, codes []string) error {
+	for _, code := range codes {
+		hash := util.HashSHA256(code)
+		if err := InsertRecoveryCode(ctx, db, userID, hash); err != nil {
+			return fmt.Errorf("insert recovery code: %w", err)
+		}
 	}
 
 	return nil

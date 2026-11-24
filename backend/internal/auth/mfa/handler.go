@@ -26,6 +26,10 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 
 	setup, err := h.Service.generateTOTP(r.Context(), currentUser.Email, currentUser.ID)
 	if err != nil {
+		if errors.Is(err, ErrAlreadyEnabled) {
+			http.Error(w, "TOTP already enabled", http.StatusConflict)
+			return
+		}
 		slog.ErrorContext(r.Context(), "failed to generate totp",
 			util.AttrUserID(currentUser.ID),
 			util.AttrAnyError(err),
@@ -71,6 +75,10 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrInvalidCode) {
 			http.Error(w, "invalid code", http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, ErrAlreadyEnabled) {
+			http.Error(w, "TOTP already enabled", http.StatusConflict)
 			return
 		}
 		slog.ErrorContext(r.Context(), "failed to confirm totp setup",

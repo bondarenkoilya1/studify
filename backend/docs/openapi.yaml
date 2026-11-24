@@ -110,7 +110,7 @@ paths:
   /api/auth/login/totp:
     post:
       tags: [Auth / TOTP]
-      summary: Complete MFA login with a TOTP code
+      summary: Complete MFA login with an authenticator or recovery code
       operationId: loginTOTP
       security: []
       requestBody:
@@ -121,7 +121,7 @@ paths:
               $ref: '#/components/schemas/LoginTOTPRequest'
       responses:
         '200':
-          description: TOTP challenge was accepted and the server issued auth cookies.
+          description: The challenge and code were accepted. If a recovery code was used, it was consumed.
           headers:
             Set-Cookie:
               $ref: '#/components/headers/AuthCookies'
@@ -248,7 +248,8 @@ paths:
       summary: Generate a TOTP setup QR-code and secret
       description: |
         Generates a new secret and stores it encrypted. TOTP is not enabled until the setup is
-        confirmed with /api/auth/totp/setup/confirm. Calling this again replaces the stored secret.
+        confirmed with /api/auth/totp/setup/confirm. Setup can replace a pending secret.
+        If TOTP is already enabled, the stored secret is kept and the request returns 409.
       operationId: generateTOTP
       security:
         - accessCookie: []
@@ -263,6 +264,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -283,7 +286,7 @@ paths:
         '200':
           description: |
             TOTP was enabled and 10 recovery codes were returned. The codes are shown only once.
-            The current API has no endpoint that accepts a recovery code.
+            Each code can complete one sign-in at /api/auth/login/totp.
           content:
             application/json:
               schema:
@@ -294,6 +297,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -308,7 +313,7 @@ paths:
         - accessCookie: []
       responses:
         '204':
-          description: TOTP was disabled successfully.
+          description: TOTP was disabled. Recovery codes and pending login challenges were invalidated.
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1510,7 +1515,7 @@ components:
           example: Xk3pN8vQ2mR7tY1wZ5cB9dF4gH6jL0sA2eU8iO3qT7y
         code:
           type: string
-          description: 6-digit TOTP code.
+          description: Six-digit authenticator code or a one-time recovery code, such as ABCD-EFGH-JK23.
           example: '123456'
 
     Passcode:

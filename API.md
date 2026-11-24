@@ -39,7 +39,7 @@ A missing or invalid token returns `401 Unauthorized`.
 | --- | --- | --- | --- |
 | `POST` | `/api/auth/register` | – | Create a user, set cookies, send a confirmation email |
 | `POST` | `/api/auth/login` | – | Log in, or start a TOTP login |
-| `POST` | `/api/auth/login/totp` | – | Finish a TOTP login |
+| `POST` | `/api/auth/login/totp` | – | Finish two-factor sign-in |
 | `POST` | `/api/auth/refresh` | refresh cookie | Rotate both cookies |
 | `POST` | `/api/auth/logout` | – | Revoke the refresh token and clear cookies |
 | `POST` | `/api/auth/logout-all` | ✓ | Revoke all active sessions and clear cookies |
@@ -101,7 +101,7 @@ The body has the same shape as registration. Wrong credentials return
 }
 ```
 
-Finish the login with the code from the authenticator app:
+Finish sign-in with the code from the authenticator app or a saved recovery code:
 
 ```http
 POST /api/auth/login/totp
@@ -115,7 +115,7 @@ POST /api/auth/login/totp
 ```
 
 Success: `200 OK`, auth cookies, and the user object. An invalid or expired
-challenge token returns `401`, and a wrong code returns `400`.
+challenge or code returns `401`. A recovery code is consumed only when sign-in succeeds.
 
 ### Refresh and logout
 
@@ -143,7 +143,7 @@ Changing the email through `PATCH /api/users/me/email` resets
 
 ## Two-factor authentication (TOTP)
 
-All TOTP routes require authentication.
+The TOTP settings routes below require authentication.
 
 | Method | Path | Description |
 | --- | --- | --- |
@@ -152,7 +152,8 @@ All TOTP routes require authentication.
 | `DELETE` | `/api/auth/totp` | Disable TOTP |
 
 `POST /api/auth/totp/setup` returns a base64 PNG and the secret for manual
-entry. TOTP is not enabled yet, and calling setup again replaces the secret.
+entry. Setup can replace a pending secret. Once TOTP is enabled, setup and
+setup confirmation return `409`.
 
 ```json
 {
@@ -178,9 +179,10 @@ code returns `400`.
 }
 ```
 
-The API does not have an endpoint that accepts recovery codes yet.
+Pass a saved recovery code as `code` to `POST /api/auth/login/totp`.
 
-`DELETE /api/auth/totp` disables TOTP and returns `204 No Content`.
+`DELETE /api/auth/totp` disables TOTP, invalidates recovery codes and pending
+sign-in challenges, and returns `204 No Content`.
 
 ## Password reset
 

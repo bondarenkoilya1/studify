@@ -104,31 +104,27 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentUser, pair, err := h.Service.loginTOTP(
+	currentUser, pair, err := h.Service.loginMFA(
 		r.Context(),
 		body.ChallengeToken,
 		body.Code,
 	)
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrUserNotFound):
-			http.Error(w, "user not found", http.StatusUnauthorized)
-
-		case errors.Is(err, challenge.ErrChallengeTokenNotFound):
+		case errors.Is(err, user.ErrUserNotFound),
+			errors.Is(err, challenge.ErrChallengeTokenNotFound),
+			errors.Is(err, ErrChallengeExpired):
 			http.Error(w, "invalid or expired challenge", http.StatusUnauthorized)
 
-		case errors.Is(err, ErrInvalidTOTPCode):
-			http.Error(w, "invalid TOTP code", http.StatusUnauthorized)
-
-		case errors.Is(err, ErrChallengeExpired):
-			http.Error(w, "challenge expired", http.StatusUnauthorized)
+		case errors.Is(err, ErrInvalidMFACode):
+			http.Error(w, "invalid authentication code", http.StatusUnauthorized)
 
 		case errors.Is(err, ErrRequiredChallengeToken),
-			errors.Is(err, ErrRequiredTOTPCode):
+			errors.Is(err, ErrRequiredMFACode):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 
 		default:
-			slog.ErrorContext(r.Context(), "failed to complete TOTP login",
+			slog.ErrorContext(r.Context(), "failed to complete MFA login",
 				util.AttrError(err),
 			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)

@@ -69,6 +69,25 @@ func DeleteRecoveryCodes(ctx context.Context, db internal.DBTX, userID int64) er
 	return nil
 }
 
+func ConsumeRecoveryCode(ctx context.Context, db internal.DBTX, userID int64, codeHash string) error {
+	result, err := db.ExecContext(ctx, `
+		DELETE FROM recovery_codes
+		WHERE user_id = $1 AND code_hash = $2;
+	`, userID, codeHash)
+	if err != nil {
+		return fmt.Errorf("consume recovery code: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("get consumed recovery code count: %w", err)
+	}
+	if rows == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 func DeleteRecoveryCode(ctx context.Context, db internal.DBTX, id int64) error {
 	result, err := db.ExecContext(ctx, `
 		DELETE FROM recovery_codes

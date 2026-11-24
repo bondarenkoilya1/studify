@@ -27,6 +27,7 @@ import type {
 
 import type {
   BadRequestResponse,
+  ConflictResponse,
   InternalErrorResponse,
   LoginTOTPRequest,
   NotFoundResponse,
@@ -48,7 +49,7 @@ export const getLoginTOTPUrl = () => {
 };
 
 /**
- * @summary Complete MFA login with a TOTP code
+ * @summary Complete MFA login with an authenticator or recovery code
  */
 export const loginTOTP = async (
   loginTOTPRequest: LoginTOTPRequest,
@@ -144,7 +145,7 @@ export type LoginTOTPMutationError = ErrorType<
 export type LoginTOTPMutationVariables = { data: LoginTOTPRequest };
 
 /**
- * @summary Complete MFA login with a TOTP code
+ * @summary Complete MFA login with an authenticator or recovery code
  */
 export const useLoginTOTP = <
   TError = ErrorType<
@@ -179,7 +180,8 @@ export const getGenerateTOTPUrl = () => {
 
 /**
  * Generates a new secret and stores it encrypted. TOTP is not enabled until the setup is
- * confirmed with /api/auth/totp/setup/confirm. Calling this again replaces the stored secret.
+ * confirmed with /api/auth/totp/setup/confirm. Setup can replace a pending secret.
+ * If TOTP is already enabled, the stored secret is kept and the request returns 409.
  * @summary Generate a TOTP setup QR-code and secret
  */
 export const generateTOTP = async (
@@ -195,7 +197,10 @@ export const getGenerateTOTPMutationKey = () => ["generateTOTP"] as const;
 
 export const getGenerateTOTPMutationOptions = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | ConflictResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(options?: {
@@ -236,7 +241,10 @@ export type GenerateTOTPMutationResult = NonNullable<
 >;
 
 export type GenerateTOTPMutationError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+  | UnauthorizedResponse
+  | NotFoundResponse
+  | ConflictResponse
+  | InternalErrorResponse
 >;
 
 /**
@@ -244,7 +252,10 @@ export type GenerateTOTPMutationError = ErrorType<
  */
 export const useGenerateTOTP = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | ConflictResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(
@@ -317,6 +328,7 @@ export const getConfirmTOTPSetupMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | ConflictResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -364,6 +376,7 @@ export type ConfirmTOTPSetupMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | NotFoundResponse
+  | ConflictResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -377,6 +390,7 @@ export const useConfirmTOTPSetup = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | ConflictResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
