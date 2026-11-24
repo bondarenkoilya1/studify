@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
 import type { Task, TaskDifficulty } from "@/shared/api";
+import { formatTaskDeadline } from "../model/dates";
 import {
   DIFFICULTY_LABELS,
   DIFFICULTY_LEVEL,
@@ -11,46 +12,6 @@ import {
 
 interface TaskCardProps {
   task: Task;
-}
-
-function formatDeadline(deadline: string) {
-  const date = new Date(deadline);
-  const today = new Date();
-
-  today.setHours(0, 0, 0, 0);
-
-  const diffDays = Math.ceil((date.getTime() - today.getTime()) / 86_400_000);
-
-  const formatted = date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-
-  if (diffDays === 0) {
-    return {
-      text: "Due today",
-      urgent: true,
-    };
-  }
-
-  if (diffDays === 1) {
-    return {
-      text: "Due tomorrow",
-      urgent: true,
-    };
-  }
-
-  if (diffDays < 0) {
-    return {
-      text: `${formatted} · overdue`,
-      urgent: true,
-    };
-  }
-
-  return {
-    text: `Due ${formatted}`,
-    urgent: false,
-  };
 }
 
 function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
@@ -82,7 +43,7 @@ export function TaskCard({ task }: TaskCardProps) {
   const status = STATUS_CONFIG[task.status];
   const isDone = task.status === "completed";
 
-  const deadline = task.deadline ? formatDeadline(task.deadline) : null;
+  const deadline = task.deadline ? formatTaskDeadline(task.deadline) : null;
 
   const priorityChip = PRIORITY_CHIP[task.priority];
 
