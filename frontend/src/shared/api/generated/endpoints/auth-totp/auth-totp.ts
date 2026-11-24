@@ -27,6 +27,7 @@ import type {
 
 import type {
   BadRequestResponse,
+  ConflictResponse,
   InternalErrorResponse,
   LoginTOTPRequest,
   NotFoundResponse,
@@ -48,7 +49,7 @@ export const getLoginTOTPUrl = () => {
 };
 
 /**
- * @summary Complete MFA login with a TOTP code
+ * @summary Complete MFA login with an authenticator or recovery code
  */
 export const loginTOTP = async (
   loginTOTPRequest: LoginTOTPRequest,
@@ -144,7 +145,7 @@ export type LoginTOTPMutationError = ErrorType<
 export type LoginTOTPMutationVariables = { data: LoginTOTPRequest };
 
 /**
- * @summary Complete MFA login with a TOTP code
+ * @summary Complete MFA login with an authenticator or recovery code
  */
 export const useLoginTOTP = <
   TError = ErrorType<
@@ -179,7 +180,8 @@ export const getGenerateTOTPUrl = () => {
 
 /**
  * Generates a new secret and stores it encrypted. TOTP is not enabled until the setup is
- * confirmed with /api/auth/totp/setup/confirm. Calling this again replaces the stored secret.
+ * confirmed with /api/auth/totp/setup/confirm. Setup can replace a pending secret.
+ * If TOTP is already enabled, the stored secret is kept and the request returns 409.
  * @summary Generate a TOTP setup QR-code and secret
  */
 export const generateTOTP = async (
@@ -195,7 +197,10 @@ export const getGenerateTOTPMutationKey = () => ["generateTOTP"] as const;
 
 export const getGenerateTOTPMutationOptions = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | ConflictResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(options?: {
@@ -236,7 +241,10 @@ export type GenerateTOTPMutationResult = NonNullable<
 >;
 
 export type GenerateTOTPMutationError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+  | UnauthorizedResponse
+  | NotFoundResponse
+  | ConflictResponse
+  | InternalErrorResponse
 >;
 
 /**
@@ -244,7 +252,10 @@ export type GenerateTOTPMutationError = ErrorType<
  */
 export const useGenerateTOTP = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | ConflictResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(
@@ -317,6 +328,7 @@ export const getConfirmTOTPSetupMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | ConflictResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -364,6 +376,7 @@ export type ConfirmTOTPSetupMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | NotFoundResponse
+  | ConflictResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -377,6 +390,7 @@ export const useConfirmTOTPSetup = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | ConflictResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -399,6 +413,147 @@ export const useConfirmTOTPSetup = <
   TContext
 > => {
   return useMutation(getConfirmTOTPSetupMutationOptions(options), queryClient);
+};
+export const getRegenerateRecoveryCodesUrl = () => {
+  return `/api/auth/totp/recovery-codes`;
+};
+
+/**
+ * Replaces all previously issued codes in one transaction. Save the new set when it is displayed.
+ * @summary Replace recovery codes using a current authenticator code
+ */
+export const regenerateRecoveryCodes = async (
+  passcode: Passcode,
+  options?: Parameters<typeof fetcher>[1],
+): Promise<RecoveryCodesResponse> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit["headers"]>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return fetcher<RecoveryCodesResponse>(getRegenerateRecoveryCodesUrl(), {
+    ...options,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getHeaders(options?.headers),
+    },
+    body: JSON.stringify(passcode),
+  });
+};
+
+export const getRegenerateRecoveryCodesMutationKey = () =>
+  ["regenerateRecoveryCodes"] as const;
+
+export const getRegenerateRecoveryCodesMutationOptions = <
+  TError = ErrorType<
+    | BadRequestResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | ConflictResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
+  >,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof regenerateRecoveryCodes>>,
+    TError,
+    RegenerateRecoveryCodesMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof fetcher>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof regenerateRecoveryCodes>>,
+  TError,
+  RegenerateRecoveryCodesMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRegenerateRecoveryCodesMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof regenerateRecoveryCodes>>,
+    RegenerateRecoveryCodesMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return regenerateRecoveryCodes(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegenerateRecoveryCodesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof regenerateRecoveryCodes>>
+>;
+export type RegenerateRecoveryCodesMutationBody = Passcode;
+export type RegenerateRecoveryCodesMutationError = ErrorType<
+  | BadRequestResponse
+  | UnauthorizedResponse
+  | NotFoundResponse
+  | ConflictResponse
+  | UnsupportedMediaTypeResponse
+  | InternalErrorResponse
+>;
+export type RegenerateRecoveryCodesMutationVariables = { data: Passcode };
+
+/**
+ * @summary Replace recovery codes using a current authenticator code
+ */
+export const useRegenerateRecoveryCodes = <
+  TError = ErrorType<
+    | BadRequestResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | ConflictResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
+  >,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof regenerateRecoveryCodes>>,
+      TError,
+      RegenerateRecoveryCodesMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof regenerateRecoveryCodes>>,
+  TError,
+  RegenerateRecoveryCodesMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getRegenerateRecoveryCodesMutationOptions(options),
+    queryClient,
+  );
 };
 export const getDisableTOTPUrl = () => {
   return `/api/auth/totp`;

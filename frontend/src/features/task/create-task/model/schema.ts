@@ -21,9 +21,9 @@ export const createTaskSchema = z.object({
     .positive("Время должно быть больше 0")
     .nullable(),
 
-  scheduled_at: z.string().nullable(),
+  scheduled_date: z.date().nullable(),
 
-  deadline: z.string().nullable(),
+  deadline_date: z.date().nullable(),
 
   status: z.enum(["not_completed", "ongoing", "completed"], {
     message: "Укажите статус задачи",

@@ -131,3 +131,8 @@ port:     4444
 
 The migration commands are not a migration-state manager: rerunning `migrate-up`
 against an already migrated database can fail because objects already exist.
+
+For an existing database at migration 000011, apply the 000012 and 000013
+up migrations in order before starting the updated API. Existing users can
+replace their old recovery codes in Security settings using their authenticator.
+Existing task timestamps keep their original values.

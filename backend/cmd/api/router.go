@@ -147,6 +147,7 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 		})
 
 		//r.With(middlewares.RequireJSON).Post("/verify", h.VerifyTOTP) // kinda useless, I made a mistake here; maybe in the future
+		r.With(middlewares.RequireJSON).Post("/recovery-codes", h.RegenerateRecoveryCodes)
 		r.Delete("/", h.DisableTOTP)
 	})
 }

@@ -21,7 +21,7 @@ func GetUserTOTPKeyEncryptedByID(ctx context.Context, db internal.DBTX, id int64
 }
 
 func UpdateUserTOTPSecret(ctx context.Context, db internal.DBTX, id int64, secret string) error {
-	result, err := db.ExecContext(ctx, `UPDATE users SET totp_encrypted = $1 WHERE id = $2`, secret, id)
+	result, err := db.ExecContext(ctx, `UPDATE users SET totp_encrypted = $1 WHERE id = $2 AND NOT is_totp_enabled`, secret, id)
 	if err != nil {
 		return fmt.Errorf("update user TOTP secret: %w", err)
 	}
@@ -30,7 +30,7 @@ func UpdateUserTOTPSecret(ctx context.Context, db internal.DBTX, id int64, secre
 		return fmt.Errorf("rows affected: %w", err)
 	}
 	if rows == 0 {
-		return sql.ErrNoRows
+		return ErrAlreadyEnabled
 	}
 	return nil
 }

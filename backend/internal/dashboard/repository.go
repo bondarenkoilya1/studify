@@ -111,6 +111,7 @@ func GetOverdueTasks(db *sql.DB, userID int64) ([]task.Task, error) {
 			t.name,
 			t.description,
 			t.deadline,
+			to_char(t.deadline_date, 'YYYY-MM-DD'),
 			t.status,
 			t.subject_id
 		FROM tasks t
@@ -135,7 +136,7 @@ func GetOverdueTasks(db *sql.DB, userID int64) ([]task.Task, error) {
 		var t task.Task
 		var deadline sql.NullTime
 
-		err := rows.Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.Status, &t.SubjectID)
+		err := rows.Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.DeadlineDate, &t.Status, &t.SubjectID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan overdue task: %w", err)
 		}
@@ -160,6 +161,7 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*task.Task, error) {
 			t.name,
 			t.description,
 			t.deadline,
+			to_char(t.deadline_date, 'YYYY-MM-DD'),
 			t.status,
 			t.subject_id
 	FROM tasks t
@@ -176,7 +178,7 @@ func GetNearestDeadlineTask(db *sql.DB, userID int64) (*task.Task, error) {
 	var t task.Task
 	var deadline sql.NullTime
 
-	err := db.QueryRow(query, userID).Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.Status, &t.SubjectID)
+	err := db.QueryRow(query, userID).Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.DeadlineDate, &t.Status, &t.SubjectID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

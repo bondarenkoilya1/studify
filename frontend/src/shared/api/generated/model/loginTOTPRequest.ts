@@ -20,6 +20,6 @@
 
 export interface LoginTOTPRequest {
   challenge_token: string;
-  /** 6-digit TOTP code. */
+  /** Six-digit authenticator code or a one-time recovery code, such as ABCD-EFGH-JK23. */
   code: string;
 }

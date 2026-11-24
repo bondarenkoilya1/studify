@@ -5,32 +5,64 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 import { startSession } from "@/entities/user";
-import { useLoginTOTP, useLoginUser, type User } from "@/shared/api";
+import {
+  type ApiError,
+  type User,
+  useLoginTOTP,
+  useLoginUser,
+} from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
+import { isLoginChallenge } from "./auth-response";
 import {
   LoginCredentialsSchema,
+  LoginRecoverySchema,
   LoginTotpSchema,
   type LoginCredentialsFormData,
-  type LoginTotpFormData,
+  type LoginMfaFormData,
+  type LoginMfaMethod,
 } from "./schema";
-import { isLoginChallenge } from "./auth-response";
 
-export function useLoginForm() {
-  const [step, setStep] = useState<"credentials" | "totp">("credentials");
+function getMfaErrorMessage(error: ApiError, method: LoginMfaMethod) {
+  if (error.status === 401) {
+    if (error.message === "invalid or expired challenge") {
+      return "Время для подтверждения входа истекло. Вернитесь к вводу пароля.";
+    }
+    return method === "totp"
+      ? "Код аутентификатора неверен или уже истёк."
+      : "Резервный код неверен или уже был использован.";
+  }
+  return getRequestErrorMessage(
+    error,
+    "Не удалось подтвердить вход. Попробуйте ещё раз.",
+  );
+}
+
+export function useLoginForm(confirmToken?: string) {
+  const [method, setMethod] = useState<LoginMfaMethod>("totp");
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
-
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const credentialsForm = useForm<LoginCredentialsFormData>({
     resolver: zodResolver(LoginCredentialsSchema),
   });
-
-  const totpForm = useForm<LoginTotpFormData>({
-    resolver: zodResolver(LoginTotpSchema),
+  const mfaForm = useForm<LoginMfaFormData>({
+    resolver: zodResolver(
+      method === "totp" ? LoginTotpSchema : LoginRecoverySchema,
+    ),
+    defaultValues: { code: "" },
   });
 
   const completeLogin = async (user: User) => {
     startSession(queryClient, user);
+    if (confirmToken) {
+      await navigate({
+        to: "/confirm",
+        search: { token: confirmToken },
+        replace: true,
+      });
+      return;
+    }
     await navigate({ to: "/subjects" });
   };
 
@@ -39,26 +71,29 @@ export function useLoginForm() {
       onSuccess: async (response) => {
         if (isLoginChallenge(response)) {
           setChallengeToken(response.challenge_token);
-          setStep("totp");
           return;
         }
-
         await completeLogin(response);
       },
-      onError: () => {
+      onError: (error) => {
         credentialsForm.setError("root", {
-          message: "Invalid email or password",
+          message: getRequestErrorMessage(
+            error,
+            error.status === 401
+              ? "Неверная почта или пароль."
+              : "Не удалось войти. Попробуйте ещё раз.",
+          ),
         });
       },
     },
   });
 
-  const totpMutation = useLoginTOTP({
+  const mfaMutation = useLoginTOTP({
     mutation: {
       onSuccess: completeLogin,
-      onError: () => {
-        totpForm.setError("root", {
-          message: "Invalid authentication code",
+      onError: (error) => {
+        mfaForm.setError("root", {
+          message: getMfaErrorMessage(error, method),
         });
       },
     },
@@ -68,43 +103,36 @@ export function useLoginForm() {
     loginMutation.mutate({ data });
   });
 
-  const submitTotp = totpForm.handleSubmit((data) => {
-    if (!challengeToken) {
-      totpForm.setError("root", {
-        message: "Login session has expired",
-      });
-
-      return;
+  const submitMfa = mfaForm.handleSubmit(({ code }) => {
+    if (challengeToken) {
+      mfaMutation.mutate({ data: { challenge_token: challengeToken, code } });
     }
-
-    totpMutation.mutate({
-      data: { challenge_token: challengeToken, code: data.totpCode },
-    });
   });
 
-  const goBack = () => {
-    setStep("credentials");
-    setChallengeToken(null);
-    totpForm.reset();
+  const changeMethod = (nextMethod: LoginMfaMethod) => {
+    setMethod(nextMethod);
+    mfaForm.reset();
   };
 
   return {
-    step,
-
+    needsMfa: challengeToken !== null,
     credentials: {
       registerField: credentialsForm.register,
       errors: credentialsForm.formState.errors,
       isSubmitting: loginMutation.isPending,
       onSubmit: submitCredentials,
     },
-
-    totp: {
-      control: totpForm.control,
-      errors: totpForm.formState.errors,
-      isSubmitting: totpMutation.isPending,
-      onSubmit: submitTotp,
+    mfa: {
+      method,
+      control: mfaForm.control,
+      errors: mfaForm.formState.errors,
+      isSubmitting: mfaMutation.isPending,
+      onSubmit: submitMfa,
+      onMethodChange: changeMethod,
     },
-
-    goBack,
+    goBack: () => {
+      setChallengeToken(null);
+      changeMethod("totp");
+    },
   };
 }

@@ -59,7 +59,7 @@ export const getResendConfirmationEmailMutationKey = () =>
 
 export const getResendConfirmationEmailMutationOptions = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    UnauthorizedResponse | NotFoundResponse | Error | InternalErrorResponse
   >,
   TContext = unknown,
 >(options?: {
@@ -100,7 +100,7 @@ export type ResendConfirmationEmailMutationResult = NonNullable<
 >;
 
 export type ResendConfirmationEmailMutationError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+  UnauthorizedResponse | NotFoundResponse | Error | InternalErrorResponse
 >;
 
 /**
@@ -108,7 +108,7 @@ export type ResendConfirmationEmailMutationError = ErrorType<
  */
 export const useResendConfirmationEmail = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    UnauthorizedResponse | NotFoundResponse | Error | InternalErrorResponse
   >,
   TContext = unknown,
 >(

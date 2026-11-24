@@ -1,22 +1,25 @@
-import { cn } from "@/shared/lib/cn";
+import { Button } from "@/shared/ui/button";
 import { useResendEmailConfirmation } from "../model/use-resend-email-confirmation";
 
 export function ResendEmailButton() {
-  const { isDisabled, handleClick } = useResendEmailConfirmation();
+  const { send, isPending, isSuccess, errorMessage } =
+    useResendEmailConfirmation();
 
   return (
-    <button
-      onClick={handleClick}
-      type="button"
-      disabled={isDisabled}
-      className={cn(
-        "text-sm cursor-pointer hover:underline transition-colors",
-        isDisabled
-          ? "text-gray-400 cursor-not-allowed"
-          : "text-blue-600 hover:text-blue-700",
+    <div className="max-w-xs">
+      <Button variant="link" type="button" onClick={send} disabled={isPending}>
+        {isPending ? "Отправляем..." : "Отправить письмо ещё раз"}
+      </Button>
+      {isSuccess && (
+        <p role="status" className="text-sm text-muted-foreground">
+          Письмо отправлено. Проверьте входящие.
+        </p>
       )}
-    >
-      Resend email
-    </button>
+      {errorMessage && (
+        <p role="alert" className="text-sm text-destructive">
+          {errorMessage}
+        </p>
+      )}
+    </div>
   );
 }

@@ -39,7 +39,7 @@ A missing or invalid token returns `401 Unauthorized`.
 | --- | --- | --- | --- |
 | `POST` | `/api/auth/register` | – | Create a user, set cookies, send a confirmation email |
 | `POST` | `/api/auth/login` | – | Log in, or start a TOTP login |
-| `POST` | `/api/auth/login/totp` | – | Finish a TOTP login |
+| `POST` | `/api/auth/login/totp` | – | Finish two-factor sign-in |
 | `POST` | `/api/auth/refresh` | refresh cookie | Rotate both cookies |
 | `POST` | `/api/auth/logout` | – | Revoke the refresh token and clear cookies |
 | `POST` | `/api/auth/logout-all` | ✓ | Revoke all active sessions and clear cookies |
@@ -101,7 +101,7 @@ The body has the same shape as registration. Wrong credentials return
 }
 ```
 
-Finish the login with the code from the authenticator app:
+Finish sign-in with the code from the authenticator app or a saved recovery code:
 
 ```http
 POST /api/auth/login/totp
@@ -115,7 +115,7 @@ POST /api/auth/login/totp
 ```
 
 Success: `200 OK`, auth cookies, and the user object. An invalid or expired
-challenge token returns `401`, and a wrong code returns `400`.
+challenge or code returns `401`. A recovery code is consumed only when sign-in succeeds.
 
 ### Refresh and logout
 
@@ -136,22 +136,25 @@ user, clears both cookies, and returns `204 No Content`.
 token returns `400`.
 
 `POST /api/auth/confirm/resend` sends a new link and returns `204 No Content`.
+Requests made less than a minute apart return `429`.
 
 Changing the email through `PATCH /api/users/me/email` resets
 `is_email_verified` to `false` and sends a new link.
 
 ## Two-factor authentication (TOTP)
 
-All TOTP routes require authentication.
+The TOTP settings routes below require authentication.
 
 | Method | Path | Description |
 | --- | --- | --- |
 | `POST` | `/api/auth/totp/setup` | Generate a secret and QR code |
 | `POST` | `/api/auth/totp/setup/confirm` | Confirm with a code and enable TOTP |
+| `POST` | `/api/auth/totp/recovery-codes` | Replace recovery codes using a current authenticator code |
 | `DELETE` | `/api/auth/totp` | Disable TOTP |
 
 `POST /api/auth/totp/setup` returns a base64 PNG and the secret for manual
-entry. TOTP is not enabled yet, and calling setup again replaces the secret.
+entry. Setup can replace a pending secret. Once TOTP is enabled, setup and
+setup confirmation return `409`.
 
 ```json
 {
@@ -177,9 +180,15 @@ code returns `400`.
 }
 ```
 
-The API does not have an endpoint that accepts recovery codes yet.
+Pass a saved recovery code as `code` to `POST /api/auth/login/totp`.
 
-`DELETE /api/auth/totp` disables TOTP and returns `204 No Content`.
+To replace your recovery codes, send a current authenticator code as
+`passcode` to `POST /api/auth/totp/recovery-codes` while signed in. This
+replaces the entire set. Codes issued before migration 000012 require
+replacement through this endpoint.
+
+`DELETE /api/auth/totp` disables TOTP, invalidates recovery codes and pending
+sign-in challenges, and returns `204 No Content`.
 
 ## Password reset
 
@@ -502,6 +511,12 @@ Task response:
 | `difficulty`, `priority` | `low`, `medium`, `high` |
 | `estimated_time` | Positive integer or `null` |
 | `scheduled_at`, `deadline` | Timestamp or `null` |
+| `scheduled_date`, `deadline_date` | Calendar date (`YYYY-MM-DD`) or `null` |
+
+`scheduled_date` takes precedence over `scheduled_at`. For a date-only
+deadline, send `deadline_date` with an optional `deadline` cutoff timestamp.
+Without a cutoff, the API uses the end of that day in UTC. On PATCH, sending
+a timestamp on its own replaces its matching calendar date.
 
 `POST /api/tasks` returns `201 Created`, and `PUT /api/tasks/{id}` returns
 `200 OK`. Both take the task fields without `id`, `created_at`, and

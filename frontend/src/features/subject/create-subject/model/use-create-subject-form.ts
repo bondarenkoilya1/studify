@@ -17,6 +17,7 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
   note: "",
   type: "university",
   scope: "other",
+  examType: "other",
   course: 1,
   term: 1,
   lecturers: [
@@ -41,7 +42,11 @@ function toCreateSubjectRequest(
     note: values.note,
     type: values.type,
     scope: values.scope,
-    exam_date: values.examDate?.toISOString() ?? null,
+    exam_type: values.type === "university" ? values.examType : "other",
+    exam_date:
+      values.type === "university"
+        ? (values.examDate?.toISOString() ?? null)
+        : null,
     course: values.course ?? 1,
     term: values.term ?? 1,
     lecturers: values.lecturers,

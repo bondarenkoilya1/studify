@@ -1,9 +1,11 @@
 package challenge
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"studify/internal"
 	"time"
 )
 
@@ -50,7 +52,8 @@ func InsertAuthChallenge(
 }
 
 func GetAuthChallengeByTokenHash(
-	db *sql.DB,
+	ctx context.Context,
+	db internal.DBTX,
 	tokenHash []byte,
 ) (*AuthChallengeRecord, error) {
 	query := `
@@ -62,7 +65,8 @@ func GetAuthChallengeByTokenHash(
 
 	var ch AuthChallengeRecord
 
-	err := db.QueryRow(
+	err := db.QueryRowContext(
+		ctx,
 		query,
 		tokenHash,
 		authChallengeTokenType,
@@ -84,14 +88,15 @@ func GetAuthChallengeByTokenHash(
 	return &ch, nil
 }
 
-func DeleteAuthChallenge(db *sql.DB, id int64) error {
+func ConsumeAuthChallenge(ctx context.Context, db internal.DBTX, id int64) error {
 	query := `
 		DELETE FROM auth_tokens
 		WHERE id = $1
-		  AND type = $2;
+		  AND type = $2
+		  AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC');
 	`
 
-	result, err := db.Exec(query, id, authChallengeTokenType)
+	result, err := db.ExecContext(ctx, query, id, authChallengeTokenType)
 	if err != nil {
 		return fmt.Errorf("delete auth challenge: %w", err)
 	}
@@ -108,14 +113,14 @@ func DeleteAuthChallenge(db *sql.DB, id int64) error {
 	return nil
 }
 
-func DeleteAuthChallengesByUserID(db *sql.DB, userID int64) error {
+func DeleteAuthChallengesByUserID(ctx context.Context, db internal.DBTX, userID int64) error {
 	query := `
 		DELETE FROM auth_tokens
 		WHERE user_id = $1
 		  AND type = $2;
 	`
 
-	if _, err := db.Exec(query, userID, authChallengeTokenType); err != nil {
+	if _, err := db.ExecContext(ctx, query, userID, authChallengeTokenType); err != nil {
 		return fmt.Errorf("delete auth challenges by user id: %w", err)
 	}
 

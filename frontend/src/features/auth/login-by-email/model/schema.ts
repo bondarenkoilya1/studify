@@ -1,25 +1,31 @@
-import * as z from "zod";
+import { z } from "zod";
 
 const emailSchema = z
   .string()
   .trim()
-  .email("Invalid email address")
-  .max(255, "Email is too long.");
-
-const passwordSchema = z.string().min(1, "Password is required");
+  .email("Укажите корректный адрес почты.")
+  .max(254, "Адрес почты слишком длинный.");
 
 export const LoginCredentialsSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: z.string().min(1, "Введите пароль."),
 });
 
 export const LoginTotpSchema = z.object({
-  totpCode: z
+  code: z.string().regex(/^\d{6}$/, "Введите шесть цифр из приложения."),
+});
+
+export const LoginRecoverySchema = z.object({
+  code: z
     .string()
-    .length(6, "TOTP code must be 6 characters")
-    .regex(/^\d{6}$/, "TOTP code must contain only numbers"),
+    .trim()
+    .toUpperCase()
+    .regex(
+      /^(?:[A-HJ-NP-Z2-9]{12}|[A-HJ-NP-Z2-9]{4}(?:-[A-HJ-NP-Z2-9]{4}){2})$/,
+      "Введите резервный код из 12 символов.",
+    ),
 });
 
 export type LoginCredentialsFormData = z.infer<typeof LoginCredentialsSchema>;
-
-export type LoginTotpFormData = z.infer<typeof LoginTotpSchema>;
+export type LoginMfaFormData = z.infer<typeof LoginTotpSchema>;
+export type LoginMfaMethod = "totp" | "recovery";

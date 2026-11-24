@@ -32,7 +32,11 @@ export function CreateTaskDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+    >
       <DialogClose onClick={() => onOpenChange(false)} />
 
       <DialogHeader>
@@ -116,7 +120,8 @@ export function CreateTaskDialog({
               controlSize="large"
               aria-invalid={Boolean(form.formState.errors.estimated_time)}
               {...form.register("estimated_time", {
-                setValueAs: (value) => (value === "" ? null : Number(value)),
+                setValueAs: (value) =>
+                  value === "" || value === null ? null : Number(value),
               })}
             />
 
@@ -133,15 +138,12 @@ export function CreateTaskDialog({
           >
             <Controller
               control={form.control}
-              name="scheduled_at"
+              name="scheduled_date"
               render={({ field, fieldState }) => (
                 <>
                   <DatePicker
-                    value={field.value ? new Date(field.value) : undefined}
-
-                    onChange={(date) =>
-                      field.onChange(date?.toISOString() ?? null)
-                    }
+                    value={field.value ?? undefined}
+                    onChange={(date) => field.onChange(date ?? null)}
                   />
 
                   {fieldState.error?.message && (
@@ -157,14 +159,12 @@ export function CreateTaskDialog({
           <FormField htmlFor="create-task-deadline" label="Дедлайн">
             <Controller
               control={form.control}
-              name="deadline"
+              name="deadline_date"
               render={({ field, fieldState }) => (
                 <>
                   <DatePicker
-                    value={field.value ? new Date(field.value) : undefined}
-                    onChange={(date) =>
-                      field.onChange(date?.toISOString() ?? null)
-                    }
+                    value={field.value ?? undefined}
+                    onChange={(date) => field.onChange(date ?? null)}
                   />
 
                   {fieldState.error?.message && (

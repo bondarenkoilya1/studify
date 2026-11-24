@@ -12,15 +12,15 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GuestRouteImport } from './routes/_guest'
 import { Route as ProtectedRouteImport } from './routes/_protected'
+import { Route as ConfirmRouteImport } from './routes/confirm'
 import { Route as GuestLoginRouteImport } from './routes/_guest/login'
 import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as GuestResetPasswordRouteImport } from './routes/_guest/reset-password'
 import { Route as ProtectedCalendarRouteImport } from './routes/_protected/calendar'
-import { Route as ProtectedConfirmRouteImport } from './routes/_protected/confirm'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedShareRouteImport } from './routes/_protected/share'
-import { Route as ProtectedConfirmTokenRouteImport } from './routes/_protected/confirm/$token'
+import { Route as ConfirmTokenRouteImport } from './routes/confirm/$token'
 import { Route as ProtectedSettingsProfileRouteImport } from './routes/_protected/settings/profile'
 import { Route as ProtectedSettingsSecurityRouteImport } from './routes/_protected/settings/security'
 import { Route as ProtectedSettingsSessionsRouteImport } from './routes/_protected/settings/sessions'
@@ -38,6 +38,11 @@ const GuestRoute = GuestRouteImport.update({
 } as any)
 const ProtectedRoute = ProtectedRouteImport.update({
   id: '/_protected',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmRoute = ConfirmRouteImport.update({
+  id: '/confirm',
+  path: '/confirm',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuestLoginRoute = GuestLoginRouteImport.update({
@@ -60,11 +65,6 @@ const ProtectedCalendarRoute = ProtectedCalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedConfirmRoute = ProtectedConfirmRouteImport.update({
-  id: '/confirm',
-  path: '/confirm',
-  getParentRoute: () => ProtectedRoute,
-} as any)
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -80,10 +80,10 @@ const ProtectedShareRoute = ProtectedShareRouteImport.update({
   path: '/share',
   getParentRoute: () => ProtectedRoute,
 } as any)
-const ProtectedConfirmTokenRoute = ProtectedConfirmTokenRouteImport.update({
+const ConfirmTokenRoute = ConfirmTokenRouteImport.update({
   id: '/$token',
   path: '/$token',
-  getParentRoute: () => ProtectedConfirmRoute,
+  getParentRoute: () => ConfirmRoute,
 } as any)
 const ProtectedSettingsProfileRoute =
   ProtectedSettingsProfileRouteImport.update({
@@ -116,15 +116,15 @@ const ProtectedSubjectsIdRoute = ProtectedSubjectsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/confirm': typeof ConfirmRouteWithChildren
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/reset-password': typeof GuestResetPasswordRoute
   '/calendar': typeof ProtectedCalendarRoute
-  '/confirm': typeof ProtectedConfirmRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
   '/share': typeof ProtectedShareRoute
-  '/confirm/$token': typeof ProtectedConfirmTokenRoute
+  '/confirm/$token': typeof ConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
   '/settings/sessions': typeof ProtectedSettingsSessionsRoute
@@ -133,15 +133,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/confirm': typeof ConfirmRouteWithChildren
   '/login': typeof GuestLoginRoute
   '/register': typeof GuestRegisterRoute
   '/reset-password': typeof GuestResetPasswordRoute
   '/calendar': typeof ProtectedCalendarRoute
-  '/confirm': typeof ProtectedConfirmRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
   '/share': typeof ProtectedShareRoute
-  '/confirm/$token': typeof ProtectedConfirmTokenRoute
+  '/confirm/$token': typeof ConfirmTokenRoute
   '/settings/profile': typeof ProtectedSettingsProfileRoute
   '/settings/security': typeof ProtectedSettingsSecurityRoute
   '/settings/sessions': typeof ProtectedSettingsSessionsRoute
@@ -153,15 +153,15 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_guest': typeof GuestRouteWithChildren
   '/_protected': typeof ProtectedRouteWithChildren
+  '/confirm': typeof ConfirmRouteWithChildren
   '/_guest/login': typeof GuestLoginRoute
   '/_guest/register': typeof GuestRegisterRoute
   '/_guest/reset-password': typeof GuestResetPasswordRoute
   '/_protected/calendar': typeof ProtectedCalendarRoute
-  '/_protected/confirm': typeof ProtectedConfirmRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
   '/_protected/share': typeof ProtectedShareRoute
-  '/_protected/confirm/$token': typeof ProtectedConfirmTokenRoute
+  '/confirm/$token': typeof ConfirmTokenRoute
   '/_protected/settings/profile': typeof ProtectedSettingsProfileRoute
   '/_protected/settings/security': typeof ProtectedSettingsSecurityRoute
   '/_protected/settings/sessions': typeof ProtectedSettingsSessionsRoute
@@ -172,11 +172,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/confirm'
     | '/login'
     | '/register'
     | '/reset-password'
     | '/calendar'
-    | '/confirm'
     | '/dashboard'
     | '/settings'
     | '/share'
@@ -189,11 +189,11 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/confirm'
     | '/login'
     | '/register'
     | '/reset-password'
     | '/calendar'
-    | '/confirm'
     | '/dashboard'
     | '/settings'
     | '/share'
@@ -208,15 +208,15 @@ export interface FileRouteTypes {
     | '/'
     | '/_guest'
     | '/_protected'
+    | '/confirm'
     | '/_guest/login'
     | '/_guest/register'
     | '/_guest/reset-password'
     | '/_protected/calendar'
-    | '/_protected/confirm'
     | '/_protected/dashboard'
     | '/_protected/settings'
     | '/_protected/share'
-    | '/_protected/confirm/$token'
+    | '/confirm/$token'
     | '/_protected/settings/profile'
     | '/_protected/settings/security'
     | '/_protected/settings/sessions'
@@ -228,6 +228,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GuestRoute: typeof GuestRouteWithChildren
   ProtectedRoute: typeof ProtectedRouteWithChildren
+  ConfirmRoute: typeof ConfirmRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -251,6 +252,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ProtectedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirm': {
+      id: '/confirm'
+      path: '/confirm'
+      fullPath: '/confirm'
+      preLoaderRoute: typeof ConfirmRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_guest/login': {
@@ -281,13 +289,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedCalendarRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/confirm': {
-      id: '/_protected/confirm'
-      path: '/confirm'
-      fullPath: '/confirm'
-      preLoaderRoute: typeof ProtectedConfirmRouteImport
-      parentRoute: typeof ProtectedRoute
-    }
     '/_protected/dashboard': {
       id: '/_protected/dashboard'
       path: '/dashboard'
@@ -309,12 +310,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedShareRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/confirm/$token': {
-      id: '/_protected/confirm/$token'
+    '/confirm/$token': {
+      id: '/confirm/$token'
       path: '/$token'
       fullPath: '/confirm/$token'
-      preLoaderRoute: typeof ProtectedConfirmTokenRouteImport
-      parentRoute: typeof ProtectedConfirmRoute
+      preLoaderRoute: typeof ConfirmTokenRouteImport
+      parentRoute: typeof ConfirmRoute
     }
     '/_protected/settings/profile': {
       id: '/_protected/settings/profile'
@@ -368,17 +369,6 @@ const GuestRouteChildren: GuestRouteChildren = {
 
 const GuestRouteWithChildren = GuestRoute._addFileChildren(GuestRouteChildren)
 
-interface ProtectedConfirmRouteChildren {
-  ProtectedConfirmTokenRoute: typeof ProtectedConfirmTokenRoute
-}
-
-const ProtectedConfirmRouteChildren: ProtectedConfirmRouteChildren = {
-  ProtectedConfirmTokenRoute: ProtectedConfirmTokenRoute,
-}
-
-const ProtectedConfirmRouteWithChildren =
-  ProtectedConfirmRoute._addFileChildren(ProtectedConfirmRouteChildren)
-
 interface ProtectedSettingsRouteChildren {
   ProtectedSettingsProfileRoute: typeof ProtectedSettingsProfileRoute
   ProtectedSettingsSecurityRoute: typeof ProtectedSettingsSecurityRoute
@@ -396,7 +386,6 @@ const ProtectedSettingsRouteWithChildren =
 
 interface ProtectedRouteChildren {
   ProtectedCalendarRoute: typeof ProtectedCalendarRoute
-  ProtectedConfirmRoute: typeof ProtectedConfirmRouteWithChildren
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRouteWithChildren
   ProtectedShareRoute: typeof ProtectedShareRoute
@@ -406,7 +395,6 @@ interface ProtectedRouteChildren {
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedCalendarRoute: ProtectedCalendarRoute,
-  ProtectedConfirmRoute: ProtectedConfirmRouteWithChildren,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedSettingsRoute: ProtectedSettingsRouteWithChildren,
   ProtectedShareRoute: ProtectedShareRoute,
@@ -418,10 +406,22 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
   ProtectedRouteChildren,
 )
 
+interface ConfirmRouteChildren {
+  ConfirmTokenRoute: typeof ConfirmTokenRoute
+}
+
+const ConfirmRouteChildren: ConfirmRouteChildren = {
+  ConfirmTokenRoute: ConfirmTokenRoute,
+}
+
+const ConfirmRouteWithChildren =
+  ConfirmRoute._addFileChildren(ConfirmRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GuestRoute: GuestRouteWithChildren,
   ProtectedRoute: ProtectedRouteWithChildren,
+  ConfirmRoute: ConfirmRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
