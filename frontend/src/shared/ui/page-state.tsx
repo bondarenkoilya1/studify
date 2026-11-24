@@ -14,6 +14,16 @@ export function PageLoader() {
 export function PageError({ error }: ErrorComponentProps) {
   const router = useRouter();
 
+  return <RequestError error={error} onRetry={() => router.invalidate()} />;
+}
+
+export function RequestError({
+  error,
+  onRetry,
+}: {
+  error: Error;
+  onRetry: () => void;
+}) {
   const isNetworkError = error instanceof NetworkError;
   const Icon = isNetworkError ? WifiOff : TriangleAlert;
   const message = isNetworkError
@@ -24,7 +34,7 @@ export function PageError({ error }: ErrorComponentProps) {
     <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-24 text-center">
       <Icon className="size-8 text-muted-foreground" />
       <p className="max-w-sm text-sm text-muted-foreground">{message}</p>
-      <Button type="button" onClick={() => router.invalidate()}>
+      <Button type="button" onClick={onRetry}>
         Повторить
       </Button>
     </div>
