@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import {
   invalidateGetDashboardStatus,
   invalidateGetSubjectTasks,
+  invalidateGetUserTasks,
   useAddTask,
 } from "@/shared/api";
 import { createTaskSchema, type CreateTaskFormValues } from "./schema";
@@ -17,6 +18,7 @@ export function useCreateTaskForm(subjectId: number, onSuccess?: () => void) {
       onSuccess: async (task) => {
         await Promise.all([
           invalidateGetSubjectTasks(queryClient, task.subject_id),
+          invalidateGetUserTasks(queryClient),
           invalidateGetDashboardStatus(queryClient),
         ]);
 
