@@ -118,8 +118,6 @@ export function ExamCalendar() {
               .querySelector(".fc-daygrid-day-number")
               ?.classList.add("studify-today-number");
           }}
-          slotMinTime="06:00:00"
-          slotMaxTime="22:00:00"
           scrollTime="08:00:00"
           slotDuration="01:00:00"
           slotHeaderFormat={{

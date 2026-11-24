@@ -23,7 +23,7 @@ import type { TaskStatus } from "./taskStatus";
 import type { TaskType } from "./taskType";
 
 /**
- * Send only the fields to change. `null` values are ignored.
+ * Send only the fields to change. Null values are ignored. Sending a timestamp without its matching calendar date replaces that date.
  */
 export interface TaskUpdateRequest {
   name?: string;
@@ -38,6 +38,16 @@ export interface TaskUpdateRequest {
   scheduled_at?: string | null;
   /** @nullable */
   deadline?: string | null;
+  /**
+   * All-day schedule date, independent of timezone. Takes precedence over scheduled_at.
+   * @nullable
+   */
+  scheduled_date?: string | null;
+  /**
+   * All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+   * @nullable
+   */
+  deadline_date?: string | null;
   /** @minimum 1 */
   subject_id?: number;
   status?: TaskStatus;

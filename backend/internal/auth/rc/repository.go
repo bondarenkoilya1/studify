@@ -49,8 +49,8 @@ func GetRecoveryCodeByHash(ctx context.Context, db internal.DBTX, userID int64, 
 
 func InsertRecoveryCode(ctx context.Context, db internal.DBTX, userID int64, codeHash string) error {
 	_, err := db.ExecContext(ctx, `
-		INSERT INTO recovery_codes (user_id, code_hash)
-		VALUES ($1, $2);
+		INSERT INTO recovery_codes (user_id, code_hash, is_active)
+		VALUES ($1, $2, TRUE);
 	`, userID, codeHash)
 	if err != nil {
 		return fmt.Errorf("insert recovery code: %w", err)
@@ -72,7 +72,7 @@ func DeleteRecoveryCodes(ctx context.Context, db internal.DBTX, userID int64) er
 func ConsumeRecoveryCode(ctx context.Context, db internal.DBTX, userID int64, codeHash string) error {
 	result, err := db.ExecContext(ctx, `
 		DELETE FROM recovery_codes
-		WHERE user_id = $1 AND code_hash = $2;
+		WHERE user_id = $1 AND code_hash = $2 AND is_active;
 	`, userID, codeHash)
 	if err != nil {
 		return fmt.Errorf("consume recovery code: %w", err)

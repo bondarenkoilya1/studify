@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 var ErrNoFieldsToUpdate = errors.New("no fields to update")
@@ -52,13 +53,8 @@ func (s *Service) getSubjectsTasks(subjectID, userID int64) ([]Task, error) {
 }
 
 func (s *Service) addTask(userID int64, t *Task) (*Task, error) {
-	task, err := InsertTask(
-		s.db, userID, t.Name,
-		t.Type, t.Description,
-		t.EstimatedTime, t.ScheduledAt,
-		t.Deadline, t.Status, t.Difficulty,
-		t.Priority, t.SubjectID,
-	)
+	t.normalizeDates()
+	task, err := InsertTask(s.db, userID, t)
 	if err != nil {
 		return nil, fmt.Errorf("insert task: %w", err)
 	}
@@ -67,13 +63,8 @@ func (s *Service) addTask(userID int64, t *Task) (*Task, error) {
 }
 
 func (s *Service) replaceTask(userID, id int64, t *Task) (*Task, error) {
-	task, err := UpdateTask(
-		s.db, userID, id, t.Name,
-		t.Type, t.Description,
-		t.EstimatedTime, t.ScheduledAt,
-		t.Deadline, t.Status, t.Difficulty,
-		t.Priority, t.SubjectID,
-	)
+	t.normalizeDates()
+	task, err := UpdateTask(s.db, userID, id, t)
 	if err != nil {
 		return nil, fmt.Errorf("replace task %d: %w", id, err)
 	}
@@ -106,11 +97,13 @@ func (s *Service) updateTask(userID, id int64, req *updateTaskRequest) (*Task, e
 	if req.EstimatedTime != nil {
 		task.EstimatedTime = req.EstimatedTime
 	}
-	if req.ScheduledAt != nil {
+	if req.ScheduledAt != nil || req.ScheduledDate != nil {
 		task.ScheduledAt = req.ScheduledAt
+		task.ScheduledDate = req.ScheduledDate
 	}
-	if req.Deadline != nil {
+	if req.Deadline != nil || req.DeadlineDate != nil {
 		task.Deadline = req.Deadline
+		task.DeadlineDate = req.DeadlineDate
 	}
 	if req.Status != nil {
 		task.Status = *req.Status
@@ -122,18 +115,24 @@ func (s *Service) updateTask(userID, id int64, req *updateTaskRequest) (*Task, e
 		task.Priority = *req.Priority
 	}
 
-	updated, err := UpdateTask(
-		s.db, userID, id, task.Name,
-		task.Type, task.Description,
-		task.EstimatedTime, task.ScheduledAt,
-		task.Deadline, task.Status, task.Difficulty,
-		task.Priority, task.SubjectID,
-	)
+	task.normalizeDates()
+	updated, err := UpdateTask(s.db, userID, id, task)
 	if err != nil {
 		return nil, fmt.Errorf("save updated task %d: %w", id, err)
 	}
 
 	return updated, nil
+}
+
+func (t *Task) normalizeDates() {
+	if t.ScheduledDate != nil {
+		t.ScheduledAt = nil
+	}
+	if t.DeadlineDate != nil && t.Deadline == nil {
+		day, _ := time.Parse(time.DateOnly, string(*t.DeadlineDate))
+		cutoff := day.AddDate(0, 0, 1).Add(-time.Microsecond)
+		t.Deadline = &cutoff
+	}
 }
 
 func (s *Service) deleteUserTasks(userID int64) error {
@@ -160,6 +159,8 @@ func (r *updateTaskRequest) isEmpty() bool {
 		r.EstimatedTime == nil &&
 		r.ScheduledAt == nil &&
 		r.Deadline == nil &&
+		r.ScheduledDate == nil &&
+		r.DeadlineDate == nil &&
 		r.Status == nil &&
 		r.Difficulty == nil &&
 		r.Priority == nil

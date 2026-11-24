@@ -304,6 +304,40 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/auth/totp/recovery-codes:
+    post:
+      tags: [Auth / TOTP]
+      summary: Replace recovery codes using a current authenticator code
+      description: Replaces all previously issued codes in one transaction. Save the new set when it is displayed.
+      operationId: regenerateRecoveryCodes
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Passcode'
+      responses:
+        '200':
+          description: Ten new one-time recovery codes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecoveryCodesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/auth/totp:
     delete:
       tags: [Auth / TOTP]
@@ -1840,6 +1874,18 @@ components:
           format: date-time
           nullable: true
           example: '2026-07-10T12:00:00Z'
+        scheduled_date:
+          type: string
+          format: date
+          nullable: true
+          description: All-day schedule date, independent of timezone. Takes precedence over scheduled_at.
+          example: '2026-07-08'
+        deadline_date:
+          type: string
+          format: date
+          nullable: true
+          description: All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+          example: '2026-07-10'
         status:
           $ref: '#/components/schemas/TaskStatus'
         difficulty:
@@ -1887,6 +1933,18 @@ components:
           format: date-time
           nullable: true
           example: '2026-07-10T12:00:00Z'
+        scheduled_date:
+          type: string
+          format: date
+          nullable: true
+          description: All-day schedule date, independent of timezone. Takes precedence over scheduled_at.
+          example: '2026-07-08'
+        deadline_date:
+          type: string
+          format: date
+          nullable: true
+          description: All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+          example: '2026-07-10'
         status:
           $ref: '#/components/schemas/TaskStatus'
         difficulty:
@@ -1897,7 +1955,7 @@ components:
     TaskUpdateRequest:
       type: object
       minProperties: 1
-      description: Send only the fields to change. `null` values are ignored.
+      description: Send only the fields to change. Null values are ignored. Sending a timestamp without its matching calendar date replaces that date.
       properties:
         name:
           type: string
@@ -1922,6 +1980,18 @@ components:
           format: date-time
           nullable: true
           example: '2026-07-11T12:00:00Z'
+        scheduled_date:
+          type: string
+          format: date
+          nullable: true
+          description: All-day schedule date, independent of timezone. Takes precedence over scheduled_at.
+          example: '2026-07-08'
+        deadline_date:
+          type: string
+          format: date
+          nullable: true
+          description: All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+          example: '2026-07-10'
         subject_id:
           type: integer
           format: int64
@@ -1985,7 +2055,7 @@ components:
     DashboardTask:
       type: object
       description: |
-        Task with only id, name, description, deadline, status, and subject_id filled. The other
+        Task with id, name, description, deadline, deadline_date, status, and subject_id filled. The other
         Task fields are present with zero values (empty strings, null, `0001-01-01T00:00:00Z`).
       allOf:
         - $ref: '#/components/schemas/Task'

@@ -138,15 +138,12 @@ export function CreateTaskDialog({
           >
             <Controller
               control={form.control}
-              name="scheduled_at"
+              name="scheduled_date"
               render={({ field, fieldState }) => (
                 <>
                   <DatePicker
-                    value={field.value ? new Date(field.value) : undefined}
-
-                    onChange={(date) =>
-                      field.onChange(date?.toISOString() ?? null)
-                    }
+                    value={field.value ?? undefined}
+                    onChange={(date) => field.onChange(date ?? null)}
                   />
 
                   {fieldState.error?.message && (
@@ -162,14 +159,12 @@ export function CreateTaskDialog({
           <FormField htmlFor="create-task-deadline" label="Дедлайн">
             <Controller
               control={form.control}
-              name="deadline"
+              name="deadline_date"
               render={({ field, fieldState }) => (
                 <>
                   <DatePicker
-                    value={field.value ? new Date(field.value) : undefined}
-                    onChange={(date) =>
-                      field.onChange(date?.toISOString() ?? null)
-                    }
+                    value={field.value ?? undefined}
+                    onChange={(date) => field.onChange(date ?? null)}
                   />
 
                   {fieldState.error?.message && (

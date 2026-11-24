@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseISO } from "date-fns";
 import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
 import type { Task, TaskDifficulty } from "@/shared/api";
 import { formatTaskDeadline } from "../model/dates";
@@ -43,7 +44,7 @@ export function TaskCard({ task }: TaskCardProps) {
   const status = STATUS_CONFIG[task.status];
   const isDone = task.status === "completed";
 
-  const deadline = task.deadline ? formatTaskDeadline(task.deadline) : null;
+  const deadline = formatTaskDeadline(task);
 
   const priorityChip = PRIORITY_CHIP[task.priority];
 
@@ -51,7 +52,7 @@ export function TaskCard({ task }: TaskCardProps) {
     task.description && task.description.length > 140,
   );
 
-  const showScheduledAt = !deadline && Boolean(task.scheduled_at);
+  const scheduled = task.scheduled_date ?? task.scheduled_at;
 
   return (
     <article
@@ -183,7 +184,7 @@ export function TaskCard({ task }: TaskCardProps) {
           </span>
         )}
 
-        {showScheduledAt && (
+        {!deadline && scheduled && (
           <span
             className="
               flex items-center gap-1.5
@@ -196,7 +197,7 @@ export function TaskCard({ task }: TaskCardProps) {
             "
           >
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            {new Date(task.scheduled_at!).toLocaleDateString("en-US", {
+            {parseISO(scheduled).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
             })}

@@ -82,15 +82,9 @@ func (s *Service) confirmTOTPSetup(ctx context.Context, userID internal.UserID, 
 		return nil, fmt.Errorf("validate totp code: %w", err)
 	}
 
-	codes, err := rc.Generate()
+	codes, err := replaceRecoveryCodes(ctx, tx, int64(userID))
 	if err != nil {
-		return nil, fmt.Errorf("generate recovery codes: %w", err)
-	}
-	if err := rc.DeleteRecoveryCodes(ctx, tx, int64(userID)); err != nil {
 		return nil, err
-	}
-	if err := rc.SaveRecoveryCodes(ctx, tx, int64(userID), codes); err != nil {
-		return nil, fmt.Errorf("save recovery codes: %w", err)
 	}
 	if err := UpdateUserTOTPStatus(ctx, tx, int64(userID), true); err != nil {
 		return nil, fmt.Errorf("enable TOTP: %w", err)
@@ -99,6 +93,47 @@ func (s *Service) confirmTOTPSetup(ctx context.Context, userID internal.UserID, 
 		return nil, fmt.Errorf("commit TOTP setup: %w", err)
 	}
 
+	return codes, nil
+}
+
+func (s *Service) regenerateRecoveryCodes(ctx context.Context, userID int64, code string) (*RecoveryCodesResponse, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin recovery code rotation: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	currentUser, err := user.GetUserByIDForUpdate(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !currentUser.IsTOTPEnabled {
+		return nil, ErrTOTPDisabled
+	}
+	if err := s.validateTOTP(ctx, tx, internal.UserID(userID), code); err != nil {
+		return nil, err
+	}
+	codes, err := replaceRecoveryCodes(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit recovery code rotation: %w", err)
+	}
+	return codes, nil
+}
+
+func replaceRecoveryCodes(ctx context.Context, tx *sql.Tx, userID int64) (*RecoveryCodesResponse, error) {
+	codes, err := rc.Generate()
+	if err != nil {
+		return nil, fmt.Errorf("generate recovery codes: %w", err)
+	}
+	if err := rc.DeleteRecoveryCodes(ctx, tx, userID); err != nil {
+		return nil, err
+	}
+	if err := rc.SaveRecoveryCodes(ctx, tx, userID, codes); err != nil {
+		return nil, fmt.Errorf("save recovery codes: %w", err)
+	}
 	return &RecoveryCodesResponse{Codes: codes}, nil
 }
 

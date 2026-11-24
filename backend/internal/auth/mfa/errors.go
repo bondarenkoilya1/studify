@@ -9,4 +9,5 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrInvalidCode        = errors.New("read TOTP code")
 	ErrAlreadyEnabled     = errors.New("TOTP already enabled")
+	ErrTOTPDisabled       = errors.New("TOTP is disabled")
 )

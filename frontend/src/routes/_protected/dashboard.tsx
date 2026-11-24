@@ -282,7 +282,11 @@ function DashboardPage() {
                   {formatRelativeDeadline(
                     dashboardStatus.nearest_deadline_task.deadline,
                   )}{" "}
-                  · {formatDate(dashboardStatus.nearest_deadline_task.deadline!)}
+                  ·{" "}
+                  {formatDate(
+                    dashboardStatus.nearest_deadline_task.deadline_date ??
+                      dashboardStatus.nearest_deadline_task.deadline!,
+                  )}
                 </span>
               </div>
             </div>

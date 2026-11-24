@@ -149,6 +149,7 @@ The TOTP settings routes below require authentication.
 | --- | --- | --- |
 | `POST` | `/api/auth/totp/setup` | Generate a secret and QR code |
 | `POST` | `/api/auth/totp/setup/confirm` | Confirm with a code and enable TOTP |
+| `POST` | `/api/auth/totp/recovery-codes` | Replace recovery codes using a current authenticator code |
 | `DELETE` | `/api/auth/totp` | Disable TOTP |
 
 `POST /api/auth/totp/setup` returns a base64 PNG and the secret for manual
@@ -180,6 +181,11 @@ code returns `400`.
 ```
 
 Pass a saved recovery code as `code` to `POST /api/auth/login/totp`.
+
+To replace your recovery codes, send a current authenticator code as
+`passcode` to `POST /api/auth/totp/recovery-codes` while signed in. This
+replaces the entire set. Codes issued before migration 000012 require
+replacement through this endpoint.
 
 `DELETE /api/auth/totp` disables TOTP, invalidates recovery codes and pending
 sign-in challenges, and returns `204 No Content`.
@@ -505,6 +511,12 @@ Task response:
 | `difficulty`, `priority` | `low`, `medium`, `high` |
 | `estimated_time` | Positive integer or `null` |
 | `scheduled_at`, `deadline` | Timestamp or `null` |
+| `scheduled_date`, `deadline_date` | Calendar date (`YYYY-MM-DD`) or `null` |
+
+`scheduled_date` takes precedence over `scheduled_at`. For a date-only
+deadline, send `deadline_date` with an optional `deadline` cutoff timestamp.
+Without a cutoff, the API uses the end of that day in UTC. On PATCH, sending
+a timestamp on its own replaces its matching calendar date.
 
 `POST /api/tasks` returns `201 Created`, and `PUT /api/tasks/{id}` returns
 `200 OK`. Both take the task fields without `id`, `created_at`, and

@@ -13,7 +13,7 @@ const emailConfirmTokenType = "email_confirmation"
 func saveConfirmationToken(ctx context.Context, db internal.DBTX, userID int64, tokenHash []byte, ttlSeconds int64) error {
 	result, err := db.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, token_hash, type, expires_at)
-		VALUES ($1, $2, $3, LOCALTIMESTAMP + $4 * INTERVAL '1 second')
+		VALUES ($1, $2, $3, (clock_timestamp() AT TIME ZONE 'UTC') + $4 * INTERVAL '1 second')
 		ON CONFLICT (user_id) WHERE type = 'email_confirmation'
 		DO UPDATE SET token_hash = EXCLUDED.token_hash,
 		              expires_at = EXCLUDED.expires_at,
@@ -37,7 +37,7 @@ func consumeConfirmationToken(ctx context.Context, tx *sql.Tx, tokenHash []byte)
 	var userID int64
 	err := tx.QueryRowContext(ctx, `
 		DELETE FROM auth_tokens
-		WHERE token_hash = $1 AND type = $2 AND expires_at > clock_timestamp()::timestamp
+		WHERE token_hash = $1 AND type = $2 AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')
 		RETURNING user_id;
 	`, tokenHash, emailConfirmTokenType).Scan(&userID)
 	if errors.Is(err, sql.ErrNoRows) {

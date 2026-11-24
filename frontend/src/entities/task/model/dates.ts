@@ -1,19 +1,21 @@
-import { differenceInCalendarDays, startOfDay } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
+import type { Task } from "@/shared/api";
 
-// The task form stores dates without a time as local midnight.
-export function isDateOnlyTaskTime(date: Date) {
-  return date.getTime() === startOfDay(date).getTime();
-}
+export function formatTaskDeadline(
+  task: Pick<Task, "deadline" | "deadline_date">,
+  now = new Date(),
+) {
+  const value = task.deadline_date ?? task.deadline;
+  if (!value) return null;
 
-export function formatTaskDeadline(deadline: string, now = new Date()) {
-  const date = new Date(deadline);
+  const date = parseISO(value);
   const daysUntilDue = differenceInCalendarDays(date, now);
   const formatted = date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
   });
 
-  if (daysUntilDue < 0 || (date < now && !isDateOnlyTaskTime(date))) {
+  if (daysUntilDue < 0 || (!task.deadline_date && date < now)) {
     return { text: `${formatted} · overdue`, urgent: true };
   }
 

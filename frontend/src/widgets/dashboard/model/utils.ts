@@ -1,3 +1,5 @@
+import { parseISO } from "date-fns";
+
 export function formatRelativeDeadline(iso: string | null) {
   if (!iso) {
     return "Без дедлайна";
@@ -22,7 +24,7 @@ export function formatRelativeDeadline(iso: string | null) {
 }
 
 export function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ru-RU", {
+  return parseISO(iso).toLocaleDateString("ru-RU", {
     day: "numeric",
     month: "long",
   });
