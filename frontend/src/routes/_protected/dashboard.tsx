@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { formatRelativeDeadline, formatDate } from "@/widgets/dashboard";
 import { useGetDashboardStatus } from "@/shared/api";
+import { RequestError } from "@/shared/ui/page-state";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   component: RouteComponent,
@@ -129,7 +130,11 @@ function StatCard({
 }
 
 function DashboardPage() {
-  const { data: dashboardStatus, isLoading } = useGetDashboardStatus();
+  const {
+    data: dashboardStatus,
+    error,
+    refetch,
+  } = useGetDashboardStatus();
 
   const stats = useMemo(() => {
     if (!dashboardStatus) {
@@ -176,7 +181,11 @@ function DashboardPage() {
     ];
   }, [dashboardStatus]);
 
-  if (isLoading || !dashboardStatus) {
+  if (!dashboardStatus && error) {
+    return <RequestError error={error} onRetry={() => void refetch()} />;
+  }
+
+  if (!dashboardStatus) {
     return (
       <div className="min-h-screen bg-[#f5f5f7]">
         <main className="mx-auto max-w-[640px] px-5 py-12 sm:px-8">
