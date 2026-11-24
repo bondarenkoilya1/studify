@@ -15,7 +15,7 @@ import {
 } from "./schema";
 import { isLoginChallenge } from "./auth-response";
 
-export function useLoginForm() {
+export function useLoginForm(confirmToken?: string) {
   const [step, setStep] = useState<"credentials" | "totp">("credentials");
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
 
@@ -32,6 +32,14 @@ export function useLoginForm() {
 
   const completeLogin = async (user: User) => {
     startSession(queryClient, user);
+    if (confirmToken) {
+      await navigate({
+        to: "/confirm",
+        search: { token: confirmToken },
+        replace: true,
+      });
+      return;
+    }
     await navigate({ to: "/subjects" });
   };
 
