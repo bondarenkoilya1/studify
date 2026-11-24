@@ -22,6 +22,7 @@ export function RegisterForm() {
       <form
         className="rounded-2xl border border-studify-border bg-studify-surface p-5 shadow-xl shadow-studify-shadow/10 sm:p-8"
         onSubmit={onSubmit}
+        noValidate
       >
         {errors.root?.message && (
           <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
@@ -33,7 +34,7 @@ export function RegisterForm() {
           <FormField htmlFor="email" label="Эл. почта">
             <Input
               id="email"
-              type="text"
+              type="email"
               placeholder="octocat@gmail.com"
               autoComplete="email"
               size="lg"
