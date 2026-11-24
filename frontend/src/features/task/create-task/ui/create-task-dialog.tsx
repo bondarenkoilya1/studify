@@ -32,7 +32,11 @@ export function CreateTaskDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
+    >
       <DialogClose onClick={() => onOpenChange(false)} />
 
       <DialogHeader>
@@ -116,7 +120,8 @@ export function CreateTaskDialog({
               controlSize="large"
               aria-invalid={Boolean(form.formState.errors.estimated_time)}
               {...form.register("estimated_time", {
-                setValueAs: (value) => (value === "" ? null : Number(value)),
+                setValueAs: (value) =>
+                  value === "" || value === null ? null : Number(value),
               })}
             />
 
