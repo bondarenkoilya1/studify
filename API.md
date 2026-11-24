@@ -136,6 +136,7 @@ user, clears both cookies, and returns `204 No Content`.
 token returns `400`.
 
 `POST /api/auth/confirm/resend` sends a new link and returns `204 No Content`.
+Requests made less than a minute apart return `429`.
 
 Changing the email through `PATCH /api/users/me/email` resets
 `is_email_verified` to `false` and sends a new link.
