@@ -49,11 +49,14 @@ func NewService(
 
 func (s *Service) register(ctx context.Context, email, password string) (*user.User, token.Pair, error) {
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionRegister); err != nil {
-		return nil, token.Pair{}, err
+		return nil, token.Pair{}, ErrInvalidRegistration
 	}
 
 	passwordHash, err := credentials.HashPassword(password)
 	if err != nil {
+		if errors.Is(err, bcrypt.ErrPasswordTooLong) {
+			return nil, token.Pair{}, ErrInvalidRegistration
+		}
 		return nil, token.Pair{}, fmt.Errorf("hash password: %w", err)
 	}
 
@@ -77,7 +80,7 @@ func (s *Service) register(ctx context.Context, email, password string) (*user.U
 func (s *Service) login(ctx context.Context, email, password string) (*loginResponse, error) {
 	// Validate
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionLogin); err != nil {
-		return nil, err
+		return nil, ErrInvalidCredentials
 	}
 
 	currentUser, err := user.GetUserByEmail(s.db, email)
@@ -89,7 +92,10 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 		[]byte(currentUser.PasswordHash),
 		[]byte(password),
 	); err != nil {
-		return nil, err
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return nil, ErrInvalidCredentials
+		}
+		return nil, fmt.Errorf("check password: %w", err)
 	}
 
 	// Check on TOTP

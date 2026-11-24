@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { startSession } from "@/entities/user";
 import { useLoginTOTP, useLoginUser, type User } from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import {
   LoginCredentialsSchema,
   LoginTotpSchema,
@@ -45,9 +46,14 @@ export function useLoginForm() {
 
         await completeLogin(response);
       },
-      onError: () => {
+      onError: (error) => {
         credentialsForm.setError("root", {
-          message: "Invalid email or password",
+          message: getRequestErrorMessage(
+            error,
+            error.status === 401
+              ? "Неверная почта или пароль."
+              : "Не удалось войти. Попробуйте ещё раз.",
+          ),
         });
       },
     },

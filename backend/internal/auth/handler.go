@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"studify/internal"
 	"studify/internal/auth/challenge"
-	"studify/internal/auth/credentials"
 	"studify/internal/httpx"
 	"studify/internal/user"
 	"studify/internal/util"
@@ -27,6 +26,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, user.ErrUserAlreadyExists):
 			http.Error(w, "user with such email already exists", http.StatusConflict)
+		case errors.Is(err, ErrInvalidRegistration):
+			http.Error(w, "invalid registration details", http.StatusBadRequest)
 		default:
 			slog.ErrorContext(r.Context(), "failed to register user",
 				util.AttrError(err),
@@ -59,10 +60,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	loginResponse, err := h.Service.login(r.Context(), body.Email, body.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, credentials.ErrInvalidEmail),
-			errors.Is(err, credentials.ErrInvalidPassword):
-			http.Error(w, "invalid email or password", http.StatusUnauthorized)
-		case errors.Is(err, user.ErrUserNotFound):
+		case errors.Is(err, ErrInvalidCredentials), errors.Is(err, user.ErrUserNotFound):
 			http.Error(w, "invalid email or password", http.StatusUnauthorized)
 		default:
 			slog.ErrorContext(r.Context(), "failed to login user",

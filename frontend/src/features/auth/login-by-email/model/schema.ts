@@ -1,16 +1,14 @@
-import * as z from "zod";
+import { z } from "zod";
 
 const emailSchema = z
   .string()
   .trim()
-  .email("Invalid email address")
-  .max(255, "Email is too long.");
-
-const passwordSchema = z.string().min(1, "Password is required");
+  .email("Укажите корректный адрес почты.")
+  .max(254, "Адрес почты слишком длинный.");
 
 export const LoginCredentialsSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: z.string().min(1, "Введите пароль."),
 });
 
 export const LoginTotpSchema = z.object({

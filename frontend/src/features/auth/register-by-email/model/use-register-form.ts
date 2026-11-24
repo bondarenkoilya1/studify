@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { startSession } from "@/entities/user";
 import { useRegisterUser } from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 
 export function useRegisterForm() {
   const queryClient = useQueryClient();
@@ -21,9 +22,17 @@ export function useRegisterForm() {
 
   const registerMutation = useRegisterUser({
     mutation: {
-      onError: () => {
+      onError: (error) => {
+        if (error.status === 409) {
+          setError("email", { message: "Аккаунт с этой почтой уже существует." });
+          return;
+        }
+
         setError("root", {
-          message: "Failed to register",
+          message: getRequestErrorMessage(
+            error,
+            "Не удалось зарегистрироваться. Проверьте почту и пароль.",
+          ),
         });
       },
       onSuccess: async (user) => {
