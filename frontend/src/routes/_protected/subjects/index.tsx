@@ -42,20 +42,22 @@ function SubjectsPage() {
 
   if (isPending) {
     return (
-      <div className="flex h-64 items-center justify-center">Загрузка...</div>
+      <div className="mx-auto flex h-64 w-full max-w-4xl items-center justify-center px-4 sm:px-6">
+        Загрузка...
+      </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex h-64 items-center justify-center text-destructive">
+      <div className="mx-auto flex h-64 w-full max-w-4xl items-center justify-center px-4 text-destructive sm:px-6">
         Не удалось загрузить предметы. Попробуйте обновить страницу.
       </div>
     );
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-8">
+    <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">Предметы</h1>

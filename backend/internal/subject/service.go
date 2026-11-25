@@ -136,7 +136,7 @@ func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*S
 	if req.ThumbnailURL != nil {
 		subject.ThumbnailURL = req.ThumbnailURL
 	}
-	if req.ExamDate != nil {
+	if req.ExamDateSet {
 		subject.ExamDate = req.ExamDate
 	}
 	if req.Course != nil {
@@ -255,7 +255,7 @@ func (r *UpdateSubjectRequest) isEmpty() bool {
 		r.Scope == nil &&
 		r.ExamType == nil &&
 		r.ThumbnailURL == nil &&
-		r.ExamDate == nil &&
+		!r.ExamDateSet &&
 		r.Course == nil &&
 		r.Term == nil
 }

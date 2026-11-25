@@ -1,6 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { FileText, File as FileIcon, Search, ArrowLeft } from "lucide-react";
+import {
+  CalendarDays,
+  FileText,
+  File as FileIcon,
+  Search,
+  ArrowLeft,
+} from "lucide-react";
 
 import { TaskList } from "@/widgets/task-list";
 import {
@@ -13,6 +19,8 @@ import {
 } from "@/entities/task/model/filters";
 import { getTaskTypeCounts } from "@/entities/task/model/task-type-counts";
 import { CreateTaskButton } from "@/features/task/create-task";
+import { UpdateSubjectEventDialog } from "@/features/subject/update-subject";
+import { Button } from "@/shared/ui/button";
 import {
   ApiError,
   getGetSubjectQueryOptions,
@@ -59,7 +67,7 @@ function SubjectFilesSidebar({ files }: { files: SubjectFile[] }) {
   }
 
   return (
-    <aside className="w-full shrink-0 lg:w-[320px]">
+    <aside className="w-full shrink-0 lg:w-72">
       <div className="rounded-[20px] border border-gray-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <h2 className="text-[17px] font-semibold tracking-tight text-gray-900">
           Материалы курса
@@ -130,14 +138,15 @@ function SubjectPage() {
   const { data: tasks } = useGetSubjectTasksSuspense(id);
 
   const [selectedType, setSelectedType] = useState<TaskTypeFilter>("all");
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
 
   const types = getTaskTypeCounts(tasks);
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
 
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
-      <div className="mx-auto flex max-w-[1024px] flex-col gap-8 px-5 py-12 sm:px-8 lg:flex-row">
-        <main className="w-full max-w-[640px] flex-1">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row">
+        <main className="min-w-0 flex-1">
           <Link
             to="/subjects"
             className="
@@ -171,7 +180,20 @@ function SubjectPage() {
                 </p>
               </div>
 
-              <CreateTaskButton subjectId={id} />
+              <div className="flex items-center gap-2">
+                {subject.type === "university" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEventDialogOpen(true)}
+                  >
+                    <CalendarDays />
+                    Событие
+                  </Button>
+                )}
+                <CreateTaskButton subjectId={id} />
+              </div>
             </div>
 
             {types.length > 0 && (
@@ -225,6 +247,14 @@ function SubjectPage() {
 
         <SubjectFilesSidebar files={subject.files ?? []} />
       </div>
+
+      {subject.type === "university" && (
+        <UpdateSubjectEventDialog
+          subject={subject}
+          open={eventDialogOpen}
+          onOpenChange={setEventDialogOpen}
+        />
+      )}
     </div>
   );
 }

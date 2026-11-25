@@ -119,6 +119,24 @@ func TestValidatePassword(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name:     "multibyte password with exactly maximum byte length",
+			password: strings.Repeat("я", maxPasswordLength/2),
+			action:   ActionRegister,
+			wantErr:  false,
+		},
+		{
+			name:     "multibyte password longer than maximum byte length",
+			password: strings.Repeat("я", maxPasswordLength/2) + "a",
+			action:   ActionRegister,
+			wantErr:  true,
+		},
+		{
+			name:     "multibyte password shorter than minimum character length",
+			password: strings.Repeat("я", minPasswordLength-1),
+			action:   ActionRegister,
+			wantErr:  true,
+		},
+		{
 			name:     "short password is allowed during login",
 			password: "123",
 			action:   ActionLogin,

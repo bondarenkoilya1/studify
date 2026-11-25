@@ -12,17 +12,21 @@ function RouteComponent() {
   const { data } = useCurrentUser();
 
   if (!data) {
-    return <span>Загрузка...</span>;
+    return (
+      <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="h-40 animate-pulse rounded-2xl border bg-card shadow-xs" />
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 p-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
       <SettingsHeader
         email={data.email}
         avatarUrl={data.avatar_url}
       />
 
-      <div className="flex flex-col gap-6 md:flex-row">
+      <div className="flex flex-col gap-4 md:flex-row md:gap-6">
         <SettingsSidebar />
 
         <main className="min-w-0 flex-1">
@@ -41,23 +45,26 @@ function SettingsHeader({
   avatarUrl?: string | null;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card p-6 text-card-foreground shadow-xs sm:p-8">
-      <div className="flex items-center gap-5">
+    <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-xs">
+      <div className="relative flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
+        <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/10 blur-3xl" />
         <AvatarUploadField
           email={email}
           currentAvatarUrl={avatarUrl}
-          size={96}
-          className="text-3xl"
+          size={72}
+          className="shrink-0 text-2xl sm:size-24 sm:text-3xl"
         />
 
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Настройки</h1>
+        <div className="relative min-w-0 space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            Настройки
+          </h1>
 
           <p className="text-sm text-muted-foreground">
             Управляйте аккаунтом и настройками.
           </p>
 
-          <p className="flex flex-wrap items-center gap-2 pt-1 text-sm font-medium">
+          <p className="truncate pt-1 text-sm font-medium">
             {email}
           </p>
         </div>

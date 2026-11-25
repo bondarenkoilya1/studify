@@ -11,12 +11,14 @@ function RouteComponent() {
   const { data } = useCurrentUser();
 
   if (!data) {
-    return <span>Загрузка...</span>;
+    return (
+      <div className="h-64 animate-pulse rounded-2xl border bg-card shadow-xs" />
+    );
   }
 
   return (
-    <div className="flex flex-col gap-6 md:flex-row">
-      <div className="min-w-0 flex-1 rounded-2xl border bg-card p-6 shadow-xs">
+    <div className="min-w-0">
+      <div className="rounded-2xl border bg-card p-5 shadow-xs sm:p-6">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
             Настройки профиля

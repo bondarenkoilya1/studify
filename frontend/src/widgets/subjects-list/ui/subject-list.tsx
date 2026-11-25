@@ -19,7 +19,7 @@ export function SubjectList({ subjects }: SubjectListProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
       {subjects.map((subject) => (
         <SubjectCard key={subject.id} subject={subject} />
       ))}

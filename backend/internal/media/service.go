@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"net/http"
 	"os"
@@ -15,21 +17,68 @@ import (
 	"github.com/google/uuid"
 )
 
-func SaveImageAsWebp(r io.Reader, c ImageConstraints, dir string) (string, error) {
-	img, format, err := image.Decode(r)
+func ServeStoredFile(w http.ResponseWriter, r *http.Request, dir, filename string) {
+	if !filepath.IsLocal(filename) || filepath.Base(filename) != filename || filename == "." {
+		http.NotFound(w, r)
+		return
+	}
+
+	root, err := os.OpenRoot(dir)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrDecodeFailed, err)
+		http.NotFound(w, r)
+		return
+	}
+	defer root.Close()
+
+	file, err := root.Open(filename)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	http.ServeContent(w, r, filename, info.ModTime(), file)
+}
+
+func SaveImageAsWebp(r io.Reader, c ImageConstraints, dir string) (string, error) {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return "", fmt.Errorf("read image: %w", err)
+	}
+
+	reader := bytes.NewReader(data)
+	cfg, format, err := image.DecodeConfig(reader)
+	if errors.Is(err, image.ErrFormat) {
+		return "", ErrInvalidFormat
+	}
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrDecodeFailed, err)
 	}
 
 	switch format {
-
 	case "png", "jpeg", "webp":
 	default:
 		return "", ErrInvalidFormat
 	}
 
+	if exceedsImageLimits(cfg.Width, cfg.Height, c) {
+		return "", ErrDimensionsExceed
+	}
+
+	reader.Reset(data)
+	img, _, err := image.Decode(reader)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrDecodeFailed, err)
+	}
 	bounds := img.Bounds()
-	if (c.MaxWidth > 0 && bounds.Dx() > c.MaxWidth) || (c.MaxHeight > 0 && bounds.Dy() > c.MaxHeight) {
+	if exceedsImageLimits(bounds.Dx(), bounds.Dy(), c) {
 		return "", ErrDimensionsExceed
 	}
 
@@ -60,6 +109,11 @@ func SaveImageAsWebp(r io.Reader, c ImageConstraints, dir string) (string, error
 	}
 
 	return filename, nil
+}
+
+func exceedsImageLimits(width, height int, c ImageConstraints) bool {
+	return (c.MaxWidth > 0 && width > c.MaxWidth) ||
+		(c.MaxHeight > 0 && height > c.MaxHeight)
 }
 
 func SaveFile(r io.Reader, sizeLimit int64, dir string) (filename string, sizeBytes int64, contentType string, err error) {

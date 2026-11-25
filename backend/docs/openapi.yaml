@@ -790,7 +790,8 @@ paths:
       summary: Attach a PDF or text file to a subject
       description: |
         Multipart upload with the file in the `file` field. Only PDF and plain-text files up to
-        50 MB are stored, under `/static/files/`. The file then appears in the subject's `files`.
+        50 MiB are stored, under `/static/files/`. The multipart body is limited to 51 MiB.
+        The file then appears in the subject's `files`.
       operationId: uploadSubjectFile
       security:
         - accessCookie: []
@@ -815,21 +816,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/FileUploadResponse'
         '400':
-          description: Missing `file` field or invalid subject ID.
+          description: Invalid multipart data, missing or empty `file`, or invalid subject ID.
           content:
             text/plain:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '500':
-          description: |
-            Internal error. The current backend also returns 500 for an unsupported file type,
-            a file above 50 MB, or a subject that does not exist.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: File exceeds 50 MiB or multipart body exceeds the upload limit.
           content:
             text/plain:
               schema:
                 $ref: '#/components/schemas/Error'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /api/tasks:
     get:
@@ -1298,8 +1303,9 @@ paths:
       description: |
         Serves files from the backend `data/` directory, for example
         `/static/users/{file}.webp`, `/static/thumbnails/{file}.webp`, and `/static/files/{file}.pdf`.
-        Requires authentication but does not check ownership: any logged-in user can read any file
-        whose URL they know.
+        Requires authentication. Attachments under `/static/files/` are accessible only to the
+        owner of the subject. Avatar and thumbnail URLs are available to signed-in users.
+        The API serves individual files and does not list directories.
       operationId: getStaticFile
       security:
         - accessCookie: []
@@ -1322,6 +1328,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
 
   /metrics:
     get:

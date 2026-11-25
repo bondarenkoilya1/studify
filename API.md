@@ -64,7 +64,7 @@ POST /api/auth/register
 ```
 
 The email must be a plain address of at most 254 characters. The password must
-be 8–72 characters.
+be at least 8 characters when registering and at most 72 UTF-8 bytes.
 
 Success: `201 Created`, auth cookies, and the user:
 
@@ -200,7 +200,8 @@ These routes do not require authentication.
 | `POST` | `/api/auth/reset-password/verify` | Check that a token is valid |
 | `POST` | `/api/auth/reset-password` | Set a new password |
 
-1. Request a link. An unknown email returns `404`, otherwise `204 No Content`.
+1. Request a link. The endpoint returns `204 No Content` both for a known email
+   after sending the link and for an unknown email.
    The email links to `{APP_URL}/reset-password?token={token}`, and the token is
    valid for 30 minutes.
 
@@ -458,7 +459,7 @@ errors are the same: PNG, JPEG, or WebP, up to 2 MB and 2560×2560 px.
 ### Files
 
 Send `multipart/form-data` with the file in the `file` field. PDF and plain
-text up to 50 MB are accepted.
+text files up to 50 MiB are accepted, with a 51 MiB cap on the multipart body.
 
 ```bash
 curl -b cookies.txt -F "file=@lecture-1.pdf" http://localhost:8080/api/subjects/1/file
@@ -468,8 +469,9 @@ curl -b cookies.txt -F "file=@lecture-1.pdf" http://localhost:8080/api/subjects/
 { "file_url": "/static/files/26c15f91-1756-4be7-b4b5-4ea6732dbe11.pdf" }
 ```
 
-A missing `file` field returns `400`. An unsupported type, a file over 50 MB,
-or an unknown subject currently return `500`.
+Invalid multipart data and missing or empty files return `400`. A missing or
+inaccessible subject returns `404`, an oversized upload returns `413`, and an
+unsupported file type returns `415`.
 
 ## Tasks
 
@@ -588,9 +590,10 @@ Shared project response:
 
 ## Files and monitoring
 
-`GET /static/{path}` serves uploaded files, for example
-`/static/users/{file}.webp`. It requires authentication but does not check
-ownership.
+`GET /static/{path}` requires authentication. Subject attachments under
+`/static/files/` can only be opened by the owner of the subject. Unknown or
+inaccessible attachments return `404`. Avatar and thumbnail links are
+available to signed-in users. The API serves individual files without directory listings.
 
 `GET /metrics` exposes Prometheus metrics without authentication.
 

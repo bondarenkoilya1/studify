@@ -63,9 +63,7 @@ func ValidatePassword(password string, action Action) error {
 	if password == "" {
 		return ErrEmptyPassword
 	}
-	length := utf8.RuneCountInString(password)
-
-	if length > maxPasswordLength {
+	if len(password) > maxPasswordLength {
 		return ErrPasswordTooLong
 	}
 
@@ -73,7 +71,7 @@ func ValidatePassword(password string, action Action) error {
 		return nil
 	}
 
-	if length < minPasswordLength {
+	if utf8.RuneCountInString(password) < minPasswordLength {
 		return fmt.Errorf("password must be at least 8 characters")
 	}
 

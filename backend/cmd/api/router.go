@@ -8,6 +8,7 @@ import (
 	"studify/internal/auth/resetpassword"
 	"studify/internal/auth/session"
 	"studify/internal/dashboard"
+	"studify/internal/media"
 	"studify/internal/middlewares"
 	"studify/internal/sharedproject"
 	"studify/internal/subject"
@@ -68,7 +69,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 	r.Group(func(r chi.Router) {
 		r.Use(validateAuth)
-		registerStaticRoutes(r)
+		registerStaticRoutes(r, h.Subject)
 	})
 
 	return r
@@ -181,9 +182,14 @@ func registerSessionRoutes(r chi.Router, h *session.Handler) {
 	})
 }
 
-func registerStaticRoutes(r chi.Router) {
-	fs := http.FileServer(http.Dir("data"))
-	r.Get("/static/*", http.StripPrefix("/static/", fs).ServeHTTP)
+func registerStaticRoutes(r chi.Router, h *subject.Handler) {
+	r.Get("/static/files/{filename}", h.DownloadFile)
+	r.Get("/static/users/{filename}", func(w http.ResponseWriter, r *http.Request) {
+		media.ServeStoredFile(w, r, "data/users", chi.URLParam(r, "filename"))
+	})
+	r.Get("/static/thumbnails/{filename}", func(w http.ResponseWriter, r *http.Request) {
+		media.ServeStoredFile(w, r, "data/thumbnails", chi.URLParam(r, "filename"))
+	})
 }
 
 func registerSharedProjectRoutes(r chi.Router, h *sharedproject.Handler) {
