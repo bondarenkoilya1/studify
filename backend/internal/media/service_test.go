@@ -2,12 +2,15 @@ package media
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,6 +18,26 @@ import (
 	"github.com/chai2010/webp"
 	"github.com/go-pdf/fpdf"
 )
+
+func TestSaveImageAsWebpRejectsOversizedImage(t *testing.T) {
+	data := makePNG(t, 20, 20)
+	_, err := SaveImageAsWebp(bytes.NewReader(data), ImageConstraints{MaxWidth: 10}, t.TempDir())
+	if !errors.Is(err, ErrDimensionsExceed) {
+		t.Fatalf("got %v, want %v", err, ErrDimensionsExceed)
+	}
+}
+
+func TestSaveImageAsWebpPreservesBodyLimitError(t *testing.T) {
+	data := makePNG(t, 20, 20)
+	body := http.MaxBytesReader(nil, io.NopCloser(bytes.NewReader(data)), int64(len(data)-1))
+	defer body.Close()
+
+	_, err := SaveImageAsWebp(body, ic, t.TempDir())
+	var tooLarge *http.MaxBytesError
+	if !errors.As(err, &tooLarge) {
+		t.Fatalf("got %v, want *http.MaxBytesError", err)
+	}
+}
 
 var ic = ImageConstraints{
 	MaxWidth:  2560,

@@ -3,8 +3,6 @@ package user
 import (
 	"encoding/json"
 	"errors"
-	_ "image/jpeg"
-	_ "image/png"
 	"log/slog"
 	"net"
 	"net/http"

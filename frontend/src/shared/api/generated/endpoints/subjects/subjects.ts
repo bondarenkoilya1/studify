@@ -1849,7 +1849,8 @@ export const getUploadSubjectFileUrl = (id: number) => {
 
 /**
  * Multipart upload with the file in the `file` field. Only PDF and plain-text files up to
- * 50 MB are stored, under `/static/files/`. The file then appears in the subject's `files`.
+ * 50 MiB are stored, under `/static/files/`. The multipart body is limited to 51 MiB.
+ * The file then appears in the subject's `files`.
  * @summary Attach a PDF or text file to a subject
  */
 export const uploadSubjectFile = async (
@@ -1871,7 +1872,13 @@ export const getUploadSubjectFileMutationKey = () =>
   ["uploadSubjectFile"] as const;
 
 export const getUploadSubjectFileMutationOptions = <
-  TError = ErrorType<Error | UnauthorizedResponse>,
+  TError = ErrorType<
+    | Error
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
+  >,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -1913,7 +1920,11 @@ export type UploadSubjectFileMutationResult = NonNullable<
 >;
 export type UploadSubjectFileMutationBody = UploadSubjectFileBody;
 export type UploadSubjectFileMutationError = ErrorType<
-  Error | UnauthorizedResponse
+  | Error
+  | UnauthorizedResponse
+  | NotFoundResponse
+  | UnsupportedMediaTypeResponse
+  | InternalErrorResponse
 >;
 export type UploadSubjectFileMutationVariables = {
   id: number;
@@ -1924,7 +1935,13 @@ export type UploadSubjectFileMutationVariables = {
  * @summary Attach a PDF or text file to a subject
  */
 export const useUploadSubjectFile = <
-  TError = ErrorType<Error | UnauthorizedResponse>,
+  TError = ErrorType<
+    | Error
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
+  >,
   TContext = unknown,
 >(
   options?: {

@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	_ "image/jpeg"
-	_ "image/png"
 	"log/slog"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"studify/internal/httpx"
@@ -311,18 +310,51 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	const maxUploadBytes = maxFileSize + 1<<20 // Allow 1 MiB for multipart framing.
+	if r.ContentLength > maxUploadBytes {
+		http.Error(w, "upload exceeds the maximum size", http.StatusRequestEntityTooLarge)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) || errors.Is(err, multipart.ErrMessageTooLarge) {
+			http.Error(w, "upload exceeds the maximum size", http.StatusRequestEntityTooLarge)
+			return
+		}
+		http.Error(w, "invalid multipart data", http.StatusBadRequest)
+		return
+	}
+	defer r.MultipartForm.RemoveAll()
+
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		slog.ErrorContext(r.Context(), "failed to get file",
-			util.AttrError(err),
-		)
-		http.Error(w, "invalid data", http.StatusBadRequest)
+		http.Error(w, "invalid file field", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
+	if header.Size > maxFileSize {
+		http.Error(w, media.ErrFileTooLarge.Error(), http.StatusRequestEntityTooLarge)
+		return
+	}
+
 	path, err := h.Service.uploadFile(userID, subjectID, file, header.Filename)
 	if err != nil {
+		switch {
+		case errors.Is(err, media.ErrFileTooLarge):
+			http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+			return
+		case errors.Is(err, media.ErrInvalidFileFormat):
+			http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+			return
+		case errors.Is(err, media.ErrFileEmpty):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		case errors.Is(err, sql.ErrNoRows):
+			http.Error(w, "subject not found", http.StatusNotFound)
+			return
+		}
 		slog.ErrorContext(r.Context(), "failed to upload file",
 			util.AttrUserID(userID),
 			util.AttrSubjectID(subjectID),
@@ -333,4 +365,27 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteJSON(w, r, http.StatusOK, fileResponse{FileURL: path})
+}
+
+func (h *Handler) DownloadFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	filename := chi.URLParam(r, "filename")
+	belongs, err := subjectFileBelongsToUser(r.Context(), h.Service.db, filesPublicDir+filename, userID)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "failed to check file ownership", util.AttrError(err))
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !belongs {
+		http.NotFound(w, r)
+		return
+	}
+
+	media.ServeStoredFile(w, r, filesDir, filename)
 }

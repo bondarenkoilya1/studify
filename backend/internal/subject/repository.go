@@ -1,6 +1,7 @@
 package subject
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -340,6 +341,20 @@ func InsertSubjectFile(
 	}
 
 	return fileID, nil
+}
+
+func subjectFileBelongsToUser(ctx context.Context, db internal.DBTX, path string, userID int64) (bool, error) {
+	const query = `
+		SELECT EXISTS (
+			SELECT 1
+			FROM subjects_files f
+			JOIN subjects s ON s.id = f.subject_id
+			WHERE f.path = $1 AND s.user_id = $2
+		);
+	`
+	var belongs bool
+	err := db.QueryRowContext(ctx, query, path, userID).Scan(&belongs)
+	return belongs, err
 }
 
 func normalizeUniqueSubjectError(err error) error {
