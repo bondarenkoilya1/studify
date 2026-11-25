@@ -99,13 +99,27 @@ func (s *Service) login(ctx context.Context, email, password string, client sess
 		return nil, fmt.Errorf("check password: %w", err)
 	}
 
-	// Check on TOTP
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin login: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	lockedUser, err := user.GetUserByIDForUpdate(ctx, tx, currentUser.ID)
+	if err != nil {
+		return nil, err
+	}
+	// A password or email change may have committed during bcrypt validation.
+	if lockedUser.PasswordHash != currentUser.PasswordHash || lockedUser.Email != currentUser.Email {
+		return nil, ErrInvalidCredentials
+	}
+
 	var (
 		pair           token.Pair
 		challengeToken token.Token
 	)
 
-	if currentUser.IsTOTPEnabled {
+	if lockedUser.IsTOTPEnabled {
 		challengeToken, err = token.GenerateAuthToken()
 		if err != nil {
 			return nil, err
@@ -114,8 +128,9 @@ func (s *Service) login(ctx context.Context, email, password string, client sess
 		hash := util.HashSHA256(string(challengeToken))
 
 		_, err = challenge.InsertAuthChallenge(
-			s.db,
-			currentUser.ID,
+			ctx,
+			tx,
+			lockedUser.ID,
 			[]byte(hash),
 			time.Now().UTC().Add(config.ChallengeTokenTTL),
 		)
@@ -123,16 +138,19 @@ func (s *Service) login(ctx context.Context, email, password string, client sess
 			return nil, err
 		}
 	} else {
-		pair, err = s.startSession(ctx, internal.UserID(currentUser.ID), client)
+		pair, err = s.newSession(ctx, tx, internal.UserID(lockedUser.ID), client)
 		if err != nil {
 			return nil, fmt.Errorf("create session: %w", err)
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit login: %w", err)
+	}
 	response := &loginResponse{
-		User:           currentUser,
+		User:           lockedUser,
 		Pair:           pair,
-		IsTOTPRequired: currentUser.IsTOTPEnabled,
+		IsTOTPRequired: lockedUser.IsTOTPEnabled,
 		ChallengeToken: challengeToken,
 	}
 

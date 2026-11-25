@@ -74,3 +74,21 @@ func DeleteResetPasswordToken(ctx context.Context, db internal.DBTX, userID int6
 
 	return nil
 }
+
+func consumeResetPasswordToken(ctx context.Context, tx *sql.Tx, userID int64, tokenHash []byte) error {
+	const query = `
+		DELETE FROM auth_tokens
+		WHERE user_id = $1 AND token_hash = $2 AND type = $3
+		  AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')
+		RETURNING user_id;
+	`
+	var consumedUserID int64
+	err := tx.QueryRowContext(ctx, query, userID, tokenHash, resetPasswordTokenType).Scan(&consumedUserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrInvalidResetToken
+	}
+	if err != nil {
+		return fmt.Errorf("consume password reset token: %w", err)
+	}
+	return nil
+}

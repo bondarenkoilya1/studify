@@ -12,7 +12,7 @@ export function ChangePasswordSection() {
         <h3 className="font-medium">Password</h3>
 
         <p className="mt-1 text-sm text-muted-foreground">
-          Change your account password.
+          Changing your password signs you out on all devices.
         </p>
       </div>
 

@@ -18,7 +18,8 @@ type AuthChallengeRecord struct {
 }
 
 func InsertAuthChallenge(
-	db *sql.DB,
+	ctx context.Context,
+	db internal.DBTX,
 	userID int64,
 	tokenHash []byte,
 	expiresAt time.Time,
@@ -31,7 +32,8 @@ func InsertAuthChallenge(
 
 	var ch AuthChallengeRecord
 
-	err := db.QueryRow(
+	err := db.QueryRowContext(
+		ctx,
 		query,
 		userID,
 		tokenHash,

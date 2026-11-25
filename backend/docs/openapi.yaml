@@ -419,7 +419,7 @@ paths:
               $ref: '#/components/schemas/PasswordResetRequest'
       responses:
         '204':
-          description: Password was updated and the reset token was deleted.
+          description: Password was updated, the reset token was consumed, and all sessions were revoked.
         '400':
           description: Missing token, passwords do not match, or invalid new password.
           content:
@@ -1205,7 +1205,8 @@ paths:
       tags: [Profile]
       summary: Update the authenticated user's password
       description: |
-        The new password must be 8-72 characters and differ from the current one.
+        The new password must be at least 8 characters and at most 72 UTF-8 bytes.
+        It must differ from the current password.
         A wrong current password returns 403 Forbidden.
       operationId: updateUserPassword
       security:
@@ -1218,7 +1219,7 @@ paths:
               $ref: '#/components/schemas/PasswordRequest'
       responses:
         '204':
-          description: Password updated successfully.
+          description: Password updated, all sessions revoked, and auth cookies cleared.
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

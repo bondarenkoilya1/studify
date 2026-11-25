@@ -216,8 +216,10 @@ These routes do not require authentication.
    { "password_reset_token": "q8Zr3k1V0p9xWm2Lc7NfYt4Hb6Ds5Ja0Ue8Gi1Ko3Rw" }
    ```
 
-3. Set the new password. Success: `204 No Content`. Mismatched passwords, an
-   invalid password, or a bad token return `400`.
+3. Set the new password. Success: `204 No Content`. This uses up the reset
+   link and signs the account out on all devices. Missing tokens, mismatched
+   passwords, and invalid passwords return `400`. Invalid, expired, or used
+   links return `422`.
 
    ```json
    {
@@ -251,9 +253,9 @@ stored values differ. Call `GET /api/users/me` for the full profile. The new
 email is not format-validated, and an email that is already taken returns
 `500`.
 
-Change the password. Success: `204 No Content`. A wrong current password
-returns `401`. A new password that is invalid or equal to the current one
-returns `400`.
+Change the password. Success: `204 No Content`. The server revokes all sessions
+and clears the current browser's auth cookies. A wrong current password returns
+`403`. An invalid or unchanged new password returns `400`.
 
 ```json
 {

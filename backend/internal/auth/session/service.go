@@ -66,12 +66,17 @@ func (s *Service) RevokeAllSessions(ctx context.Context, userID int64) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	if err := RevokeUserSessions(ctx, tx, userID); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// RevokeUserSessions runs inside a transaction that already holds the user row lock.
+func RevokeUserSessions(ctx context.Context, tx *sql.Tx, userID int64) error {
 	if err := DeleteSessionsByUserID(ctx, tx, userID); err != nil {
 		return err
 	}
 	// Existing refresh tokens can be unlinked until their first rotation.
-	if err := token.RevokeAllRefreshTokens(ctx, tx, userID); err != nil {
-		return err
-	}
-	return tx.Commit()
+	return token.RevokeAllRefreshTokens(ctx, tx, userID)
 }

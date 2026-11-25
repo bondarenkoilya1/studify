@@ -102,7 +102,7 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Service.UpdateUserPassword(userID, request.CurrentPassword, request.NewPassword)
+	err = h.Service.UpdateUserPassword(r.Context(), userID, request.CurrentPassword, request.NewPassword)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrCurrentPasswordRequired),
@@ -123,6 +123,7 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.Cookies.Clear(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 

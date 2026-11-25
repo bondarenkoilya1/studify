@@ -1,7 +1,10 @@
 package user
 
+import "studify/internal/auth/token"
+
 type Handler struct {
 	Service *Service
+	Cookies *token.Cookies
 }
 
 type User struct {

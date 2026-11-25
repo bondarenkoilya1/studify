@@ -95,6 +95,9 @@ function ResetPasswordPage() {
         <div className="max-w-md w-full text-center space-y-4">
           <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
           <h1 className="text-xl font-semibold">Пароль изменён</h1>
+          <p className="text-sm text-studify-muted">
+            Сессии на всех устройствах завершены.
+          </p>
           <Link
             to="/login"
             className="inline-block text-studify-primary hover:underline"

@@ -115,7 +115,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 			Cookies: cookiesService,
 		},
 
-		User: &user.Handler{Service: userService},
+		User: &user.Handler{Service: userService, Cookies: cookiesService},
 
 		Mfa: &mfa.Handler{
 			UserService: userService,
