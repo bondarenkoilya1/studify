@@ -9,6 +9,7 @@ import (
 	"studify/internal/auth/challenge"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/rc"
+	"studify/internal/auth/session"
 	"studify/internal/auth/token"
 	"studify/internal/user"
 	"studify/internal/util"
@@ -17,7 +18,7 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
-func (s *Service) loginMFA(ctx context.Context, challengeToken, code string) (*user.User, token.Pair, error) {
+func (s *Service) loginMFA(ctx context.Context, challengeToken, code string, client session.Input) (*user.User, token.Pair, error) {
 	if challengeToken == "" {
 		return nil, token.Pair{}, ErrRequiredChallengeToken
 	}
@@ -55,7 +56,7 @@ func (s *Service) loginMFA(ctx context.Context, challengeToken, code string) (*u
 		return nil, token.Pair{}, err
 	}
 
-	pair, err := s.newSession(ctx, tx, internal.UserID(currentUser.ID))
+	pair, err := s.newSession(ctx, tx, internal.UserID(currentUser.ID), client)
 	if err != nil {
 		return nil, token.Pair{}, fmt.Errorf("create MFA session: %w", err)
 	}

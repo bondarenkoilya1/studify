@@ -132,7 +132,11 @@ port:     4444
 The migration commands are not a migration-state manager: rerunning `migrate-up`
 against an already migrated database can fail because objects already exist.
 
-For an existing database at migration 000011, apply the 000012 and 000013
-up migrations in order before starting the updated API. Existing users can
-replace their old recovery codes in Security settings using their authenticator.
-Existing task timestamps keep their original values.
+For an existing database at migration 000011, apply up migrations 000012
+through 000014 in order before starting the updated API. If 000013 is already
+applied, run only 000014. Recovery codes from before 000012 can be replaced in
+Security settings. Existing task timestamps keep their original values.
+
+After 000014, the first authenticated request with old cookies triggers a token
+refresh in the web app. A valid refresh cookie creates a tracked session, so
+the user can continue without signing in again.

@@ -5,12 +5,13 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"studify/internal/auth/session"
 	"studify/internal/auth/token"
 	"studify/internal/httpx"
 	"studify/internal/util"
 )
 
-func ValidateAuth(tokenManager *token.Manager) func(http.Handler) http.Handler {
+func ValidateAuth(tokenManager *token.Manager, sessions *session.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			accessTokenCookie, err := r.Cookie("access_token")
@@ -27,14 +28,25 @@ func ValidateAuth(tokenManager *token.Manager) func(http.Handler) http.Handler {
 				return
 			}
 
-			userID, err := tokenManager.ParseAccess(token.AccessToken(accessTokenCookie.Value))
+			userID, sessionID, err := tokenManager.ParseAccess(token.AccessToken(accessTokenCookie.Value))
 			if err != nil {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), httpx.UserIDKey, userID)
+			active, err := sessions.IsActive(r.Context(), int64(userID), sessionID)
+			if err != nil {
+				slog.ErrorContext(r.Context(), "failed to check session", util.AttrError(err))
+				http.Error(w, "internal server error", http.StatusInternalServerError)
+				return
+			}
+			if !active {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
 
+			ctx := context.WithValue(r.Context(), httpx.UserIDKey, userID)
+			ctx = context.WithValue(ctx, httpx.SessionIDKey, sessionID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

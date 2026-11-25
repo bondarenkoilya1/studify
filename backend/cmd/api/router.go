@@ -37,7 +37,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
-	validateAuth := middlewares.ValidateAuth(h.TokenManager)
+	validateAuth := middlewares.ValidateAuth(h.TokenManager, h.Session.Service)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {

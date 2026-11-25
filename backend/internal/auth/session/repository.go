@@ -24,15 +24,14 @@ func InsertSession(ctx context.Context, db internal.DBTX, s *Session) error {
 	return nil
 }
 
-func GetSessionByID(ctx context.Context, db internal.DBTX, id int64) (*Session, error) {
+func GetSessionByID(ctx context.Context, db internal.DBTX, id, userID int64) (*Session, error) {
 	query := `
 		SELECT id, user_id, os, browser, device, country, last_login
 		FROM sessions
-		WHERE id = $1;
-	`
+		WHERE id = $1 AND user_id = $2 AND ` + hasActiveRefreshToken
 
 	s := &Session{}
-	err := db.QueryRowContext(ctx, query, id).Scan(
+	err := db.QueryRowContext(ctx, query, id, userID).Scan(
 		&s.ID, &s.UserID, &s.OS, &s.Browser, &s.Device, &s.Country, &s.LastLogin,
 	)
 	if err != nil {
@@ -49,8 +48,8 @@ func ListSessionsByUserID(ctx context.Context, db internal.DBTX, userID int64) (
 	query := `
 		SELECT id, user_id, os, browser, device, country, last_login
 		FROM sessions
-		WHERE user_id = $1
-		ORDER BY last_login DESC;
+		WHERE user_id = $1 AND ` + hasActiveRefreshToken + `
+		ORDER BY last_login DESC, id DESC;
 	`
 
 	rows, err := db.QueryContext(ctx, query, userID)
@@ -74,26 +73,6 @@ func ListSessionsByUserID(ctx context.Context, db internal.DBTX, userID int64) (
 	}
 
 	return sessions, nil
-}
-
-func UpdateSession(ctx context.Context, db internal.DBTX, s *Session) error {
-	query := `
-		UPDATE sessions
-		SET os = $1, browser = $2, device = $3, country = $4, last_login = NOW()
-		WHERE id = $5 AND user_id = $6
-		RETURNING last_login;
-	`
-
-	err := db.QueryRowContext(ctx, query, s.OS, s.Browser, s.Device, s.Country, s.ID, s.UserID).
-		Scan(&s.LastLogin)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return ErrNotFoundSession
-		}
-		return fmt.Errorf("update session: %w", err)
-	}
-
-	return nil
 }
 
 func DeleteSession(ctx context.Context, db internal.DBTX, id, userID int64) error {
@@ -131,21 +110,16 @@ func DeleteSessionsByUserID(ctx context.Context, db internal.DBTX, userID int64)
 	return nil
 }
 
-func TouchSession(ctx context.Context, db internal.DBTX, s *Session) error {
-	query := `
-		UPDATE sessions
-		SET last_login = NOW()
+func TouchSession(ctx context.Context, db internal.DBTX, id, userID int64) error {
+	_, err := db.ExecContext(ctx, `
+		UPDATE sessions SET last_login = NOW()
 		WHERE id = $1 AND user_id = $2
-		RETURNING last_login;
-	`
-
-	err := db.QueryRowContext(ctx, query, s.ID, s.UserID).Scan(&s.LastLogin)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return ErrNotFoundSession
-		}
-		return fmt.Errorf("touch session: %w", err)
-	}
-
-	return nil
+	`, id, userID)
+	return err
 }
+
+// Excludes historical metadata-only rows and sessions whose refresh token expired.
+const hasActiveRefreshToken = `EXISTS (
+	SELECT 1 FROM refresh_tokens
+	WHERE session_id = sessions.id AND revoked_at IS NULL AND expires_at > NOW()
+)`

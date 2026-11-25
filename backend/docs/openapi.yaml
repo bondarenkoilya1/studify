@@ -142,14 +142,14 @@ paths:
     post:
       tags: [Auth]
       summary: Log out the current user
-      description: Does not require an access token. Revokes the refresh token from the cookie when present.
+      description: Uses the refresh cookie to revoke the current session, including its access and refresh tokens.
       operationId: logoutUser
       security:
         - {}
         - refreshCookie: []
       responses:
         '204':
-          description: Refresh token was revoked (if present) and auth cookies were cleared.
+          description: The current session was revoked if present and auth cookies were cleared.
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -157,7 +157,7 @@ paths:
     post:
       tags: [Auth]
       summary: Log out from all sessions
-      description: Revokes all active refresh tokens for the authenticated user and clears auth cookies.
+      description: Revokes every session and its tokens for the authenticated user and clears auth cookies.
       operationId: logoutAllSessions
       security:
         - accessCookie: []
@@ -173,12 +173,13 @@ paths:
     post:
       tags: [Auth]
       summary: Rotate refresh token and issue new auth cookies
+      description: The new cookies belong to the same session.
       operationId: refreshTokens
       security:
         - refreshCookie: []
       responses:
         '204':
-          description: Tokens were rotated successfully and the new auth cookies were set. On 401 both cookies are cleared.
+          description: Tokens were rotated successfully and the new auth cookies were set.
           headers:
             Set-Cookie:
               $ref: '#/components/headers/AuthCookies'
@@ -456,7 +457,7 @@ paths:
     delete:
       tags: [Auth / Sessions]
       summary: Revoke all active sessions of the authenticated user
-      description: Revokes all active session records for the current user.
+      description: Revokes all sessions and their access and refresh tokens for the current user.
       operationId: revokeAllUserSessions
       security:
         - accessCookie: []
@@ -496,7 +497,7 @@ paths:
     delete:
       tags: [Auth / Sessions]
       summary: Revoke a session by ID
-      description: Revokes a single session by its ID for the authenticated user.
+      description: Revokes a single session and immediately invalidates its access and refresh tokens.
       operationId: revokeSession
       security:
         - accessCookie: []
@@ -2168,6 +2169,7 @@ components:
         - device
         - country
         - last_login
+        - is_current
       properties:
         id:
           type: integer
@@ -2195,3 +2197,7 @@ components:
           type: string
           format: date-time
           example: '2026-11-02T19:50:00Z'
+        is_current:
+          type: boolean
+          description: Whether this is the session used to make the request.
+          example: true

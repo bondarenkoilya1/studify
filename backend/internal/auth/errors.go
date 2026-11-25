@@ -5,6 +5,7 @@ import "errors"
 var (
 	ErrInvalidToken           = errors.New("invalid refresh token")
 	ErrTokenNotFound          = errors.New("refresh token not found")
+	errRefreshReplaced        = errors.New("refresh token already replaced")
 	ErrInvalidCredentials     = errors.New("invalid email or password")
 	ErrInvalidRegistration    = errors.New("invalid registration details")
 	ErrRequiredChallengeToken = errors.New("challenge token is required")

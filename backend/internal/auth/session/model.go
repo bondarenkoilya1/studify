@@ -14,6 +14,7 @@ type Session struct {
 	Device    string    `json:"device"`
 	Country   string    `json:"country"`
 	LastLogin time.Time `json:"last_login"`
+	IsCurrent bool      `json:"is_current"`
 }
 
 // Input holds the client details taken from the request (User-Agent, GeoIP, etc.).

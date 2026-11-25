@@ -11,6 +11,7 @@ import (
 type RefreshTokenRecord struct {
 	ID                int64
 	UserID            int64
+	SessionID         sql.NullInt64
 	TokenID           string
 	TokenHash         string
 	ExpiresAt         time.Time
@@ -20,7 +21,7 @@ type RefreshTokenRecord struct {
 }
 
 const refreshTokenColumns = `
-	id, user_id, token_id, token_hash,
+	id, user_id, session_id, token_id, token_hash,
 	expires_at, created_at, revoked_at, replaced_by_token_id
 `
 
@@ -30,7 +31,7 @@ func GetRefreshTokenByID(ctx context.Context, db internal.DBTX, id int64) (*Refr
 		SELECT `+refreshTokenColumns+`
 		FROM refresh_tokens WHERE id = $1
 	`, id).Scan(
-		&token.ID, &token.UserID, &token.TokenID, &token.TokenHash,
+		&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
 		&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
 	)
 	if err != nil {
@@ -47,7 +48,7 @@ func GetRefreshTokenByTokenID(ctx context.Context, db internal.DBTX, tokenID str
 
 	var token RefreshTokenRecord
 	err := db.QueryRowContext(ctx, query, tokenID).Scan(
-		&token.ID, &token.UserID, &token.TokenID, &token.TokenHash,
+		&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
 		&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
 	)
 	if err != nil {
@@ -62,7 +63,7 @@ func GetRefreshTokenByTokenHash(ctx context.Context, db internal.DBTX, tokenHash
 		SELECT `+refreshTokenColumns+`
 		FROM refresh_tokens WHERE token_hash = $1
 	`, tokenHash).Scan(
-		&token.ID, &token.UserID, &token.TokenID, &token.TokenHash,
+		&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
 		&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
 	)
 	if err != nil {
@@ -82,7 +83,7 @@ func GetRefreshTokens(ctx context.Context, db internal.DBTX) ([]RefreshTokenReco
 	for rows.Next() {
 		var token RefreshTokenRecord
 		if err := rows.Scan(
-			&token.ID, &token.UserID, &token.TokenID, &token.TokenHash,
+			&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
 			&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
 		); err != nil {
 			return nil, fmt.Errorf("scan refresh token: %w", err)
@@ -109,7 +110,7 @@ func GetRefreshTokensByUserID(ctx context.Context, db internal.DBTX, userID int6
 	for rows.Next() {
 		var token RefreshTokenRecord
 		if err := rows.Scan(
-			&token.ID, &token.UserID, &token.TokenID, &token.TokenHash,
+			&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
 			&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
 		); err != nil {
 			return nil, fmt.Errorf("scan refresh token: %w", err)
@@ -122,18 +123,19 @@ func GetRefreshTokensByUserID(ctx context.Context, db internal.DBTX, userID int6
 	return tokens, nil
 }
 
-func InsertRefreshToken(ctx context.Context, db internal.DBTX, userID int64, tokenID, tokenHash string, expiresAt time.Time) (*RefreshTokenRecord, error) {
+func InsertRefreshToken(ctx context.Context, db internal.DBTX, userID, sessionID int64, tokenID, tokenHash string, expiresAt time.Time) (*RefreshTokenRecord, error) {
 	var token RefreshTokenRecord
 	err := db.QueryRowContext(ctx, `
-		INSERT INTO refresh_tokens (user_id, token_id, token_hash, expires_at)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO refresh_tokens (user_id, session_id, token_id, token_hash, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at
-	`, userID, tokenID, tokenHash, expiresAt).Scan(&token.ID, &token.CreatedAt)
+	`, userID, sessionID, tokenID, tokenHash, expiresAt).Scan(&token.ID, &token.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("insert refresh token: %w", err)
 	}
 
 	token.UserID, token.TokenID, token.TokenHash, token.ExpiresAt = userID, tokenID, tokenHash, expiresAt
+	token.SessionID = sql.NullInt64{Int64: sessionID, Valid: true}
 	return &token, nil
 }
 
@@ -156,12 +158,12 @@ func RevokeRefreshToken(ctx context.Context, db internal.DBTX, tokenID string) e
 	return nil
 }
 
-func ReplaceRefreshToken(ctx context.Context, db internal.DBTX, tokenID, replacedByTokenID string) error {
+func ReplaceRefreshToken(ctx context.Context, db internal.DBTX, tokenID, replacedByTokenID string, sessionID int64) error {
 	result, err := db.ExecContext(ctx, `
 		UPDATE refresh_tokens
-		SET revoked_at = NOW(), replaced_by_token_id = $2
+		SET revoked_at = NOW(), replaced_by_token_id = $2, session_id = $3
 		WHERE token_id = $1 AND revoked_at IS NULL
-	`, tokenID, replacedByTokenID)
+	`, tokenID, replacedByTokenID, sessionID)
 	if err != nil {
 		return fmt.Errorf("replace refresh token: %w", err)
 	}

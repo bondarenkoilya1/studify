@@ -58,7 +58,6 @@ type Handler struct {
 	Dashboard            *dashboard.Handler
 	SharedProjectHandler *sharedproject.Handler
 	Session              *session.Handler
-	SessionService       *session.Service
 }
 
 type Metrics struct {
@@ -99,11 +98,11 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 	mfaService := mfa.NewService(db, cfg)
 	resetPasswordService := resetpassword.NewService(db, mailService)
 	userService := user.NewService(db, emailConfirmService)
-	authService := auth.NewService(db, tokenManager, cookiesService, emailConfirmService, cfg)
+	sessionService := session.NewService(db)
+	authService := auth.NewService(db, tokenManager, cookiesService, emailConfirmService, sessionService, cfg)
 	taskService := task.NewService(db)
 	subjectService := subject.NewService(db)
 	sharedProjectService := sharedproject.NewService(db)
-	sessionService := session.NewService(db)
 
 	// Handlers
 	h := &Handler{
@@ -116,10 +115,7 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 			Cookies: cookiesService,
 		},
 
-		User: &user.Handler{
-			Service:        userService,
-			SessionService: sessionService,
-		},
+		User: &user.Handler{Service: userService},
 
 		Mfa: &mfa.Handler{
 			UserService: userService,
@@ -147,7 +143,6 @@ func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) 
 		Session: &session.Handler{
 			Service: sessionService,
 		},
-		SessionService: sessionService,
 	}
 
 	return &application{

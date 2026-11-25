@@ -21,6 +21,11 @@ type Manager struct {
 	now           func() time.Time
 }
 
+type tokenClaims struct {
+	jwt.RegisteredClaims
+	SessionID int64 `json:"sid,omitempty"`
+}
+
 func NewManager(accessSecret, refreshSecret []byte, issuer string, accessTTL, refreshTTL time.Duration) *Manager {
 	return &Manager{
 		accessSecret:  accessSecret,
@@ -34,8 +39,14 @@ func NewManager(accessSecret, refreshSecret []byte, issuer string, accessTTL, re
 
 // Public API
 
-func (m *Manager) NewAccess(userID internal.UserID) (AccessToken, error) {
-	claims := m.newClaims(userID, m.accessTTL, "")
+func (m *Manager) NewAccess(userID internal.UserID, sessionID int64) (AccessToken, error) {
+	if sessionID <= 0 {
+		return "", ErrInvalidSessionID
+	}
+	claims := tokenClaims{
+		RegisteredClaims: m.newClaims(userID, m.accessTTL, ""),
+		SessionID:        sessionID,
+	}
 
 	ss, err := m.sign(claims, m.accessSecret)
 	if err != nil {
@@ -51,7 +62,7 @@ func (m *Manager) NewRefresh(userID internal.UserID) (RefreshToken, TokenID, err
 		return "", "", fmt.Errorf("generate token id: %w", err)
 	}
 
-	claims := m.newClaims(userID, m.refreshTTL, id)
+	claims := tokenClaims{RegisteredClaims: m.newClaims(userID, m.refreshTTL, id)}
 
 	ss, err := m.sign(claims, m.refreshSecret)
 	if err != nil {
@@ -61,13 +72,17 @@ func (m *Manager) NewRefresh(userID internal.UserID) (RefreshToken, TokenID, err
 	return RefreshToken(ss), TokenID(id), nil
 }
 
-func (m *Manager) ParseAccess(raw AccessToken) (internal.UserID, error) {
+func (m *Manager) ParseAccess(raw AccessToken) (internal.UserID, int64, error) {
 	claims, err := m.parse(string(raw), m.accessSecret)
 	if err != nil {
-		return 0, fmt.Errorf("parse access token: %w", err)
+		return 0, 0, fmt.Errorf("parse access token: %w", err)
 	}
 
-	return userIDFromClaims(claims)
+	if claims.SessionID <= 0 {
+		return 0, 0, ErrInvalidSessionID
+	}
+	userID, err := userIDFromClaims(&claims.RegisteredClaims)
+	return userID, claims.SessionID, err
 }
 
 func (m *Manager) RefreshTTL() time.Duration { return m.refreshTTL }
@@ -83,7 +98,7 @@ func (m *Manager) ParseRefresh(raw RefreshToken) (internal.UserID, TokenID, erro
 		return 0, "", ErrEmptyTokenID
 	}
 
-	userID, err := userIDFromClaims(claims)
+	userID, err := userIDFromClaims(&claims.RegisteredClaims)
 	if err != nil {
 		return 0, "", err
 	}
@@ -105,7 +120,7 @@ func (m *Manager) newClaims(userID internal.UserID, ttl time.Duration, id string
 	}
 }
 
-func (m *Manager) sign(claims jwt.RegisteredClaims, secret []byte) (string, error) {
+func (m *Manager) sign(claims tokenClaims, secret []byte) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	ss, err := t.SignedString(secret)
@@ -116,8 +131,8 @@ func (m *Manager) sign(claims jwt.RegisteredClaims, secret []byte) (string, erro
 	return ss, nil
 }
 
-func (m *Manager) parse(raw string, secret []byte) (*jwt.RegisteredClaims, error) {
-	claims := &jwt.RegisteredClaims{}
+func (m *Manager) parse(raw string, secret []byte) (*tokenClaims, error) {
+	claims := &tokenClaims{}
 
 	_, err := jwt.ParseWithClaims(raw, claims, func(*jwt.Token) (any, error) {
 		return secret, nil
