@@ -10,14 +10,12 @@ import (
 	"studify/internal/auth/challenge"
 	"studify/internal/auth/credentials"
 	"studify/internal/auth/emailconfirm"
-	"studify/internal/auth/mfa"
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/user"
 	"studify/internal/util"
 	"time"
 
-	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -49,11 +47,14 @@ func NewService(
 
 func (s *Service) register(ctx context.Context, email, password string) (*user.User, token.Pair, error) {
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionRegister); err != nil {
-		return nil, token.Pair{}, err
+		return nil, token.Pair{}, ErrInvalidRegistration
 	}
 
 	passwordHash, err := credentials.HashPassword(password)
 	if err != nil {
+		if errors.Is(err, bcrypt.ErrPasswordTooLong) {
+			return nil, token.Pair{}, ErrInvalidRegistration
+		}
 		return nil, token.Pair{}, fmt.Errorf("hash password: %w", err)
 	}
 
@@ -77,7 +78,7 @@ func (s *Service) register(ctx context.Context, email, password string) (*user.U
 func (s *Service) login(ctx context.Context, email, password string) (*loginResponse, error) {
 	// Validate
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionLogin); err != nil {
-		return nil, err
+		return nil, ErrInvalidCredentials
 	}
 
 	currentUser, err := user.GetUserByEmail(s.db, email)
@@ -89,7 +90,10 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 		[]byte(currentUser.PasswordHash),
 		[]byte(password),
 	); err != nil {
-		return nil, err
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return nil, ErrInvalidCredentials
+		}
+		return nil, fmt.Errorf("check password: %w", err)
 	}
 
 	// Check on TOTP
@@ -110,7 +114,7 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 			s.db,
 			currentUser.ID,
 			[]byte(hash),
-			time.Now().Add(config.ChallengeTokenTTL),
+			time.Now().UTC().Add(config.ChallengeTokenTTL),
 		)
 		if err != nil {
 			return nil, err
@@ -130,57 +134,6 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 	}
 
 	return response, nil
-}
-
-func (s *Service) loginTOTP(ctx context.Context, challengeToken, code string) (*user.User, token.Pair, error) {
-	if challengeToken == "" {
-		return nil, token.Pair{}, fmt.Errorf("challenge token is required")
-	}
-
-	if code == "" {
-		return nil, token.Pair{}, fmt.Errorf("TOTP code is required")
-	}
-
-	challengeTokenHash := util.HashSHA256(challengeToken)
-
-	record, err := challenge.GetAuthChallengeByTokenHash(s.db, []byte(challengeTokenHash))
-	if err != nil {
-		return nil, token.Pair{}, fmt.Errorf("get auth challenge: %w", err)
-	}
-
-	if time.Now().After(record.ExpiresAt) {
-		return nil, token.Pair{}, fmt.Errorf("challenge token expired")
-	}
-
-	currentUser, err := user.GetUserByID(s.db, record.UserID)
-	if err != nil {
-		return nil, token.Pair{}, fmt.Errorf("get user: %w", err)
-	}
-
-	encryptedSecret, err := mfa.GetUserTOTPKeyEncryptedByID(ctx, s.db, currentUser.ID)
-	if err != nil {
-		return nil, token.Pair{}, fmt.Errorf("get encrypted TOTP key: %w", err)
-	}
-
-	decryptedSecret, err := mfa.DecryptTOTPKey(encryptedSecret, s.config.TOTPEncryptionKey)
-	if err != nil {
-		return nil, token.Pair{}, fmt.Errorf("decrypt TOTP key: %w", err)
-	}
-
-	if !totp.Validate(code, decryptedSecret) {
-		return nil, token.Pair{}, fmt.Errorf("invalid TOTP code")
-	}
-
-	if err := challenge.DeleteAuthChallenge(s.db, record.ID); err != nil {
-		return nil, token.Pair{}, fmt.Errorf("delete auth challenge: %w", err)
-	}
-
-	pair, err := s.newSession(ctx, s.db, internal.UserID(currentUser.ID))
-	if err != nil {
-		return nil, token.Pair{}, fmt.Errorf("create session: %w", err)
-	}
-
-	return currentUser, pair, nil
 }
 
 func (s *Service) logout(ctx context.Context, refreshToken token.RefreshToken) error {

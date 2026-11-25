@@ -37,6 +37,16 @@ export interface TaskCreateRequest {
   scheduled_at?: string | null;
   /** @nullable */
   deadline?: string | null;
+  /**
+   * All-day schedule date, independent of timezone. Takes precedence over scheduled_at.
+   * @nullable
+   */
+  scheduled_date?: string | null;
+  /**
+   * All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+   * @nullable
+   */
+  deadline_date?: string | null;
   status: TaskStatus;
   difficulty: TaskDifficulty;
   priority: TaskPriority;

@@ -41,16 +41,27 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 }
 
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
+	return getUserByID(context.Background(), db, id, false)
+}
+
+func GetUserByIDForUpdate(ctx context.Context, tx *sql.Tx, id int64) (*User, error) {
+	return getUserByID(ctx, tx, id, true)
+}
+
+func getUserByID(ctx context.Context, db internal.DBTX, id int64, lock bool) (*User, error) {
 	query := `
 		SELECT id, email, is_email_verified, is_totp_enabled, avatar_url
 		FROM users
-		WHERE id = $1;
+		WHERE id = $1
 	`
+	if lock {
+		query += " FOR UPDATE"
+	}
 
 	var user User
 	var avatarURL sql.NullString
 
-	err := db.QueryRow(query, id).Scan(
+	err := db.QueryRowContext(ctx, query, id).Scan(
 		&user.ID, &user.Email, &user.IsEmailVerified, &user.IsTOTPEnabled, &avatarURL,
 	)
 	if err != nil {

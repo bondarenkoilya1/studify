@@ -4,6 +4,7 @@ import {
   getGetSubjectTasksQueryKey,
   invalidateGetDashboardStatus,
   invalidateGetUserSubjects,
+  invalidateGetUserTasks,
   useDeleteSubject as useDeleteSubjectMutation,
 } from "@/shared/api";
 import { toast } from "@/shared/ui/sonner";
@@ -19,6 +20,7 @@ export function useDeleteSubject() {
 
         await Promise.all([
           invalidateGetUserSubjects(queryClient),
+          invalidateGetUserTasks(queryClient),
           invalidateGetDashboardStatus(queryClient),
         ]);
       },

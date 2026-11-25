@@ -20,7 +20,7 @@
 import type { Task } from "./task";
 
 /**
- * Task with only id, name, description, deadline, status, and subject_id filled. The other
+ * Task with id, name, description, deadline, deadline_date, status, and subject_id filled. The other
  * Task fields are present with zero values (empty strings, null, `0001-01-01T00:00:00Z`).
  */
 export type DashboardTask = Task;

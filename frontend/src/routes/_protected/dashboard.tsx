@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { formatRelativeDeadline, formatDate } from "@/widgets/dashboard";
 import { useGetDashboardStatus } from "@/shared/api";
+import { RequestError } from "@/shared/ui/page-state";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   component: RouteComponent,
@@ -88,7 +89,11 @@ function CompletionRing({
 }
 
 function DashboardPage() {
-  const { data: dashboardStatus, isLoading } = useGetDashboardStatus();
+  const {
+    data: dashboardStatus,
+    error,
+    refetch,
+  } = useGetDashboardStatus();
 
   const stats = useMemo(() => {
     if (!dashboardStatus) {
@@ -124,7 +129,11 @@ function DashboardPage() {
     ];
   }, [dashboardStatus]);
 
-  if (isLoading || !dashboardStatus) {
+  if (!dashboardStatus && error) {
+    return <RequestError error={error} onRetry={() => void refetch()} />;
+  }
+
+  if (!dashboardStatus) {
     return (
       <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="flex flex-col gap-6">
@@ -256,7 +265,11 @@ function DashboardPage() {
                   {formatRelativeDeadline(
                     dashboardStatus.nearest_deadline_task.deadline,
                   )}{" "}
-                  · {formatDate(dashboardStatus.nearest_deadline_task.deadline!)}
+                  ·{" "}
+                  {formatDate(
+                    dashboardStatus.nearest_deadline_task.deadline_date ??
+                      dashboardStatus.nearest_deadline_task.deadline!,
+                  )}
                 </span>
               </div>
             </div>

@@ -2,10 +2,8 @@ package task
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"studify/internal/util"
-	"time"
 )
 
 func ScanTasks(db *sql.DB, query string, args ...any) ([]Task, error) {
@@ -18,26 +16,11 @@ func ScanTasks(db *sql.DB, query string, args ...any) ([]Task, error) {
 	tasks := make([]Task, 0)
 
 	for rows.Next() {
-		t := &Task{}
-
-		var estimatedTime sql.NullInt64
-		var scheduledAt, deadline sql.NullTime
-
-		if err := rows.Scan(
-			&t.ID, &t.SubjectID, &t.Name, &t.Type, &t.Description,
-			&estimatedTime, &scheduledAt, &deadline, &t.Status,
-			&t.Difficulty, &t.Priority, &t.CreatedAt, &t.UpdatedAt,
-		); err != nil {
+		task, err := scanTask(rows)
+		if err != nil {
 			return nil, fmt.Errorf("failed to scan task: %w", err)
 		}
-
-		if estimatedTime.Valid {
-			value := int(estimatedTime.Int64)
-			t.EstimatedTime = &value
-		}
-
-		t.ScheduledAt, t.Deadline = util.NullTimePtr(scheduledAt), util.NullTimePtr(deadline)
-		tasks = append(tasks, *t)
+		tasks = append(tasks, *task)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -50,7 +33,8 @@ func ScanTasks(db *sql.DB, query string, args ...any) ([]Task, error) {
 func GetTaskByID(db *sql.DB, id, userID int64) (*Task, error) {
 	query := `
 		SELECT t.id, t.subject_id, t.name, t.type, t.description, t.estimated_time,
-			t.scheduled_at, t.deadline, t.status, t.difficulty, t.priority, t.created_at, t.updated_at
+			t.scheduled_at, t.deadline, t.scheduled_date, t.deadline_date,
+			t.status, t.difficulty, t.priority, t.created_at, t.updated_at
 		FROM tasks t
 		JOIN subjects s ON s.id = t.subject_id
 		WHERE t.id = $1 AND s.user_id = $2;
@@ -70,7 +54,8 @@ func GetTaskByID(db *sql.DB, id, userID int64) (*Task, error) {
 func GetTasksByUserID(db *sql.DB, userID int64) ([]Task, error) {
 	query := `
 		SELECT t.id, t.subject_id, t.name, t.type, t.description, t.estimated_time,
-			t.scheduled_at, t.deadline, t.status, t.difficulty, t.priority, t.created_at, t.updated_at
+			t.scheduled_at, t.deadline, t.scheduled_date, t.deadline_date,
+			t.status, t.difficulty, t.priority, t.created_at, t.updated_at
 		FROM tasks t
 		JOIN subjects s ON s.id = t.subject_id
 		WHERE s.user_id = $1
@@ -88,7 +73,8 @@ func GetTasksByUserID(db *sql.DB, userID int64) ([]Task, error) {
 func GetTasksBySubjectID(db *sql.DB, userID, subjectID int64) ([]Task, error) {
 	query := `
 		SELECT t.id, t.subject_id, t.name, t.type, t.description, t.estimated_time,
-			t.scheduled_at, t.deadline, t.status, t.difficulty, t.priority, t.created_at, t.updated_at
+			t.scheduled_at, t.deadline, t.scheduled_date, t.deadline_date,
+			t.status, t.difficulty, t.priority, t.created_at, t.updated_at
 		FROM tasks t
 		JOIN subjects s ON s.id = t.subject_id
 		WHERE t.subject_id = $1 AND s.user_id = $2
@@ -103,94 +89,71 @@ func GetTasksBySubjectID(db *sql.DB, userID, subjectID int64) ([]Task, error) {
 	return tasks, nil
 }
 
-func InsertTask(
-	db *sql.DB, userID int64, name, taskType, description string,
-	estimatedTime *int, scheduledAt, deadline *time.Time,
-	status, difficulty, priority string, subjectID int64,
-) (*Task, error) {
-	query := `
-		INSERT INTO tasks (
-			subject_id, name, type, description, estimated_time,
-			scheduled_at, deadline, status, difficulty, priority
-		)
-		SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-		WHERE EXISTS (SELECT 1 FROM subjects WHERE id = $1 AND user_id = $11)
-		RETURNING id, subject_id, name, type, description, estimated_time,
-			scheduled_at, deadline, status, difficulty, priority, created_at, updated_at;
-	`
-
+func scanTask(row interface{ Scan(...any) error }) (*Task, error) {
 	task := &Task{}
-	var estimated sql.NullInt64
-	var scheduled, deadlineValue sql.NullTime
-
-	err := db.QueryRow(query,
-		subjectID, name, taskType, description, estimatedTime, scheduledAt,
-		deadline, status, difficulty, priority, userID,
-	).Scan(
+	var scheduledDate, deadlineDate sql.NullTime
+	if err := row.Scan(
 		&task.ID, &task.SubjectID, &task.Name, &task.Type, &task.Description,
-		&estimated, &scheduled, &deadlineValue, &task.Status, &task.Difficulty,
-		&task.Priority, &task.CreatedAt, &task.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, sql.ErrNoRows
-		}
-		return nil, fmt.Errorf("failed to insert task: %w", err)
+		&task.EstimatedTime, &task.ScheduledAt, &task.Deadline,
+		&scheduledDate, &deadlineDate,
+		&task.Status, &task.Difficulty, &task.Priority, &task.CreatedAt, &task.UpdatedAt,
+	); err != nil {
+		return nil, err
 	}
-
-	if estimated.Valid {
-		value := int(estimated.Int64)
-		task.EstimatedTime = &value
-	}
-	task.ScheduledAt, task.Deadline = util.NullTimePtr(scheduled), util.NullTimePtr(deadlineValue)
-
+	task.ScheduledDate = calendarDateFromTime(util.NullTimePtr(scheduledDate))
+	task.DeadlineDate = calendarDateFromTime(util.NullTimePtr(deadlineDate))
 	return task, nil
 }
 
-func UpdateTask(
-	db *sql.DB, userID, id int64, name, taskType, description string,
-	estimatedTime *int, scheduledAt, deadline *time.Time,
-	status, difficulty, priority string, subjectID int64,
-) (*Task, error) {
+func InsertTask(db *sql.DB, userID int64, task *Task) (*Task, error) {
+	query := `
+		INSERT INTO tasks (
+			subject_id, name, type, description, estimated_time,
+			scheduled_at, deadline, scheduled_date, deadline_date,
+			status, difficulty, priority
+		)
+		SELECT $1, $2, $3, $4, $5, $6, $7, $8::text::date, $9::text::date, $10, $11, $12
+		WHERE EXISTS (SELECT 1 FROM subjects WHERE id = $1 AND user_id = $13)
+		RETURNING id, subject_id, name, type, description, estimated_time,
+			scheduled_at, deadline, scheduled_date, deadline_date,
+			status, difficulty, priority, created_at, updated_at;
+	`
+
+	saved, err := scanTask(db.QueryRow(query,
+		task.SubjectID, task.Name, task.Type, task.Description, task.EstimatedTime,
+		task.ScheduledAt, task.Deadline, task.ScheduledDate, task.DeadlineDate,
+		task.Status, task.Difficulty, task.Priority, userID,
+	))
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert task: %w", err)
+	}
+	return saved, nil
+}
+
+func UpdateTask(db *sql.DB, userID, id int64, task *Task) (*Task, error) {
 	query := `
 		UPDATE tasks t
 		SET subject_id = $1, name = $2, type = $3, description = $4, estimated_time = $5,
-			scheduled_at = $6, deadline = $7, status = $8, difficulty = $9,
-			priority = $10, updated_at = now()
+			scheduled_at = $6, deadline = $7, scheduled_date = $8::text::date, deadline_date = $9::text::date,
+			status = $10, difficulty = $11, priority = $12, updated_at = now()
 		FROM subjects current_subject, subjects new_subject
-		WHERE t.id = $11 AND t.subject_id = current_subject.id
-			AND current_subject.user_id = $12 AND new_subject.id = $1
-			AND new_subject.user_id = $12
+		WHERE t.id = $13 AND t.subject_id = current_subject.id
+			AND current_subject.user_id = $14 AND new_subject.id = $1
+			AND new_subject.user_id = $14
 		RETURNING t.id, t.subject_id, t.name, t.type, t.description, t.estimated_time,
-			t.scheduled_at, t.deadline, t.status, t.difficulty, t.priority, t.created_at, t.updated_at;
+			t.scheduled_at, t.deadline, t.scheduled_date, t.deadline_date,
+			t.status, t.difficulty, t.priority, t.created_at, t.updated_at;
 	`
 
-	task := &Task{}
-	var estimated sql.NullInt64
-	var scheduled, deadlineValue sql.NullTime
-
-	err := db.QueryRow(query,
-		subjectID, name, taskType, description, estimatedTime, scheduledAt,
-		deadline, status, difficulty, priority, id, userID,
-	).Scan(
-		&task.ID, &task.SubjectID, &task.Name, &task.Type, &task.Description,
-		&estimated, &scheduled, &deadlineValue, &task.Status, &task.Difficulty,
-		&task.Priority, &task.CreatedAt, &task.UpdatedAt,
-	)
+	saved, err := scanTask(db.QueryRow(query,
+		task.SubjectID, task.Name, task.Type, task.Description, task.EstimatedTime,
+		task.ScheduledAt, task.Deadline, task.ScheduledDate, task.DeadlineDate,
+		task.Status, task.Difficulty, task.Priority, id, userID,
+	))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, sql.ErrNoRows
-		}
 		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
-
-	if estimated.Valid {
-		value := int(estimated.Int64)
-		task.EstimatedTime = &value
-	}
-	task.ScheduledAt, task.Deadline = util.NullTimePtr(scheduled), util.NullTimePtr(deadlineValue)
-
-	return task, nil
+	return saved, nil
 }
 
 func DeleteTasksByUserID(db *sql.DB, userID int64) error {

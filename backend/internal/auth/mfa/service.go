@@ -13,8 +13,10 @@ import (
 	"image/png"
 	"io"
 	"studify/internal"
+	"studify/internal/auth/challenge"
 	rc "studify/internal/auth/rc"
 	"studify/internal/config"
+	"studify/internal/user"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -63,22 +65,82 @@ func (s *Service) generateTOTP(ctx context.Context, email string, userID int64) 
 // confirmTOTPSetup checks the code from the authenticator app, enables MFA
 // and returns recovery codes. Returns ErrInvalidCode if the code is wrong.
 func (s *Service) confirmTOTPSetup(ctx context.Context, userID internal.UserID, code string) (*RecoveryCodesResponse, error) {
-	if err := s.validateTOTP(ctx, userID, code, s.cfg.TOTPEncryptionKey); err != nil {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin TOTP setup: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	currentUser, err := user.GetUserByIDForUpdate(ctx, tx, int64(userID))
+	if err != nil {
+		return nil, err
+	}
+	if currentUser.IsTOTPEnabled {
+		return nil, ErrAlreadyEnabled
+	}
+	if err := s.validateTOTP(ctx, tx, userID, code); err != nil {
 		return nil, fmt.Errorf("validate totp code: %w", err)
 	}
 
-	codes, err := s.enableTOTP(ctx, userID)
+	codes, err := replaceRecoveryCodes(ctx, tx, int64(userID))
 	if err != nil {
-		return nil, fmt.Errorf("enable totp: %w", err)
+		return nil, err
+	}
+	if err := UpdateUserTOTPStatus(ctx, tx, int64(userID), true); err != nil {
+		return nil, fmt.Errorf("enable TOTP: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit TOTP setup: %w", err)
 	}
 
+	return codes, nil
+}
+
+func (s *Service) regenerateRecoveryCodes(ctx context.Context, userID int64, code string) (*RecoveryCodesResponse, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin recovery code rotation: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	currentUser, err := user.GetUserByIDForUpdate(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !currentUser.IsTOTPEnabled {
+		return nil, ErrTOTPDisabled
+	}
+	if err := s.validateTOTP(ctx, tx, internal.UserID(userID), code); err != nil {
+		return nil, err
+	}
+	codes, err := replaceRecoveryCodes(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit recovery code rotation: %w", err)
+	}
+	return codes, nil
+}
+
+func replaceRecoveryCodes(ctx context.Context, tx *sql.Tx, userID int64) (*RecoveryCodesResponse, error) {
+	codes, err := rc.Generate()
+	if err != nil {
+		return nil, fmt.Errorf("generate recovery codes: %w", err)
+	}
+	if err := rc.DeleteRecoveryCodes(ctx, tx, userID); err != nil {
+		return nil, err
+	}
+	if err := rc.SaveRecoveryCodes(ctx, tx, userID, codes); err != nil {
+		return nil, fmt.Errorf("save recovery codes: %w", err)
+	}
 	return &RecoveryCodesResponse{Codes: codes}, nil
 }
 
 // verifyTOTP checks the TOTP code of the user.
 // Returns ErrInvalidCode if the code is wrong.
 func (s *Service) verifyTOTP(ctx context.Context, userID internal.UserID, code string) error {
-	if err := s.validateTOTP(ctx, userID, code, s.cfg.TOTPEncryptionKey); err != nil {
+	if err := s.validateTOTP(ctx, s.db, userID, code); err != nil {
 		return fmt.Errorf("validate totp code: %w", err)
 	}
 
@@ -87,20 +149,38 @@ func (s *Service) verifyTOTP(ctx context.Context, userID internal.UserID, code s
 
 // disableTOTP turns off TOTP for the user.
 func (s *Service) disableTOTP(ctx context.Context, userID internal.UserID) error {
-	if err := DisableUserTOTP(ctx, s.db, int64(userID)); err != nil {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin TOTP disable: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err := DisableUserTOTP(ctx, tx, int64(userID)); err != nil {
 		return fmt.Errorf("disable totp for user %d: %w", userID, err)
+	}
+	if err := rc.DeleteRecoveryCodes(ctx, tx, int64(userID)); err != nil {
+		return err
+	}
+	if err := challenge.DeleteAuthChallengesByUserID(ctx, tx, int64(userID)); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit TOTP disable: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Service) validateTOTP(ctx context.Context, userID internal.UserID, code string, encryptionKey []byte) error {
-	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(ctx, s.db, int64(userID))
+func (s *Service) validateTOTP(ctx context.Context, db internal.DBTX, userID internal.UserID, code string) error {
+	encryptedSecret, err := GetUserTOTPKeyEncryptedByID(ctx, db, int64(userID))
 	if err != nil {
 		return fmt.Errorf("get user TOTP key: %w", err)
 	}
 
-	secret, err := DecryptTOTPKey(encryptedSecret, encryptionKey)
+	if encryptedSecret == "" {
+		return ErrInvalidCode
+	}
+	secret, err := DecryptTOTPKey(encryptedSecret, s.cfg.TOTPEncryptionKey)
 	if err != nil {
 		return fmt.Errorf("decrypt user TOTP key: %w", err)
 	}
@@ -109,22 +189,6 @@ func (s *Service) validateTOTP(ctx context.Context, userID internal.UserID, code
 	}
 
 	return nil
-}
-
-func (s *Service) enableTOTP(ctx context.Context, userID internal.UserID) ([]string, error) {
-	if err := UpdateUserTOTPStatus(ctx, s.db, int64(userID), true); err != nil {
-		return nil, fmt.Errorf("enable user TOTP status: %w", err)
-	}
-
-	codes, err := rc.Generate()
-	if err != nil {
-		return nil, fmt.Errorf("generate recovery codes: %w", err)
-	}
-	if err := rc.SaveRecoveryCodes(ctx, s.db, int64(userID), codes); err != nil {
-		return nil, fmt.Errorf("save recovery codes: %w", err)
-	}
-
-	return codes, nil
 }
 
 func (s *Service) generateTOTPKey(email, issuer string) (*otp.Key, error) {

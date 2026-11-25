@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { parseISO } from "date-fns";
 import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
 import type { Task, TaskDifficulty } from "@/shared/api";
+import { formatTaskDeadline } from "../model/dates";
 import {
   DIFFICULTY_LABELS,
   DIFFICULTY_LEVEL,
@@ -11,46 +13,6 @@ import {
 
 interface TaskCardProps {
   task: Task;
-}
-
-function formatDeadline(deadline: string) {
-  const date = new Date(deadline);
-  const today = new Date();
-
-  today.setHours(0, 0, 0, 0);
-
-  const diffDays = Math.ceil((date.getTime() - today.getTime()) / 86_400_000);
-
-  const formatted = date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-
-  if (diffDays === 0) {
-    return {
-      text: "Due today",
-      urgent: true,
-    };
-  }
-
-  if (diffDays === 1) {
-    return {
-      text: "Due tomorrow",
-      urgent: true,
-    };
-  }
-
-  if (diffDays < 0) {
-    return {
-      text: `${formatted} · overdue`,
-      urgent: true,
-    };
-  }
-
-  return {
-    text: `Due ${formatted}`,
-    urgent: false,
-  };
 }
 
 function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
@@ -82,7 +44,7 @@ export function TaskCard({ task }: TaskCardProps) {
   const status = STATUS_CONFIG[task.status];
   const isDone = task.status === "completed";
 
-  const deadline = task.deadline ? formatDeadline(task.deadline) : null;
+  const deadline = formatTaskDeadline(task);
 
   const priorityChip = PRIORITY_CHIP[task.priority];
 
@@ -90,7 +52,7 @@ export function TaskCard({ task }: TaskCardProps) {
     task.description && task.description.length > 140,
   );
 
-  const showScheduledAt = !deadline && Boolean(task.scheduled_at);
+  const scheduled = task.scheduled_date ?? task.scheduled_at;
 
   return (
     <article
@@ -222,7 +184,7 @@ export function TaskCard({ task }: TaskCardProps) {
           </span>
         )}
 
-        {showScheduledAt && (
+        {!deadline && scheduled && (
           <span
             className="
               flex items-center gap-1.5
@@ -235,7 +197,7 @@ export function TaskCard({ task }: TaskCardProps) {
             "
           >
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            {new Date(task.scheduled_at!).toLocaleDateString("en-US", {
+            {parseISO(scheduled).toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
             })}

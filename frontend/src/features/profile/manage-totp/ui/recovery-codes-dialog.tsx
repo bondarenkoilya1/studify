@@ -31,12 +31,11 @@ export function RecoveryCodesDialog({
           <ShieldCheck className="size-7 text-emerald-600" strokeWidth={2} />
         </div>
 
-        <DialogTitle>Save your recovery codes</DialogTitle>
+        <DialogTitle>Сохраните резервные коды</DialogTitle>
 
         <DialogDescription>
-          Two-factor authentication is now on. Store these codes somewhere safe
-          — each one works only once if you ever lose access to your
-          authenticator.
+          Если потеряете доступ к приложению-аутентификатору, используйте
+          резервный код при входе. Каждый код действует один раз.
         </DialogDescription>
       </DialogHeader>
 
@@ -62,7 +61,7 @@ export function RecoveryCodesDialog({
           className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90"
           onClick={() => onOpenChange(false)}
         >
-          Done
+          Готово
         </Button>
       </DialogFooter>
     </Dialog>

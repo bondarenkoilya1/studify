@@ -1,4 +1,5 @@
 import type { EventInput } from "@fullcalendar/react";
+import { addMinutes, formatISO } from "date-fns";
 import type { Subject, Task } from "@/shared/api";
 import { getSubjectPresentation } from "@/entities/subject/model/presentation";
 
@@ -33,26 +34,24 @@ export function taskToCalendarEvents(
   tasks: Task[],
   subjects: Subject[],
 ): EventInput[] {
-  const subjectNames = new Map(
-    subjects.map((subject) => [subject.id, subject.name]),
+  const subjectsById = new Map(
+    subjects.map((subject) => [subject.id, subject]),
   );
-  const subjectsById = new Map(subjects.map((subject) => [subject.id, subject]));
 
   return tasks.flatMap((task): EventInput[] => {
     if (task.status === "completed") return [];
 
-    const start = task.scheduled_at ?? task.deadline;
+    const start =
+      task.scheduled_date ??
+      task.scheduled_at ??
+      task.deadline_date ??
+      task.deadline;
     if (!start) return [];
 
-    const startDate = new Date(start);
-    const isTimed = Boolean(task.scheduled_at);
+    const isTimed = !task.scheduled_date && task.scheduled_at != null;
     const end = isTimed
-      ? new Date(
-          startDate.getTime() + (task.estimated_time ?? 60) * 60 * 1000,
-        ).toISOString()
+      ? addMinutes(new Date(start), task.estimated_time ?? 60).toISOString()
       : undefined;
-    const subjectName =
-      subjectNames.get(task.subject_id) ?? "Личное расписание";
     const subject = subjectsById.get(task.subject_id);
     const presentation = subject
       ? getSubjectPresentation(subject.scope, subject.id)
@@ -61,7 +60,11 @@ export function taskToCalendarEvents(
     const event: EventInput = {
       id: `task-${task.id}`,
       title: task.name,
-      start: isTimed ? start : startDate.toISOString().slice(0, 10),
+      start: isTimed
+        ? start
+        : (task.scheduled_date ??
+          task.deadline_date ??
+          formatISO(new Date(start), { representation: "date" })),
       end,
       allDay: !isTimed,
       backgroundColor: presentation?.backgroundColor ?? "#f4f4f5",
@@ -70,7 +73,7 @@ export function taskToCalendarEvents(
       extendedProps: {
         kind: "task",
         subjectId: task.subject_id,
-        subjectName,
+        subjectName: subject?.name ?? "Личное расписание",
         scope: subject?.scope,
         status: task.status,
         priority: task.priority,

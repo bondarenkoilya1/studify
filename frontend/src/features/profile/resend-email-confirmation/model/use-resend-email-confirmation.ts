@@ -1,13 +1,16 @@
 import { useResendConfirmationEmail } from "@/shared/api";
-import { toast } from "@/shared/ui/sonner";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 
 export function useResendEmailConfirmation() {
-  const { mutate, isPending } = useResendConfirmationEmail({
-    mutation: {
-      onSuccess: () => toast.success("Confirmation email sent."),
-      onError: () => toast.error("Failed to send confirmation email."),
-    },
-  });
+  const { mutate, isPending, isSuccess, error } = useResendConfirmationEmail();
+  const errorMessage = error
+    ? getRequestErrorMessage(
+        error,
+        error.status === 429
+          ? "Письмо уже запрошено. Попробуйте ещё раз через минуту."
+          : "Не удалось отправить письмо. Попробуйте ещё раз.",
+      )
+    : null;
 
-  return { isDisabled: isPending, handleClick: () => mutate() };
+  return { send: () => mutate(), isPending, isSuccess, errorMessage };
 }
