@@ -1,6 +1,12 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
-import { FileText, File as FileIcon, Search, ArrowLeft } from "lucide-react";
+import {
+  CalendarDays,
+  FileText,
+  File as FileIcon,
+  Search,
+  ArrowLeft,
+} from "lucide-react";
 
 import { TaskList } from "@/widgets/task-list";
 import {
@@ -13,6 +19,8 @@ import {
 } from "@/entities/task/model/filters";
 import { getTaskTypeCounts } from "@/entities/task/model/task-type-counts";
 import { CreateTaskButton } from "@/features/task/create-task";
+import { UpdateSubjectEventDialog } from "@/features/subject/update-subject";
+import { Button } from "@/shared/ui/button";
 import {
   ApiError,
   getGetSubjectQueryOptions,
@@ -130,6 +138,7 @@ function SubjectPage() {
   const { data: tasks } = useGetSubjectTasksSuspense(id);
 
   const [selectedType, setSelectedType] = useState<TaskTypeFilter>("all");
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
 
   const types = getTaskTypeCounts(tasks);
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
@@ -171,7 +180,20 @@ function SubjectPage() {
                 </p>
               </div>
 
-              <CreateTaskButton subjectId={id} />
+              <div className="flex items-center gap-2">
+                {subject.type === "university" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setEventDialogOpen(true)}
+                  >
+                    <CalendarDays />
+                    Событие
+                  </Button>
+                )}
+                <CreateTaskButton subjectId={id} />
+              </div>
             </div>
 
             {types.length > 0 && (
@@ -225,6 +247,14 @@ function SubjectPage() {
 
         <SubjectFilesSidebar files={subject.files ?? []} />
       </div>
+
+      {subject.type === "university" && (
+        <UpdateSubjectEventDialog
+          subject={subject}
+          open={eventDialogOpen}
+          onOpenChange={setEventDialogOpen}
+        />
+      )}
     </div>
   );
 }

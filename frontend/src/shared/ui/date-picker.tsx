@@ -10,9 +10,15 @@ type DatePickerProps = {
   value?: Date;
   onChange: (date: Date | undefined) => void;
   className?: string;
+  disablePast?: boolean;
 };
 
-export function DatePicker({ value, onChange, className }: DatePickerProps) {
+export function DatePicker({
+  value,
+  onChange,
+  className,
+  disablePast = true,
+}: DatePickerProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -59,7 +65,7 @@ export function DatePicker({ value, onChange, className }: DatePickerProps) {
           selected={value}
           onSelect={onChange}
           locale={ru}
-          disabled={{ before: today }}
+          disabled={disablePast ? { before: today } : undefined}
           defaultMonth={defaultSessionMonth}
         />
       </PopoverContent>

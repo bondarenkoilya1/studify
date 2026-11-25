@@ -366,7 +366,7 @@ export function CreateSubjectDialog({
                 name="examType"
                 render={({ field, fieldState }) => (
                   <Row
-                    label="Тип экзамена"
+                    label="Тип события"
                     htmlFor="create-subject-exam-type"
                     error={fieldState.error?.message}
                   >
@@ -403,7 +403,7 @@ export function CreateSubjectDialog({
                 name="examDate"
                 render={({ field, fieldState }) => (
                   <Row
-                    label="Дата экзамена"
+                    label="Дата события"
                     htmlFor="create-subject-exam-date"
                     error={fieldState.error?.message}
                   >

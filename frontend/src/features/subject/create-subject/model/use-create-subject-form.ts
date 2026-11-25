@@ -17,9 +17,9 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
   note: "",
   type: "university",
   scope: "other",
-  examType: "other",
   course: 1,
   term: 1,
+  examType: "exam",
   lecturers: [
     {
       name: "",

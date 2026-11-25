@@ -1,6 +1,7 @@
 package subject
 
 import (
+	"encoding/json"
 	"time"
 )
 
@@ -60,6 +61,35 @@ type UpdateSubjectRequest struct {
 	ExamDate     *time.Time  `json:"exam_date"`
 	Course       *int        `json:"course"`
 	Term         *int        `json:"term"`
+	ExamDateSet  bool        `json:"-"`
+}
+
+func (r *UpdateSubjectRequest) UnmarshalJSON(data []byte) error {
+	type updateSubjectRequestAlias UpdateSubjectRequest
+
+	var decoded updateSubjectRequestAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	*r = UpdateSubjectRequest(decoded)
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+
+	if raw, exists := fields["exam_date"]; exists {
+		r.ExamDateSet = true
+		r.ExamDate = nil
+		if string(raw) != "null" {
+			if err := json.Unmarshal(raw, &r.ExamDate); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 var validScopes = map[string]bool{
