@@ -64,7 +64,7 @@ POST /api/auth/register
 ```
 
 The email must be a plain address of at most 254 characters. The password must
-be 8–72 characters.
+be at least 8 characters when registering and at most 72 UTF-8 bytes.
 
 Success: `201 Created`, auth cookies, and the user:
 
@@ -200,7 +200,8 @@ These routes do not require authentication.
 | `POST` | `/api/auth/reset-password/verify` | Check that a token is valid |
 | `POST` | `/api/auth/reset-password` | Set a new password |
 
-1. Request a link. An unknown email returns `404`, otherwise `204 No Content`.
+1. Request a link. The endpoint returns `204 No Content` both for a known email
+   after sending the link and for an unknown email.
    The email links to `{APP_URL}/reset-password?token={token}`, and the token is
    valid for 30 minutes.
 
