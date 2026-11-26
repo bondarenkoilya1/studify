@@ -308,7 +308,7 @@ export const getLogoutUserUrl = () => {
 };
 
 /**
- * Does not require an access token. Revokes the refresh token from the cookie when present.
+ * Uses the refresh cookie to revoke the current session, including its access and refresh tokens.
  * @summary Log out the current user
  */
 export const logoutUser = async (
@@ -394,7 +394,7 @@ export const getLogoutAllSessionsUrl = () => {
 };
 
 /**
- * Revokes all active refresh tokens for the authenticated user and clears auth cookies.
+ * Revokes every session and its tokens for the authenticated user and clears auth cookies.
  * @summary Log out from all sessions
  */
 export const logoutAllSessions = async (
@@ -483,6 +483,7 @@ export const getRefreshTokensUrl = () => {
 };
 
 /**
+ * The new cookies belong to the same session.
  * @summary Rotate refresh token and issue new auth cookies
  */
 export const refreshTokens = async (

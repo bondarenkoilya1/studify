@@ -36,7 +36,7 @@ func RequestID(next http.Handler) http.Handler {
 
 		correlationID := r.Header.Get(correlationHeader)
 
-		if correlationID == "" {
+		if len(correlationID) != 36 || uuid.Validate(correlationID) != nil {
 			correlationID = uuid.New().String()
 		}
 
@@ -63,8 +63,17 @@ func RequestLogger(next http.Handler) http.Handler {
 			status = http.StatusOK
 		}
 
-		slog.InfoContext(
+		level := slog.LevelInfo
+		switch {
+		case status >= http.StatusInternalServerError:
+			level = slog.LevelError
+		case status >= http.StatusBadRequest && status != http.StatusUnauthorized:
+			level = slog.LevelWarn
+		}
+
+		slog.LogAttrs(
 			r.Context(),
+			level,
 			"request completed",
 			util.AttrMethod(r.Method),
 			util.AttrPath(r.URL.Path),

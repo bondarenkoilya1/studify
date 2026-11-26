@@ -28,4 +28,6 @@ export interface Session {
   device: string;
   country: string;
   last_login: string;
+  /** Whether this is the session used to make the request. */
+  is_current: boolean;
 }

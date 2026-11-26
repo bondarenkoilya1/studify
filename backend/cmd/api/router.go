@@ -37,7 +37,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
-	validateAuth := middlewares.ValidateAuth(h.TokenManager)
+	validateAuth := middlewares.ValidateAuth(h.TokenManager, h.Session.Service)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
@@ -147,7 +147,6 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 			r.With(middlewares.RequireJSON).Post("/confirm", h.ConfirmTOTPSetup)
 		})
 
-		//r.With(middlewares.RequireJSON).Post("/verify", h.VerifyTOTP) // kinda useless, I made a mistake here; maybe in the future
 		r.With(middlewares.RequireJSON).Post("/recovery-codes", h.RegenerateRecoveryCodes)
 		r.Delete("/", h.DisableTOTP)
 	})

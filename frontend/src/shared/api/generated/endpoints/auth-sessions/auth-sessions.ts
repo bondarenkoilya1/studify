@@ -377,7 +377,7 @@ export const getRevokeAllUserSessionsUrl = () => {
 };
 
 /**
- * Revokes all active session records for the current user.
+ * Revokes all sessions and their access and refresh tokens for the current user.
  * @summary Revoke all active sessions of the authenticated user
  */
 export const revokeAllUserSessions = async (
@@ -828,7 +828,7 @@ export const getRevokeSessionUrl = (id: number) => {
 };
 
 /**
- * Revokes a single session by its ID for the authenticated user.
+ * Revokes a single session and immediately invalidates its access and refresh tokens.
  * @summary Revoke a session by ID
  */
 export const revokeSession = async (

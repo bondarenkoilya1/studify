@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/http"
 	"studify/internal"
 	"studify/internal/auth/challenge"
 	"studify/internal/auth/credentials"
 	"studify/internal/auth/emailconfirm"
+	"studify/internal/auth/session"
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/user"
@@ -24,6 +24,7 @@ type Service struct {
 	tokenManager        *token.Manager
 	Cookies             *token.Cookies
 	emailConfirmService *emailconfirm.Service
+	sessions            *session.Service
 	config              *config.Config
 }
 
@@ -32,6 +33,7 @@ func NewService(
 	tokenManager *token.Manager,
 	cookies *token.Cookies,
 	emailConfirmService *emailconfirm.Service,
+	sessions *session.Service,
 	config *config.Config,
 ) *Service {
 	return &Service{
@@ -39,13 +41,14 @@ func NewService(
 		tokenManager:        tokenManager,
 		Cookies:             cookies,
 		emailConfirmService: emailConfirmService,
+		sessions:            sessions,
 		config:              config,
 	}
 }
 
 // Handlers
 
-func (s *Service) register(ctx context.Context, email, password string) (*user.User, token.Pair, error) {
+func (s *Service) register(ctx context.Context, email, password string, client session.Input) (*user.User, token.Pair, error) {
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionRegister); err != nil {
 		return nil, token.Pair{}, ErrInvalidRegistration
 	}
@@ -63,7 +66,7 @@ func (s *Service) register(ctx context.Context, email, password string) (*user.U
 		return nil, token.Pair{}, fmt.Errorf("insert user: %w", err)
 	}
 
-	pair, err := s.newSession(ctx, s.db, internal.UserID(newUser.ID))
+	pair, err := s.startSession(ctx, internal.UserID(newUser.ID), client)
 	if err != nil {
 		return nil, token.Pair{}, fmt.Errorf("create new session: %w", err)
 	}
@@ -75,7 +78,7 @@ func (s *Service) register(ctx context.Context, email, password string) (*user.U
 	return newUser, pair, nil
 }
 
-func (s *Service) login(ctx context.Context, email, password string) (*loginResponse, error) {
+func (s *Service) login(ctx context.Context, email, password string, client session.Input) (*loginResponse, error) {
 	// Validate
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionLogin); err != nil {
 		return nil, ErrInvalidCredentials
@@ -96,13 +99,27 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 		return nil, fmt.Errorf("check password: %w", err)
 	}
 
-	// Check on TOTP
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin login: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	lockedUser, err := user.GetUserByIDForUpdate(ctx, tx, currentUser.ID)
+	if err != nil {
+		return nil, err
+	}
+	// A password or email change may have committed during bcrypt validation.
+	if lockedUser.PasswordHash != currentUser.PasswordHash || lockedUser.Email != currentUser.Email {
+		return nil, ErrInvalidCredentials
+	}
+
 	var (
 		pair           token.Pair
 		challengeToken token.Token
 	)
 
-	if currentUser.IsTOTPEnabled {
+	if lockedUser.IsTOTPEnabled {
 		challengeToken, err = token.GenerateAuthToken()
 		if err != nil {
 			return nil, err
@@ -111,8 +128,9 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 		hash := util.HashSHA256(string(challengeToken))
 
 		_, err = challenge.InsertAuthChallenge(
-			s.db,
-			currentUser.ID,
+			ctx,
+			tx,
+			lockedUser.ID,
 			[]byte(hash),
 			time.Now().UTC().Add(config.ChallengeTokenTTL),
 		)
@@ -120,16 +138,19 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 			return nil, err
 		}
 	} else {
-		pair, err = s.newSession(ctx, s.db, internal.UserID(currentUser.ID))
+		pair, err = s.newSession(ctx, tx, internal.UserID(lockedUser.ID), client)
 		if err != nil {
 			return nil, fmt.Errorf("create session: %w", err)
 		}
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit login: %w", err)
+	}
 	response := &loginResponse{
-		User:           currentUser,
+		User:           lockedUser,
 		Pair:           pair,
-		IsTOTPRequired: currentUser.IsTOTPEnabled,
+		IsTOTPRequired: lockedUser.IsTOTPEnabled,
 		ChallengeToken: challengeToken,
 	}
 
@@ -137,140 +158,149 @@ func (s *Service) login(ctx context.Context, email, password string) (*loginResp
 }
 
 func (s *Service) logout(ctx context.Context, refreshToken token.RefreshToken) error {
-	_, refreshTokenID, err := s.tokenManager.ParseRefresh(refreshToken)
+	userID, tokenID, err := s.tokenManager.ParseRefresh(refreshToken)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return ErrInvalidToken
 	}
 
-	if err = token.RevokeRefreshToken(ctx, s.db, string(refreshTokenID)); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return ErrTokenNotFound
-		}
-		return fmt.Errorf("revoke refresh token: %w", err)
+	tx, err := session.BeginForUser(ctx, s.db, int64(userID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrTokenNotFound
 	}
-
-	return nil
-}
-
-func (s *Service) logoutAllSessions(ctx context.Context, userID internal.UserID) error {
-	if err := token.RevokeAllRefreshTokens(ctx, s.db, int64(userID)); err != nil {
-		return fmt.Errorf("revoke all refresh tokens: %w", err)
-	}
-
-	return nil
-}
-
-func (s *Service) refreshTokens(
-	ctx context.Context,
-	refreshToken token.RefreshToken,
-) (token.Pair, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return token.Pair{}, fmt.Errorf("begin refresh transaction: %w", err)
+		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	userID, refreshTokenID, err := s.validateRefreshToken(
-		ctx,
-		tx,
-		refreshToken,
-	)
+	record, err := storedRefreshToken(ctx, tx, refreshToken, userID, tokenID)
+	if err != nil {
+		return err
+	}
+	if record.SessionID.Valid {
+		if err := session.DeleteSession(ctx, tx, record.SessionID.Int64, int64(userID)); err != nil {
+			return err
+		}
+	} else if record.RevokedAt == nil {
+		if err := token.RevokeRefreshToken(ctx, tx, string(tokenID)); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (s *Service) refreshTokens(ctx context.Context, refreshToken token.RefreshToken, client session.Input) (token.Pair, error) {
+	userID, tokenID, err := s.tokenManager.ParseRefresh(refreshToken)
+	if err != nil {
+		return token.Pair{}, ErrInvalidToken
+	}
+	tx, err := session.BeginForUser(ctx, s.db, int64(userID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return token.Pair{}, ErrTokenNotFound
+	}
+	if err != nil {
+		return token.Pair{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	record, err := storedRefreshToken(ctx, tx, refreshToken, userID, tokenID)
+	if err != nil {
+		return token.Pair{}, err
+	}
+	if record.ReplacedByTokenID != nil && record.SessionID.Valid {
+		return token.Pair{}, errRefreshReplaced
+	}
+	if record.RevokedAt != nil || !record.ExpiresAt.After(time.Now()) {
+		return token.Pair{}, ErrInvalidToken
+	}
+
+	sessionID := record.SessionID.Int64
+	if !record.SessionID.Valid {
+		sessionID, err = insertSession(ctx, tx, userID, client)
+	} else {
+		err = session.TouchSession(ctx, tx, sessionID, int64(userID))
+	}
 	if err != nil {
 		return token.Pair{}, err
 	}
 
-	pair, err := s.newSession(ctx, tx, userID)
+	pair, replacementID, err := s.issueTokens(ctx, tx, userID, sessionID)
 	if err != nil {
-		return token.Pair{}, fmt.Errorf("create new session: %w", err)
+		return token.Pair{}, err
 	}
-
-	_, newRefreshTokenID, err := s.tokenManager.ParseRefresh(pair.Refresh)
-	if err != nil {
-		return token.Pair{}, fmt.Errorf("parse new refresh token: %w", err)
+	if err := token.ReplaceRefreshToken(ctx, tx, string(tokenID), string(replacementID), sessionID); err != nil {
+		return token.Pair{}, err
 	}
-
-	if err = token.ReplaceRefreshToken(
-		ctx,
-		tx,
-		string(refreshTokenID),
-		string(newRefreshTokenID),
-	); err != nil {
-		return token.Pair{}, fmt.Errorf("replace refresh token: %w", err)
-	}
-
-	if err = tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil {
 		return token.Pair{}, fmt.Errorf("commit refresh transaction: %w", err)
 	}
-
 	return pair, nil
 }
 
-// Helpers
-func (s *Service) validateRefreshToken(
-	ctx context.Context,
-	q internal.DBTX,
-	refreshToken token.RefreshToken,
-) (internal.UserID, token.TokenID, error) {
-	userID, refreshTokenID, err := s.tokenManager.ParseRefresh(refreshToken)
+func storedRefreshToken(ctx context.Context, q internal.DBTX, raw token.RefreshToken, userID internal.UserID, id token.TokenID) (*token.RefreshTokenRecord, error) {
+	record, err := token.GetRefreshTokenByTokenIDForUpdate(ctx, q, string(id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrTokenNotFound
+	}
 	if err != nil {
-		return 0, "", fmt.Errorf("parse refresh token: %w", err)
+		return nil, err
 	}
-
-	record, err := token.GetRefreshTokenByTokenID(
-		ctx,
-		q,
-		string(refreshTokenID),
-		true,
-	)
-	if err != nil {
-		return 0, "", fmt.Errorf("get refresh token: %w", err)
+	if record.UserID != int64(userID) || !util.CompareHashSHA256(string(raw), record.TokenHash) {
+		return nil, ErrInvalidToken
 	}
-
-	if !util.CompareHashSHA256(string(refreshToken), record.TokenHash) {
-		return 0, "", fmt.Errorf("refresh token hash mismatch")
-	}
-
-	if internal.UserID(record.UserID) != userID {
-		return 0, "", fmt.Errorf("refresh token user ID mismatch")
-	}
-
-	if token.TokenID(record.TokenID) != refreshTokenID {
-		return 0, "", fmt.Errorf("refresh token ID mismatch")
-	}
-
-	if record.RevokedAt != nil {
-		return 0, "", fmt.Errorf("refresh token is revoked")
-	}
-
-	if !record.ExpiresAt.After(time.Now()) {
-		return 0, "", fmt.Errorf("refresh token is expired")
-	}
-
-	return userID, refreshTokenID, nil
+	return record, nil
 }
 
-func (s *Service) newSession(ctx context.Context, q internal.DBTX, userID internal.UserID) (token.Pair, error) {
+func (s *Service) startSession(ctx context.Context, userID internal.UserID, client session.Input) (token.Pair, error) {
+	tx, err := session.BeginForUser(ctx, s.db, int64(userID))
+	if err != nil {
+		return token.Pair{}, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	pair, err := s.newSession(ctx, tx, userID, client)
+	if err != nil {
+		return token.Pair{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return token.Pair{}, fmt.Errorf("commit new session: %w", err)
+	}
+	return pair, nil
+}
+
+func (s *Service) newSession(ctx context.Context, q internal.DBTX, userID internal.UserID, client session.Input) (token.Pair, error) {
+	id, err := insertSession(ctx, q, userID, client)
+	if err != nil {
+		return token.Pair{}, err
+	}
+	pair, _, err := s.issueTokens(ctx, q, userID, id)
+	return pair, err
+}
+
+func insertSession(ctx context.Context, q internal.DBTX, userID internal.UserID, client session.Input) (int64, error) {
+	sess := session.Session{
+		UserID: int64(userID), OS: client.OS, Browser: client.Browser,
+		Device: client.Device, Country: client.Country,
+	}
+	if err := session.InsertSession(ctx, q, &sess); err != nil {
+		return 0, err
+	}
+	return sess.ID, nil
+}
+
+func (s *Service) issueTokens(ctx context.Context, q internal.DBTX, userID internal.UserID, sessionID int64) (token.Pair, token.TokenID, error) {
 	refresh, id, err := s.tokenManager.NewRefresh(userID)
 	if err != nil {
-		return token.Pair{}, fmt.Errorf("new refresh: %w", err)
+		return token.Pair{}, "", fmt.Errorf("new refresh: %w", err)
 	}
 
 	expiresAt := time.Now().Add(s.tokenManager.RefreshTTL())
-
-	_, err = token.InsertRefreshToken(ctx, q, int64(userID), string(id), util.HashSHA256(string(refresh)), expiresAt)
-	if err != nil {
-		return token.Pair{}, fmt.Errorf("insert refresh token: %w", err)
+	if err := token.InsertRefreshToken(ctx, q, int64(userID), sessionID, string(id), util.HashSHA256(string(refresh)), expiresAt); err != nil {
+		return token.Pair{}, "", err
 	}
 
-	access, err := s.tokenManager.NewAccess(userID)
+	access, err := s.tokenManager.NewAccess(userID, sessionID)
 	if err != nil {
-		return token.Pair{}, fmt.Errorf("new access: %w", err)
+		return token.Pair{}, "", fmt.Errorf("new access: %w", err)
 	}
-
-	return token.Pair{Access: access, Refresh: refresh}, nil
-}
-
-func (s *Service) rejectRefresh(w http.ResponseWriter) {
-	s.Cookies.Clear(w)
-	http.Error(w, "unauthorized", http.StatusUnauthorized)
+	return token.Pair{Access: access, Refresh: refresh}, id, nil
 }

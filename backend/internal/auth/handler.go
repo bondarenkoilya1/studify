@@ -6,22 +6,22 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"studify/internal"
 	"studify/internal/auth/challenge"
+	"studify/internal/auth/session"
 	"studify/internal/httpx"
 	"studify/internal/user"
 	"studify/internal/util"
 )
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
-	body := registerReq{}
+	body := credentialsRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	newUser, pair, err := h.Service.register(r.Context(), body.Email, body.Password)
+	newUser, pair, err := h.Service.register(r.Context(), body.Email, body.Password, session.InputFromRequest(r))
 	if err != nil {
 		switch {
 		case errors.Is(err, user.ErrUserAlreadyExists):
@@ -50,14 +50,14 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
-	body := userReq{}
+	body := credentialsRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	loginResponse, err := h.Service.login(r.Context(), body.Email, body.Password)
+	loginResponse, err := h.Service.login(r.Context(), body.Email, body.Password, session.InputFromRequest(r))
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidCredentials), errors.Is(err, user.ErrUserNotFound):
@@ -108,6 +108,7 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		body.ChallengeToken,
 		body.Code,
+		session.InputFromRequest(r),
 	)
 	if err != nil {
 		switch {
@@ -145,10 +146,9 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
-	h.Cookies.Clear(w)
-
 	refreshToken, err := h.Cookies.RefreshToken(r)
 	if err != nil {
+		h.Cookies.Clear(w)
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -162,20 +162,31 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.Cookies.Clear(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := h.Cookies.RefreshToken(r)
 	if err != nil {
-		h.Service.rejectRefresh(w)
-		w.WriteHeader(http.StatusNoContent)
+		h.Cookies.Clear(w)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	pair, err := h.Service.refreshTokens(r.Context(), refreshToken)
+	pair, err := h.Service.refreshTokens(r.Context(), refreshToken, session.InputFromRequest(r))
 	if err != nil {
-		h.Service.rejectRefresh(w)
+		switch {
+		case errors.Is(err, errRefreshReplaced):
+			// Another request may already have installed the replacement cookies.
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		case errors.Is(err, ErrInvalidToken), errors.Is(err, ErrTokenNotFound):
+			h.Cookies.Clear(w)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		default:
+			slog.ErrorContext(r.Context(), "failed to refresh session", util.AttrError(err))
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -191,9 +202,7 @@ func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.Cookies.Clear(w)
-
-	if err = h.Service.logoutAllSessions(r.Context(), internal.UserID(userID)); err != nil {
+	if err = h.Service.sessions.RevokeAllSessions(r.Context(), userID); err != nil {
 		slog.ErrorContext(r.Context(), "failed to logout all sessions",
 			util.AttrError(err),
 		)
@@ -201,5 +210,6 @@ func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.Cookies.Clear(w)
 	w.WriteHeader(http.StatusNoContent)
 }

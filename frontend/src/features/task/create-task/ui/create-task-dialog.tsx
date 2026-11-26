@@ -26,18 +26,22 @@ export function CreateTaskDialog({
   onOpenChange,
   subjectId,
 }: CreateTaskDialogProps) {
-  const form = useCreateTaskForm(subjectId, () => {
-    onOpenChange(false);
-    form.reset();
-  });
+  const form = useCreateTaskForm(subjectId, () => handleOpenChange(false));
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      form.reset();
+    }
+    onOpenChange(nextOpen);
+  }
 
   return (
     <Dialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
     >
-      <DialogClose onClick={() => onOpenChange(false)} />
+      <DialogClose onClick={() => handleOpenChange(false)} />
 
       <DialogHeader>
         <DialogTitle>Новая задача</DialogTitle>

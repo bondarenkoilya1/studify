@@ -529,7 +529,8 @@ export const getUpdateUserPasswordUrl = () => {
 };
 
 /**
- * The new password must be 8-72 characters and differ from the current one.
+ * The new password must be at least 8 characters and at most 72 UTF-8 bytes.
+ * It must differ from the current password.
  * A wrong current password returns 403 Forbidden.
  * @summary Update the authenticated user's password
  */

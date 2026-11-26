@@ -4,15 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"net"
 	"net/http"
-	"studify/internal"
-	"studify/internal/auth/session"
 	"studify/internal/httpx"
 	"studify/internal/media"
 	"studify/internal/util"
-
-	"github.com/mileusna/useragent"
 )
 
 const (
@@ -28,31 +23,6 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		slog.ErrorContext(r.Context(), "failed to get current user",
-			util.AttrError(err),
-		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	ua := useragent.Parse(r.UserAgent())
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		ip = r.RemoteAddr
-	}
-
-	sessionData := session.Input{
-		OS:      ua.OS,
-		Browser: ua.Name,
-		Device:  ua.Device,
-		Country: ip,
-	}
-
-	if _, err = h.SessionService.CreateSession(r.Context(), internal.UserID(user.ID), sessionData); err != nil {
-		if errors.Is(err, session.ErrInvalidInput) {
-			http.Error(w, "invalid session data", http.StatusBadRequest)
-			return
-		}
-		slog.ErrorContext(r.Context(), "failed to create session",
 			util.AttrError(err),
 		)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
@@ -132,7 +102,7 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Service.UpdateUserPassword(userID, request.CurrentPassword, request.NewPassword)
+	err = h.Service.UpdateUserPassword(r.Context(), userID, request.CurrentPassword, request.NewPassword)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrCurrentPasswordRequired),
@@ -153,6 +123,7 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.Cookies.Clear(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 

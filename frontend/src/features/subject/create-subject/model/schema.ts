@@ -56,8 +56,6 @@ const baseSubjectSchema = {
     .max(4, "Семестр должен быть от 1 до 4")
     .nullable()
     .optional(),
-
-  lecturerAvatarUrl: z.string().nullable().optional(),
 };
 
 export const createSubjectSchema = z.discriminatedUnion("type", [

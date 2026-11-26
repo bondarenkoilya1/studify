@@ -99,8 +99,11 @@ export async function fetcher<T>(
 
   let response = await send();
 
-  const canRefresh = !NO_REFRESH_PREFIXES.some((prefix) =>
-    url.startsWith(prefix),
+  const canRefresh = !NO_REFRESH_PREFIXES.some(
+    (prefix) =>
+      url === prefix ||
+      url.startsWith(`${prefix}/`) ||
+      url.startsWith(`${prefix}?`),
   );
 
   if (response.status === 401 && canRefresh && (await refreshSession())) {

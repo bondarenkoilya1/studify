@@ -41,7 +41,7 @@ A missing or invalid token returns `401 Unauthorized`.
 | `POST` | `/api/auth/login` | – | Log in, or start a TOTP login |
 | `POST` | `/api/auth/login/totp` | – | Finish two-factor sign-in |
 | `POST` | `/api/auth/refresh` | refresh cookie | Rotate both cookies |
-| `POST` | `/api/auth/logout` | – | Revoke the refresh token and clear cookies |
+| `POST` | `/api/auth/logout` | – | Revoke the current session and clear cookies |
 | `POST` | `/api/auth/logout-all` | ✓ | Revoke all active sessions and clear cookies |
 | `POST` | `/api/auth/confirm/resend` | ✓ | Send a new confirmation email |
 | `POST` | `/api/auth/confirm/` | ✓ | Confirm the email address with a token body |
@@ -119,15 +119,15 @@ challenge or code returns `401`. A recovery code is consumed only when sign-in s
 
 ### Refresh and logout
 
-`POST /api/auth/refresh` reads the `refresh_token` cookie, revokes it, and sets
-new cookies. Success: `204 No Content`. On any refresh-token problem it clears
-both cookies and returns `401`.
+`POST /api/auth/refresh` rotates the refresh token and sets new cookies for the
+same session. Success: `204 No Content`. Invalid tokens return `401`. If another
+request already rotated the token, `401` leaves the replacement cookies intact.
 
-`POST /api/auth/logout` revokes the refresh token when the cookie is present,
-clears both cookies, and returns `204 No Content`.
+`POST /api/auth/logout` uses the refresh cookie to revoke the current session
+and its tokens, clears both cookies, and returns `204 No Content`.
 
-`POST /api/auth/logout-all` revokes all active refresh tokens for the authenticated
-user, clears both cookies, and returns `204 No Content`.
+`POST /api/auth/logout-all` revokes all sessions and their tokens for the
+authenticated user, clears both cookies, and returns `204 No Content`.
 
 ### Email confirmation
 
@@ -216,8 +216,10 @@ These routes do not require authentication.
    { "password_reset_token": "q8Zr3k1V0p9xWm2Lc7NfYt4Hb6Ds5Ja0Ue8Gi1Ko3Rw" }
    ```
 
-3. Set the new password. Success: `204 No Content`. Mismatched passwords, an
-   invalid password, or a bad token return `400`.
+3. Set the new password. Success: `204 No Content`. This uses up the reset
+   link and signs the account out on all devices. Missing tokens, mismatched
+   passwords, and invalid passwords return `400`. Invalid, expired, or used
+   links return `422`.
 
    ```json
    {
@@ -251,9 +253,9 @@ stored values differ. Call `GET /api/users/me` for the full profile. The new
 email is not format-validated, and an email that is already taken returns
 `500`.
 
-Change the password. Success: `204 No Content`. A wrong current password
-returns `401`. A new password that is invalid or equal to the current one
-returns `400`.
+Change the password. Success: `204 No Content`. The server revokes all sessions
+and clears the current browser's auth cookies. A wrong current password returns
+`403`. An invalid or unchanged new password returns `400`.
 
 ```json
 {
@@ -304,7 +306,8 @@ Session response:
   "browser": "Chrome",
   "device": "Computer",
   "country": "127.0.0.1",
-  "last_login": "2026-11-02T19:50:00Z"
+  "last_login": "2026-11-02T19:50:00Z",
+  "is_current": true
 }
 ```
 
@@ -316,7 +319,8 @@ Session response:
 | `browser` | Browser name identified from User-Agent |
 | `device` | Device type identified from User-Agent |
 | `country` | IP address or country of the client |
-| `last_login` | RFC3339 timestamp of the last login / activity |
+| `last_login` | RFC3339 timestamp of the last sign-in or token refresh |
+| `is_current` | Whether the request used this session's access token |
 
 ### List and get
 
@@ -325,8 +329,8 @@ Session response:
 
 ### Revoke
 
-- `DELETE /api/auth/sessions/{id}` revokes (deletes) a specific session owned by the authenticated user and returns `204 No Content`. If the session is not found or belongs to another user, returns `404 Not Found`.
-- `DELETE /api/auth/sessions` revokes (deletes) all active sessions owned by the authenticated user and returns `204 No Content`.
+- `DELETE /api/auth/sessions/{id}` immediately invalidates the session's access and refresh tokens and returns `204 No Content`. Missing or inaccessible sessions return `404 Not Found`.
+- `DELETE /api/auth/sessions` immediately invalidates all sessions and tokens for the authenticated user and returns `204 No Content`.
 
 ## Dashboard
 

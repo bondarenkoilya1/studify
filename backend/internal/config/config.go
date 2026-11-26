@@ -30,12 +30,13 @@ func Load() (*Config, error) {
 		return nil, errors.New("ISSUER is empty")
 	}
 
-	if cfg.JWTAccessSecret == "" {
-		return nil, errors.New("JWT_ACCESS_SECRET is empty")
+	const minJWTSecretBytes = 32
+	if len(cfg.JWTAccessSecret) < minJWTSecretBytes {
+		return nil, fmt.Errorf("JWT_ACCESS_SECRET must be at least %d bytes", minJWTSecretBytes)
 	}
 
-	if cfg.JWTRefreshSecret == "" {
-		return nil, errors.New("JWT_REFRESH_SECRET is empty")
+	if len(cfg.JWTRefreshSecret) < minJWTSecretBytes {
+		return nil, fmt.Errorf("JWT_REFRESH_SECRET must be at least %d bytes", minJWTSecretBytes)
 	}
 
 	totpEncryptionKey := os.Getenv("TOTP_ENCRYPTION_KEY")
@@ -96,7 +97,7 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) IsProduction() bool {
-	env := strings.ToLower(c.Env)
+	env := strings.ToLower(strings.TrimSpace(c.Env))
 
 	return env == "prod" || env == "production"
 }

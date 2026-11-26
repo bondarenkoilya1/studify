@@ -102,7 +102,7 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 	return newUser, nil
 }
 
-func (s *Service) UpdateUserPassword(userID int64, oldPassword, newPassword string) error {
+func (s *Service) UpdateUserPassword(ctx context.Context, userID int64, oldPassword, newPassword string) error {
 	if oldPassword == "" {
 		return ErrCurrentPasswordRequired
 	}
@@ -113,15 +113,17 @@ func (s *Service) UpdateUserPassword(userID int64, oldPassword, newPassword stri
 		return fmt.Errorf("%w: %v", ErrPasswordInvalid, err)
 	}
 
-	passwordHash, err := GetUserPasswordHashByID(s.db, userID)
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return ErrUserNotFound
-		}
-		return fmt.Errorf("get user password hash (user_id=%d): %w", userID, err)
+		return fmt.Errorf("begin password change: %w", err)
 	}
+	defer func() { _ = tx.Rollback() }()
 
-	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(oldPassword)); err != nil {
+	currentUser, err := GetUserByIDForUpdate(ctx, tx, userID)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(oldPassword)); err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			return ErrInvalidCurrentPassword
 		}
@@ -133,13 +135,12 @@ func (s *Service) UpdateUserPassword(userID int64, oldPassword, newPassword stri
 		return fmt.Errorf("hash new password: %w", err)
 	}
 
-	if err := UpdateUserPassword(context.TODO(), s.db, userID, newPasswordHash); err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return ErrUserNotFound
-		}
+	if err := ReplacePasswordAndRevokeSessions(ctx, tx, userID, newPasswordHash); err != nil {
 		return fmt.Errorf("update user password (user_id=%d): %w", userID, err)
 	}
-
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit password change: %w", err)
+	}
 	return nil
 }
 

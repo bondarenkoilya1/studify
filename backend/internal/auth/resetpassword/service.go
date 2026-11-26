@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"studify/internal"
 	"studify/internal/auth/credentials"
+	"studify/internal/auth/session"
 	"studify/internal/auth/token"
 	"studify/internal/config"
 	"studify/internal/mail"
@@ -25,7 +25,7 @@ func NewService(db *sql.DB, mailService *mail.Service) *Service {
 	return &Service{db: db, mailService: mailService}
 }
 
-func (s *Service) requestPasswordReset(email string) error {
+func (s *Service) requestPasswordReset(ctx context.Context, email string) error {
 	if email == "" {
 		return ErrEmailRequired
 	}
@@ -35,7 +35,7 @@ func (s *Service) requestPasswordReset(email string) error {
 		return fmt.Errorf("get user by email: %w", err)
 	}
 
-	t, err := s.createResetPasswordToken(internal.UserID(currentUser.ID))
+	t, err := s.createResetPasswordToken(ctx, currentUser.ID)
 	if err != nil {
 		return fmt.Errorf("create password reset token: %w", err)
 	}
@@ -52,11 +52,8 @@ func (s *Service) verifyResetPasswordToken(ctx context.Context, t token.Token) e
 		return ErrMissingToken
 	}
 
-	if _, err := s.validateResetPasswordToken(t); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidResetToken, err)
-	}
-
-	return nil
+	_, err := s.validateResetPasswordToken(ctx, t)
+	return err
 }
 
 func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword, newPasswordConfirmed string) error {
@@ -72,9 +69,9 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 		return fmt.Errorf("%w: %w", ErrInvalidPassword, err)
 	}
 
-	tokenRecord, err := s.validateResetPasswordToken(t)
+	tokenRecord, err := s.validateResetPasswordToken(ctx, t)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidResetToken, err)
+		return err
 	}
 
 	hash, err := credentials.HashPassword(newPassword)
@@ -82,21 +79,21 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 		return fmt.Errorf("hash password: %w", err)
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := session.BeginForUser(ctx, s.db, tokenRecord.UserID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrInvalidResetToken
+	}
 	if err != nil {
 		return fmt.Errorf("begin reset password tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if err = user.UpdateUserPassword(ctx, tx, tokenRecord.UserID, hash); err != nil {
-		return fmt.Errorf("update user password: %w", err)
+	if err := consumeResetPasswordToken(ctx, tx, tokenRecord.UserID, tokenRecord.TokenHash); err != nil {
+		return err
 	}
 
-	if err = DeleteResetPasswordToken(ctx, tx, tokenRecord.UserID); err != nil {
-		if errors.Is(err, ErrNotFoundResetToken) {
-			return ErrInvalidResetToken
-		}
-		return fmt.Errorf("delete reset token: %w", err)
+	if err := user.ReplacePasswordAndRevokeSessions(ctx, tx, tokenRecord.UserID, hash); err != nil {
+		return fmt.Errorf("update user password: %w", err)
 	}
 
 	if err = tx.Commit(); err != nil {
@@ -122,10 +119,13 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 	return nil
 }
 
-func (s *Service) validateResetPasswordToken(t token.Token) (*TokenRecord, error) {
+func (s *Service) validateResetPasswordToken(ctx context.Context, t token.Token) (*TokenRecord, error) {
 	hash := util.HashSHA256(string(t))
 
-	resetToken, err := GetResetPasswordTokenByHash(context.TODO(), s.db, []byte(hash))
+	resetToken, err := GetResetPasswordTokenByHash(ctx, s.db, []byte(hash))
+	if errors.Is(err, ErrNotFoundResetToken) {
+		return nil, ErrInvalidResetToken
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -137,22 +137,29 @@ func (s *Service) validateResetPasswordToken(t token.Token) (*TokenRecord, error
 	return resetToken, nil
 }
 
-func (s *Service) createResetPasswordToken(userID internal.UserID) (token.Token, error) {
+func (s *Service) createResetPasswordToken(ctx context.Context, userID int64) (token.Token, error) {
 	t, err := token.GenerateAuthToken()
 	if err != nil {
 		return "", fmt.Errorf("generate reset password token: %w", err)
 	}
 
 	hash := util.HashSHA256(string(t))
-	expiresAt := time.Now().Add(config.ResetPasswordTokenTTL)
+	tx, err := session.BeginForUser(ctx, s.db, userID)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = tx.Rollback() }()
 
-	if err = DeleteResetPasswordToken(context.TODO(), s.db, int64(userID)); err != nil && !errors.Is(err, ErrNotFoundResetToken) {
+	if err = DeleteResetPasswordToken(ctx, tx, userID); err != nil && !errors.Is(err, ErrNotFoundResetToken) {
 		return "", fmt.Errorf("delete previous reset password token: %w", err)
 	}
 
-	if err = InsertResetPasswordToken(context.TODO(), s.db, int64(userID), []byte(hash), expiresAt); err != nil {
+	expiresAt := time.Now().UTC().Add(config.ResetPasswordTokenTTL)
+	if err = InsertResetPasswordToken(ctx, tx, userID, []byte(hash), expiresAt); err != nil {
 		return "", err
 	}
-
+	if err := tx.Commit(); err != nil {
+		return "", fmt.Errorf("commit password reset token: %w", err)
+	}
 	return t, nil
 }

@@ -1,10 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { endSession } from "@/entities/user";
 import { type ChangePasswordFormData, ChangePasswordSchema } from "./schema";
 import { useUpdateUserPassword } from "@/shared/api";
 import { toast } from "@/shared/ui/sonner";
 
 export function useChangePasswordForm() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const form = useForm<ChangePasswordFormData>({
     resolver: zodResolver(ChangePasswordSchema),
     defaultValues: {
@@ -15,9 +20,10 @@ export function useChangePasswordForm() {
 
   const changePasswordMutation = useUpdateUserPassword({
     mutation: {
-      onSuccess: () => {
-        form.reset();
-        toast.success("Your password was successfully updated!");
+      onSuccess: async () => {
+        endSession(queryClient);
+        toast.success("Password changed. Sign in with your new password.");
+        await navigate({ to: "/login", replace: true });
       },
       onError: () => toast.error("Failed to update password."),
     },

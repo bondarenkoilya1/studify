@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"studify/internal"
+	"studify/internal/auth/challenge"
+	"studify/internal/auth/session"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -49,21 +51,19 @@ func GetUserByIDForUpdate(ctx context.Context, tx *sql.Tx, id int64) (*User, err
 }
 
 func getUserByID(ctx context.Context, db internal.DBTX, id int64, lock bool) (*User, error) {
-	query := `
-		SELECT id, email, is_email_verified, is_totp_enabled, avatar_url
-		FROM users
-		WHERE id = $1
-	`
-	if lock {
-		query += " FOR UPDATE"
-	}
-
 	var user User
 	var avatarURL sql.NullString
+	fields := "id, email, is_email_verified, is_totp_enabled, avatar_url"
+	dest := []any{&user.ID, &user.Email, &user.IsEmailVerified, &user.IsTOTPEnabled, &avatarURL}
+	suffix := ""
+	if lock {
+		fields += ", password_hash"
+		dest = append(dest, &user.PasswordHash)
+		suffix = " FOR UPDATE"
+	}
 
-	err := db.QueryRowContext(ctx, query, id).Scan(
-		&user.ID, &user.Email, &user.IsEmailVerified, &user.IsTOTPEnabled, &avatarURL,
-	)
+	query := "SELECT " + fields + " FROM users WHERE id = $1" + suffix
+	err := db.QueryRowContext(ctx, query, id).Scan(dest...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -76,21 +76,6 @@ func getUserByID(ctx context.Context, db internal.DBTX, id int64, lock bool) (*U
 	}
 
 	return &user, nil
-}
-
-func GetUserPasswordHashByID(db internal.DBTX, id int64) (string, error) {
-	query := `SELECT password_hash FROM users WHERE id = $1;`
-
-	var passwordHash string
-
-	if err := db.QueryRow(query, id).Scan(&passwordHash); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", ErrUserNotFound
-		}
-		return "", fmt.Errorf("get user password hash by id: %w", err)
-	}
-
-	return passwordHash, nil
 }
 
 func InsertUser(db *sql.DB, email, passwordHash string) (*User, error) {
@@ -114,7 +99,7 @@ func InsertUser(db *sql.DB, email, passwordHash string) (*User, error) {
 }
 
 func VerifyUserEmail(db internal.DBTX, id int64) error {
-	query := `UPDATE users SET is_email_verified = TRUE WHERE id = $1;`
+	query := `UPDATE users SET is_email_verified = TRUE, updated_at = NOW() WHERE id = $1;`
 
 	result, err := db.Exec(query, id)
 	if err != nil {
@@ -136,7 +121,7 @@ func VerifyUserEmail(db internal.DBTX, id int64) error {
 func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail string) (*User, error) {
 	query := `
 		UPDATE users
-		SET email = $1, is_email_verified = FALSE
+		SET email = $1, is_email_verified = FALSE, updated_at = NOW()
 		WHERE id = $2
 		RETURNING id, email, is_email_verified;
 	`
@@ -153,7 +138,7 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) &&
 			pgErr.Code == uniqueViolation &&
-			pgErr.ConstraintName == "users_email_key" { // подставьте имя вашего ограничения/индекса
+			pgErr.ConstraintName == "users_email_key" {
 			return nil, ErrEmailTaken
 		}
 
@@ -162,10 +147,17 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 
 	return &user, nil
 }
-func UpdateUserPassword(ctx context.Context, db internal.DBTX, id int64, newPasswordHash string) error {
-	query := `UPDATE users SET password_hash = $1 WHERE id = $2;`
 
-	return execExpectOne(ctx, db, query, "update user password", newPasswordHash, id)
+// ReplacePasswordAndRevokeSessions requires a transaction holding the user row lock.
+func ReplacePasswordAndRevokeSessions(ctx context.Context, tx *sql.Tx, id int64, newPasswordHash string) error {
+	query := `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2;`
+	if err := execExpectOne(ctx, tx, query, "update user password", newPasswordHash, id); err != nil {
+		return err
+	}
+	if err := challenge.DeleteAuthChallengesByUserID(ctx, tx, id); err != nil {
+		return err
+	}
+	return session.RevokeUserSessions(ctx, tx, id)
 }
 
 // ReplaceUserAvatar sets a new avatar_url and returns the previous value.
@@ -173,7 +165,7 @@ func UpdateUserPassword(ctx context.Context, db internal.DBTX, id int64, newPass
 func ReplaceUserAvatar(ctx context.Context, db *sql.DB, id int64, newURL string) (*string, error) {
 	const query = `
 		UPDATE users u
-		SET avatar_url = $2
+		SET avatar_url = $2, updated_at = NOW()
 		FROM (SELECT id, avatar_url FROM users WHERE id = $1 FOR UPDATE) old
 		WHERE u.id = old.id
 		RETURNING old.avatar_url;`
@@ -197,7 +189,7 @@ func ReplaceUserAvatar(ctx context.Context, db *sql.DB, id int64, newURL string)
 func DeleteUserAvatar(ctx context.Context, db *sql.DB, id int64) (*string, error) {
 	const query = `
 		UPDATE users u
-		SET avatar_url = NULL
+		SET avatar_url = NULL, updated_at = NOW()
 		FROM (SELECT id, avatar_url FROM users WHERE id = $1 FOR UPDATE) old
 		WHERE u.id = old.id
 		RETURNING old.avatar_url;`

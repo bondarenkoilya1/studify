@@ -52,8 +52,14 @@ migrate-up:
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000009_create_subjects_files_table.up.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000010_create_shared_projects_table.up.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000011_create_sessions_table.up.sql
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000012_activate_new_recovery_codes.up.sql
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000013_add_task_calendar_dates.up.sql
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000014_link_refresh_tokens_to_sessions.up.sql
 
 migrate-down:
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000014_link_refresh_tokens_to_sessions.down.sql
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000013_add_task_calendar_dates.down.sql
+	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000012_activate_new_recovery_codes.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000011_create_sessions_table.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000010_create_shared_projects_table.down.sql
 	psql "$(POSTGRES_DSN)" -v ON_ERROR_STOP=1 -f $(MIGRATIONS_DIR)/000009_create_subjects_files_table.down.sql

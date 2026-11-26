@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"studify/internal"
 	"studify/internal/httpx"
 	"studify/internal/util"
 )
@@ -17,7 +16,7 @@ func (h *Handler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessions, err := h.Service.ListSessions(r.Context(), internal.UserID(userID))
+	sessions, err := h.Service.ListSessions(r.Context(), userID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "failed to list sessions",
 			util.AttrUserID(userID),
@@ -27,11 +26,12 @@ func (h *Handler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	currentID := httpx.GetSessionID(r)
+	for _, sess := range sessions {
+		sess.IsCurrent = sess.ID == currentID
+	}
+	w.Header().Set("Cache-Control", "no-store")
 	util.WriteJSON(w, r, http.StatusOK, sessions)
-}
-
-func (h *Handler) GetSessions(w http.ResponseWriter, r *http.Request) {
-	h.GetUserSessions(w, r)
 }
 
 // GetSession returns a single session by its ID for the authenticated user.
@@ -48,7 +48,7 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sess, err := h.Service.GetSession(r.Context(), internal.UserID(userID), id)
+	sess, err := h.Service.GetSession(r.Context(), userID, id)
 	if err != nil {
 		if errors.Is(err, ErrNotFoundSession) {
 			http.Error(w, "session not found", http.StatusNotFound)
@@ -64,6 +64,8 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sess.IsCurrent = sess.ID == httpx.GetSessionID(r)
+	w.Header().Set("Cache-Control", "no-store")
 	util.WriteJSON(w, r, http.StatusOK, sess)
 }
 
@@ -81,7 +83,7 @@ func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.RevokeSession(r.Context(), internal.UserID(userID), id); err != nil {
+	if err := h.Service.RevokeSession(r.Context(), userID, id); err != nil {
 		if errors.Is(err, ErrNotFoundSession) {
 			http.Error(w, "session not found", http.StatusNotFound)
 			return
@@ -99,10 +101,6 @@ func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) DeleteSession(w http.ResponseWriter, r *http.Request) {
-	h.RevokeSession(w, r)
-}
-
 // RevokeAllSessions deletes all active sessions of the authenticated user.
 func (h *Handler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
@@ -111,7 +109,7 @@ func (h *Handler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.RevokeAllSessions(r.Context(), internal.UserID(userID)); err != nil {
+	if err := h.Service.RevokeAllSessions(r.Context(), userID); err != nil {
 		slog.ErrorContext(r.Context(), "failed to revoke all sessions",
 			util.AttrUserID(userID),
 			util.AttrError(err),
@@ -121,8 +119,4 @@ func (h *Handler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *Handler) DeleteUserSessions(w http.ResponseWriter, r *http.Request) {
-	h.RevokeAllSessions(w, r)
 }

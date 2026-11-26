@@ -130,45 +130,6 @@ func (h *Handler) RegenerateRecoveryCodes(w http.ResponseWriter, r *http.Request
 	util.WriteJSON(w, r, http.StatusOK, codes)
 }
 
-func (h *Handler) VerifyTOTP(w http.ResponseWriter, r *http.Request) {
-	currentUser, err := h.UserService.CurrentUser(r)
-	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
-			return
-		}
-		slog.ErrorContext(r.Context(), "failed to get current user",
-			util.AttrError(err),
-		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	body := Passcode{}
-	if err = json.NewDecoder(r.Body).Decode(&body); err != nil {
-		slog.ErrorContext(r.Context(), "failed to decode request body",
-			util.AttrError(err),
-		)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if err = h.Service.verifyTOTP(r.Context(), internal.UserID(currentUser.ID), body.Passcode); err != nil {
-		if errors.Is(err, ErrInvalidCode) {
-			http.Error(w, "invalid code", http.StatusBadRequest)
-			return
-		}
-		slog.ErrorContext(r.Context(), "failed to verify totp",
-			util.AttrUserID(currentUser.ID),
-			util.AttrAnyError(err),
-		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
 // DisableTOTP turns off TOTP for the current user.
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 	currentUser, err := h.UserService.CurrentUser(r)

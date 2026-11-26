@@ -10,4 +10,5 @@ type TokenID string
 var (
 	ErrEmptyTokenSubject = errors.New("empty token subject")
 	ErrEmptyTokenID      = errors.New("empty token id")
+	ErrInvalidSessionID  = errors.New("invalid token session id")
 )

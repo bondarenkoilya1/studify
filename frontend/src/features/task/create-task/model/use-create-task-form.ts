@@ -22,8 +22,6 @@ export function useCreateTaskForm(subjectId: number, onSuccess?: () => void) {
           invalidateGetUserTasks(queryClient),
           invalidateGetDashboardStatus(queryClient),
         ]);
-
-        onSuccess?.();
       },
     },
   });
@@ -49,25 +47,32 @@ export function useCreateTaskForm(subjectId: number, onSuccess?: () => void) {
 
   const onSubmit = form.handleSubmit(
     ({ scheduled_date, deadline_date, ...values }) => {
-      mutation.mutate({
-        data: {
-          ...values,
-          scheduled_date: scheduled_date
-            ? formatISO(scheduled_date, { representation: "date" })
-            : null,
-          deadline_date: deadline_date
-            ? formatISO(deadline_date, { representation: "date" })
-            : null,
-          deadline: deadline_date
-            ? endOfDay(deadline_date).toISOString()
-            : null,
+      mutation.mutate(
+        {
+          data: {
+            ...values,
+            scheduled_date: scheduled_date
+              ? formatISO(scheduled_date, { representation: "date" })
+              : null,
+            deadline_date: deadline_date
+              ? formatISO(deadline_date, { representation: "date" })
+              : null,
+            deadline: deadline_date
+              ? endOfDay(deadline_date).toISOString()
+              : null,
+          },
         },
-      });
+        { onSuccess },
+      );
     },
   );
 
   return {
     ...form,
+    reset: () => {
+      form.reset();
+      mutation.reset();
+    },
     onSubmit,
     isPending: mutation.isPending,
     error: mutation.error,

@@ -55,6 +55,24 @@ Accept: application/json
 }
 
 
+### Upload plain-text course material
+POST {{baseUrl}}/api/subjects/{{subjectId}}/file
+Content-Type: multipart/form-data; boundary=StudifyExample
+
+--StudifyExample
+Content-Disposition: form-data; name="file"; filename="notes.txt"
+Content-Type: text/plain
+
+Review the lecture notes before the next class.
+--StudifyExample--
+
+### Upload a PNG thumbnail
+# Put an avatar.png next to this file or replace the file path below.
+POST {{baseUrl}}/api/subjects/{{subjectId}}/thumbnail
+Content-Type: image/png
+
+< ./avatar.png
+
 ### Delete one subject
 DELETE {{baseUrl}}/api/subjects/{{subjectId}}
 Accept: application/json

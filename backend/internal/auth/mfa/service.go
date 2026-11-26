@@ -137,16 +137,6 @@ func replaceRecoveryCodes(ctx context.Context, tx *sql.Tx, userID int64) (*Recov
 	return &RecoveryCodesResponse{Codes: codes}, nil
 }
 
-// verifyTOTP checks the TOTP code of the user.
-// Returns ErrInvalidCode if the code is wrong.
-func (s *Service) verifyTOTP(ctx context.Context, userID internal.UserID, code string) error {
-	if err := s.validateTOTP(ctx, s.db, userID, code); err != nil {
-		return fmt.Errorf("validate totp code: %w", err)
-	}
-
-	return nil
-}
-
 // disableTOTP turns off TOTP for the user.
 func (s *Service) disableTOTP(ctx context.Context, userID internal.UserID) error {
 	tx, err := s.db.BeginTx(ctx, nil)

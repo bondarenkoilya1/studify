@@ -18,7 +18,7 @@ react-hook-form с zod, Tailwind v4, shadcn и oxlint. Менять фреймв
 | Лоадеры маршрутов | 🟡 страница предмета; глобальные экраны загрузки и ошибки есть у роутера |
 | Глобальная обработка ошибок React Query | ⬜ |
 | Строгий TypeScript | ⬜ |
-| Один пакетный менеджер (bun) | ⬜ `package-lock.json` ещё в репозитории |
+| Один пакетный менеджер (Bun) | ✅ `bun.lock`, установка через `bun install --frozen-lockfile` |
 | Токены дизайна и shadcn | ⬜ |
 | Vitest, MSW, Playwright, CI | ⬜ |
 

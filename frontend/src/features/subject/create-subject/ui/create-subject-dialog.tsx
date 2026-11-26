@@ -298,21 +298,26 @@ export function CreateSubjectDialog({
                   error={fieldState.error?.message}
                 >
                   <Select
-                    value={
-                      field.value === null || field.value === undefined
-                        ? undefined
-                        : String(field.value)
+                    value={String(field.value ?? "none")}
+                    onValueChange={(value) =>
+                      field.onChange(
+                        value && value !== "none" ? Number(value) : null,
+                      )
                     }
-                    onValueChange={(value) => field.onChange(Number(value))}
                   >
                     <SelectTrigger
                       id="create-subject-course"
                       className={SELECT_INLINE}
                       aria-invalid={Boolean(fieldState.error)}
                     >
-                      <SelectValue placeholder="Выбрать" />
+                      <SelectValue>
+                        {field.value == null
+                          ? "Не указан"
+                          : COURSE_LABELS[field.value]}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Не указан</SelectItem>
                       {COURSE_OPTIONS.map((course) => (
                         <SelectItem key={course} value={String(course)}>
                           {COURSE_LABELS[course]}
@@ -334,21 +339,26 @@ export function CreateSubjectDialog({
                   error={fieldState.error?.message}
                 >
                   <Select
-                    value={
-                      field.value === null || field.value === undefined
-                        ? undefined
-                        : String(field.value)
+                    value={String(field.value ?? "none")}
+                    onValueChange={(value) =>
+                      field.onChange(
+                        value && value !== "none" ? Number(value) : null,
+                      )
                     }
-                    onValueChange={(value) => field.onChange(Number(value))}
                   >
                     <SelectTrigger
                       id="create-subject-term"
                       className={SELECT_INLINE}
                       aria-invalid={Boolean(fieldState.error)}
                     >
-                      <SelectValue placeholder="Выбрать" />
+                      <SelectValue>
+                        {field.value == null
+                          ? "Не указан"
+                          : TERM_LABELS[field.value]}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Не указан</SelectItem>
                       {TERM_OPTIONS.map((termOption) => (
                         <SelectItem key={termOption} value={String(termOption)}>
                           {TERM_LABELS[termOption]}

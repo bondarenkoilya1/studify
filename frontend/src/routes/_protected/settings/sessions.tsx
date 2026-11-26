@@ -60,7 +60,7 @@ function RouteComponent() {
 
   const logoutAllMutation = useLogoutAllSessions({
     mutation: {
-      onSettled: async () => {
+      onSuccess: async () => {
         endSession(queryClient);
         await navigate({ to: "/login" });
       },
@@ -86,9 +86,6 @@ function RouteComponent() {
   });
 
   const sessions = sessionsQuery.data ?? [];
-  // /api/users/me touches the current client session and the API returns
-  // sessions by last_login descending, so the first item is this device.
-  const currentSessionId = sessions[0]?.id;
   const isMutating =
     logoutCurrentMutation.isPending ||
     logoutAllMutation.isPending ||
@@ -209,7 +206,7 @@ function RouteComponent() {
                 <SessionRow
                   key={session.id}
                   session={session}
-                  isCurrent={session.id === currentSessionId}
+                  isCurrent={session.is_current}
                   disabled={isMutating}
                   onRevoke={(isCurrent) =>
                     setDialog({
