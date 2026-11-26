@@ -1,10 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  invalidateGetDashboardStatus,
-  invalidateGetSubject,
-  invalidateGetUserSubjects,
-  useUpdateSubject,
-} from "@/shared/api";
+import { useUpdateSubject } from "@/shared/api";
+import { invalidateSubjectData } from "@/entities/subject/model/invalidation";
 import { toast } from "@/shared/ui/sonner";
 
 export function useUpdateSubjectEvent(
@@ -16,11 +12,7 @@ export function useUpdateSubjectEvent(
   const mutation = useUpdateSubject({
     mutation: {
       onSuccess: async () => {
-        await Promise.all([
-          invalidateGetSubject(queryClient, subjectId),
-          invalidateGetUserSubjects(queryClient),
-          invalidateGetDashboardStatus(queryClient),
-        ]);
+        await invalidateSubjectData(queryClient, subjectId);
         toast.success("Событие предмета обновлено");
         onSuccess?.();
       },

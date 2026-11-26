@@ -10,16 +10,17 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { formatRelativeDeadline, formatDate } from "@/widgets/dashboard";
-import { useGetDashboardStatus } from "@/shared/api";
-import { RequestError } from "@/shared/ui/page-state";
+import {
+  getGetDashboardStatusQueryOptions,
+  useGetDashboardStatusSuspense,
+} from "@/shared/api";
 
 export const Route = createFileRoute("/_protected/dashboard")({
-  component: RouteComponent,
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(getGetDashboardStatusQueryOptions()),
+  pendingComponent: DashboardSkeleton,
+  component: DashboardPage,
 });
-
-function RouteComponent() {
-  return <DashboardPage />;
-}
 
 function CompletionRing({
   percent,
@@ -89,17 +90,9 @@ function CompletionRing({
 }
 
 function DashboardPage() {
-  const {
-    data: dashboardStatus,
-    error,
-    refetch,
-  } = useGetDashboardStatus();
+  const { data: dashboardStatus } = useGetDashboardStatusSuspense();
 
   const stats = useMemo(() => {
-    if (!dashboardStatus) {
-      return [];
-    }
-
     return [
       {
         icon: BookOpen,
@@ -128,41 +121,6 @@ function DashboardPage() {
       },
     ];
   }, [dashboardStatus]);
-
-  if (!dashboardStatus && error) {
-    return <RequestError error={error} onRetry={() => void refetch()} />;
-  }
-
-  if (!dashboardStatus) {
-    return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
-        <div className="flex flex-col gap-6">
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-xs">
-            <div className="p-6 sm:p-8">
-              <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted" />
-              <div className="mt-3 h-6 w-40 animate-pulse rounded bg-muted" />
-              <div className="mt-2 h-4 w-64 max-w-full animate-pulse rounded bg-muted" />
-            </div>
-            <div className="grid border-t sm:grid-cols-2">
-              {[1, 2].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-3 border-t p-5 first:border-t-0 sm:px-8 sm:first:border-t-0 sm:[&:nth-child(2)]:border-l"
-                >
-                  <div className="size-9 animate-pulse rounded-xl bg-muted" />
-                  <div className="space-y-2">
-                    <div className="h-5 w-12 animate-pulse rounded bg-muted" />
-                    <div className="h-3 w-24 animate-pulse rounded bg-muted" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="h-52 animate-pulse rounded-2xl border bg-card shadow-xs" />
-        </div>
-      </div>
-    );
-  }
 
   const hasOverdue = dashboardStatus.overdue_tasks?.length > 0;
 
@@ -343,6 +301,37 @@ function DashboardPage() {
           )}
         </section>
       </div>
+      </div>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
+      <div className="flex flex-col gap-6">
+        <div className="overflow-hidden rounded-2xl border bg-card shadow-xs">
+          <div className="p-6 sm:p-8">
+            <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted" />
+            <div className="mt-3 h-6 w-40 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 max-w-full animate-pulse rounded bg-muted" />
+          </div>
+          <div className="grid border-t sm:grid-cols-2">
+            {[1, 2].map((item) => (
+              <div
+                key={item}
+                className="flex items-center gap-3 border-t p-5 first:border-t-0 sm:px-8 sm:first:border-t-0 sm:[&:nth-child(2)]:border-l"
+              >
+                <div className="size-9 animate-pulse rounded-xl bg-muted" />
+                <div className="space-y-2">
+                  <div className="h-5 w-12 animate-pulse rounded bg-muted" />
+                  <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="h-52 animate-pulse rounded-2xl border bg-card shadow-xs" />
       </div>
     </div>
   );

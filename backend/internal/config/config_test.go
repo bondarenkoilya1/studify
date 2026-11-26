@@ -24,11 +24,15 @@ func TestLoadJWTSecretLength(t *testing.T) {
 		})
 	}
 	t.Setenv("ENV", " Production ")
+	t.Setenv("METRICS_ADDR", "")
 	cfg, err := Load()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !cfg.IsProduction() {
 		t.Fatal("expected production mode")
+	}
+	if cfg.MetricsAddr != "127.0.0.1:9091" {
+		t.Fatalf("production metrics listener = %q, want loopback", cfg.MetricsAddr)
 	}
 }

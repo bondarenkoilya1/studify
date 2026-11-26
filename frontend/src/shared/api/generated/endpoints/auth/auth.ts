@@ -17,20 +17,38 @@
  *
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation } from "@tanstack/react-query";
+import {
+  queryOptions as queryOptionsBuilder,
+  useMutation,
+  useQuery,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
+  InvalidateOptions,
   MutationFunction,
   QueryClient,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
   UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult,
+  UseSuspenseQueryOptions,
+  UseSuspenseQueryResult,
 } from "@tanstack/react-query";
 
 import type {
+  AuthSession,
   BadRequestResponse,
   ChallengeTokenResponse,
   ConflictResponse,
   CredentialsBody,
   InternalErrorResponse,
+  PayloadTooLargeResponse,
   UnauthorizedResponse,
   UnsupportedMediaTypeResponse,
   User,
@@ -40,6 +58,322 @@ import { fetcher } from "../../../fetcher";
 import type { ErrorType } from "../../../fetcher";
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+const withQueryKey = <T extends object, K>(
+  query: T,
+  queryKey: K,
+): T & { queryKey: K } => {
+  const result = { queryKey } as T & { queryKey: K };
+  for (const key of Object.keys(query)) {
+    // The explicit queryKey always wins, matching the previous
+    // `{ ...query, queryKey }` spread where it was set last.
+    if (key === "queryKey") continue;
+    Object.defineProperty(result, key, {
+      enumerable: true,
+      configurable: true,
+      get: () => (query as Record<string, unknown>)[key],
+    });
+  }
+  return result;
+};
+
+export const getCheckAuthSessionUrl = () => {
+  return `/api/auth/session`;
+};
+
+/**
+ * Returns the current user, refreshing the cookies when needed, or an anonymous session.
+ * @summary Check the browser session
+ */
+export const checkAuthSession = async (
+  options?: Parameters<typeof fetcher>[1],
+): Promise<AuthSession> => {
+  return fetcher<AuthSession>(getCheckAuthSessionUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getCheckAuthSessionQueryKey = () => {
+  return [`/api/auth/session`] as const;
+};
+
+export const getCheckAuthSessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseQueryOptions<Awaited<ReturnType<typeof checkAuthSession>>, TError, TData>
+  >;
+  request?: SecondParameter<typeof fetcher>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCheckAuthSessionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof checkAuthSession>>
+  > = () => checkAuthSession(requestOptions);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof checkAuthSession>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type CheckAuthSessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkAuthSession>>
+>;
+export type CheckAuthSessionQueryError =
+  ErrorType<void | InternalErrorResponse>;
+
+export function useCheckAuthSession<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAuthSession>>,
+          TError,
+          Awaited<ReturnType<typeof checkAuthSession>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCheckAuthSession<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof checkAuthSession>>,
+          TError,
+          Awaited<ReturnType<typeof checkAuthSession>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCheckAuthSession<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Check the browser session
+ */
+
+export function useCheckAuthSession<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getCheckAuthSessionQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+/**
+ * @summary Invalidates the {@link useCheckAuthSession} query
+ */
+export const invalidateCheckAuthSession = async (
+  queryClient: QueryClient,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getCheckAuthSessionQueryKey() },
+    options,
+  );
+
+  return queryClient;
+};
+
+export const getCheckAuthSessionSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(options?: {
+  query?: Partial<
+    UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof checkAuthSession>>,
+      TError,
+      TData
+    >
+  >;
+  request?: SecondParameter<typeof fetcher>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getCheckAuthSessionQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof checkAuthSession>>
+  > = () => checkAuthSession(requestOptions);
+
+  return queryOptionsBuilder({
+    queryKey,
+    ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof checkAuthSession>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
+};
+
+export type CheckAuthSessionSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof checkAuthSession>>
+>;
+export type CheckAuthSessionSuspenseQueryError =
+  ErrorType<void | InternalErrorResponse>;
+
+export function useCheckAuthSessionSuspense<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCheckAuthSessionSuspense<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useCheckAuthSessionSuspense<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Check the browser session
+ */
+
+export function useCheckAuthSessionSuspense<
+  TData = Awaited<ReturnType<typeof checkAuthSession>>,
+  TError = ErrorType<void | InternalErrorResponse>,
+>(
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof checkAuthSession>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getCheckAuthSessionSuspenseQueryOptions(options);
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient,
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getRegisterUserUrl = () => {
   return `/api/auth/register`;
@@ -92,6 +426,7 @@ export const getRegisterUserMutationOptions = <
   TError = ErrorType<
     | BadRequestResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -138,6 +473,7 @@ export type RegisterUserMutationBody = CredentialsBody;
 export type RegisterUserMutationError = ErrorType<
   | BadRequestResponse
   | ConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -150,6 +486,7 @@ export const useRegisterUser = <
   TError = ErrorType<
     | BadRequestResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -222,6 +559,7 @@ export const getLoginUserMutationOptions = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -268,6 +606,7 @@ export type LoginUserMutationBody = CredentialsBody;
 export type LoginUserMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -280,6 +619,7 @@ export const useLoginUser = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,

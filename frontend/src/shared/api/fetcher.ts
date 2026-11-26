@@ -36,6 +36,7 @@ const NO_REFRESH_PREFIXES = [
   "/api/auth/refresh",
   "/api/auth/logout",
   "/api/auth/reset-password",
+  "/api/auth/session",
 ];
 
 let refreshPromise: Promise<boolean> | null = null;

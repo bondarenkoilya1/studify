@@ -52,6 +52,14 @@ func (c *Cookies) RefreshToken(r *http.Request) (RefreshToken, error) {
 	return RefreshToken(cookie.Value), nil
 }
 
+func (c *Cookies) AccessToken(r *http.Request) (AccessToken, error) {
+	cookie, err := r.Cookie(accessCookieName)
+	if err != nil {
+		return "", err
+	}
+	return AccessToken(cookie.Value), nil
+}
+
 func (c *Cookies) newCookie(name, value string, maxAge int) *http.Cookie {
 	return &http.Cookie{
 		Name:     name,

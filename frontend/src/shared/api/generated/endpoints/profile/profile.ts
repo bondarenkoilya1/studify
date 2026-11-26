@@ -52,6 +52,7 @@ import type {
   InternalErrorResponse,
   NotFoundResponse,
   PasswordRequest,
+  PayloadTooLargeResponse,
   UnauthorizedResponse,
   UnsupportedImageResponse,
   UnsupportedMediaTypeResponse,
@@ -439,6 +440,7 @@ export const getUpdateUserEmailMutationOptions = <
     | UnauthorizedResponse
     | NotFoundResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -487,6 +489,7 @@ export type UpdateUserEmailMutationError = ErrorType<
   | UnauthorizedResponse
   | NotFoundResponse
   | ConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -501,6 +504,7 @@ export const useUpdateUserEmail = <
     | UnauthorizedResponse
     | NotFoundResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -579,6 +583,7 @@ export const getUpdateUserPasswordMutationOptions = <
     | UnauthorizedResponse
     | ForbiddenResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -627,6 +632,7 @@ export type UpdateUserPasswordMutationError = ErrorType<
   | UnauthorizedResponse
   | ForbiddenResponse
   | NotFoundResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -641,6 +647,7 @@ export const useUpdateUserPassword = <
     | UnauthorizedResponse
     | ForbiddenResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,

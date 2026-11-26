@@ -18,6 +18,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
+export * from "./authSession";
 export * from "./avatarUploadResponse";
 export * from "./badRequestResponse";
 export * from "./challengeTokenResponse";
@@ -43,6 +44,7 @@ export * from "./passwordRequest";
 export * from "./passwordResetEmailRequest";
 export * from "./passwordResetRequest";
 export * from "./passwordResetTokenRequest";
+export * from "./payloadTooLargeResponse";
 export * from "./recoveryCodesResponse";
 export * from "./session";
 export * from "./sharedProject";

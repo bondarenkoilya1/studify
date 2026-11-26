@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
-import { useGetUserSubjects } from "@/shared/api";
+import {
+  getGetUserSubjectsQueryOptions,
+  useGetUserSubjectsSuspense,
+} from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { SubjectList } from "@/widgets/subjects-list";
 import { CreateSubjectDialog } from "@/features/subject/create-subject/ui/create-subject-dialog";
@@ -14,11 +17,13 @@ const FILTER_LABELS: Record<Exclude<SubjectFilter, "all">, string> = {
 };
 
 export const Route = createFileRoute("/_protected/subjects/")({
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(getGetUserSubjectsQueryOptions()),
   component: SubjectsPage,
 });
 
 function SubjectsPage() {
-  const { data = [], isPending, error } = useGetUserSubjects();
+  const { data } = useGetUserSubjectsSuspense();
 
   const [isCreateSubjectOpen, setIsCreateSubjectOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<SubjectFilter>("all");
@@ -39,22 +44,6 @@ function SubjectsPage() {
     }),
     [data],
   );
-
-  if (isPending) {
-    return (
-      <div className="mx-auto flex h-64 w-full max-w-4xl items-center justify-center px-4 sm:px-6">
-        Загрузка...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="mx-auto flex h-64 w-full max-w-4xl items-center justify-center px-4 text-destructive sm:px-6">
-        Не удалось загрузить предметы. Попробуйте обновить страницу.
-      </div>
-    );
-  }
 
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">

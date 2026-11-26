@@ -28,8 +28,6 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-
 	var req createSharedProjectRequest
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid json body")
@@ -116,8 +114,6 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, http.StatusBadRequest, "invalid id")
 		return
 	}
-
-	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 
 	var req sharedProjectRequest
 	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {

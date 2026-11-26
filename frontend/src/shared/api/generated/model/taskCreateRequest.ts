@@ -25,11 +25,17 @@ import type { TaskType } from "./taskType";
 export interface TaskCreateRequest {
   /** @minimum 1 */
   subject_id: number;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
   name: string;
   type: TaskType;
+  /** @maxLength 2000 */
   description?: string;
   /**
    * @minimum 1
+   * @maximum 2147483647
    * @nullable
    */
   estimated_time?: number | null;

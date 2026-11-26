@@ -16,8 +16,9 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  getGetUserSessionsQueryKey,
-  useGetUserSessions,
+  getGetUserSessionsQueryOptions,
+  invalidateGetUserSessions,
+  useGetUserSessionsSuspense,
   useLogoutAllSessions,
   useLogoutUser,
   useRevokeSession,
@@ -37,6 +38,9 @@ import {
 import { toast } from "@/shared/ui/sonner";
 
 export const Route = createFileRoute("/_protected/settings/sessions")({
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(getGetUserSessionsQueryOptions()),
+  pendingComponent: SessionsSkeleton,
   component: RouteComponent,
 });
 
@@ -44,7 +48,7 @@ function RouteComponent() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [dialog, setDialog] = useState<SessionDialog>(null);
-  const sessionsQuery = useGetUserSessions();
+  const sessionsQuery = useGetUserSessionsSuspense();
 
   const logoutCurrentMutation = useLogoutUser({
     mutation: {
@@ -73,9 +77,7 @@ function RouteComponent() {
   const revokeSessionMutation = useRevokeSession({
     mutation: {
       onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: getGetUserSessionsQueryKey(),
-        });
+        await invalidateGetUserSessions(queryClient);
         setDialog(null);
         toast.success("Сессия завершена");
       },
@@ -85,7 +87,7 @@ function RouteComponent() {
     },
   });
 
-  const sessions = sessionsQuery.data ?? [];
+  const sessions = sessionsQuery.data;
   const isMutating =
     logoutCurrentMutation.isPending ||
     logoutAllMutation.isPending ||
@@ -136,7 +138,7 @@ function RouteComponent() {
               </div>
               <div>
                 <p className="text-2xl font-semibold leading-none">
-                  {sessionsQuery.isLoading ? "—" : sessions.length}
+                  {sessions.length}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {sessions.length === 1
@@ -160,24 +162,7 @@ function RouteComponent() {
           </div>
         </div>
 
-        {sessionsQuery.isPending ? (
-          <SessionsSkeleton />
-        ) : sessionsQuery.isError ? (
-          <div className="rounded-2xl border border-dashed bg-card p-8 text-center shadow-xs">
-            <p className="text-sm text-muted-foreground">
-              Не удалось загрузить список сессий.
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-4"
-              onClick={() => sessionsQuery.refetch()}
-            >
-              Повторить
-            </Button>
-          </div>
-        ) : sessions.length === 0 ? (
+        {sessions.length === 0 ? (
           <div className="rounded-2xl border border-dashed bg-card p-10 text-center shadow-xs">
             <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-muted">
               <Laptop className="size-5 text-muted-foreground" />

@@ -11,8 +11,10 @@ import timeGridPlugin from "@fullcalendar/react/timegrid";
 import listPlugin from "@fullcalendar/react/list";
 import ruLocale from "@fullcalendar/react/locales/ru";
 import "@fullcalendar/react/skeleton.css";
-import { useGetUserSubjects, useGetUserTasks } from "@/shared/api";
-import { RequestError } from "@/shared/ui/page-state";
+import {
+  useGetUserSubjectsSuspense,
+  useGetUserTasksSuspense,
+} from "@/shared/api";
 import {
   subjectToCalendarEvents,
   taskToCalendarEvents,
@@ -26,39 +28,16 @@ export function ExamCalendar() {
   const calendarRef = useRef<CalendarRef>(null);
   const [view, setView] = useState<CalendarView>("dayGridMonth");
   const [title, setTitle] = useState("");
-  const subjectsQuery = useGetUserSubjects();
-  const tasksQuery = useGetUserTasks();
-  const { data: subjects } = subjectsQuery;
-  const { data: tasks } = tasksQuery;
+  const { data: subjects } = useGetUserSubjectsSuspense();
+  const { data: tasks } = useGetUserTasksSuspense();
 
-  const events = useMemo<EventInput[]>(() => {
-    const calendarSubjects = subjects ?? [];
-
-    return [
-      ...subjectToCalendarEvents(calendarSubjects),
-      ...taskToCalendarEvents(tasks ?? [], calendarSubjects),
-    ];
-  }, [subjects, tasks]);
-
-  const loadError =
-    (subjects === undefined ? subjectsQuery.error : null) ??
-    (tasks === undefined ? tasksQuery.error : null);
-
-  if (loadError) {
-    return (
-      <RequestError
-        error={loadError}
-        onRetry={() => {
-          if (subjects === undefined) void subjectsQuery.refetch();
-          if (tasks === undefined) void tasksQuery.refetch();
-        }}
-      />
-    );
-  }
-
-  if (subjectsQuery.isPending || tasksQuery.isPending) {
-    return <ExamCalendarSkeleton />;
-  }
+  const events = useMemo<EventInput[]>(
+    () => [
+      ...subjectToCalendarEvents(subjects),
+      ...taskToCalendarEvents(tasks, subjects),
+    ],
+    [subjects, tasks],
+  );
 
   const changeView = (nextView: CalendarView) => {
     setView(nextView);
@@ -127,7 +106,7 @@ export function ExamCalendar() {
           }}
           allDaySlot
           allDayText="Весь день"
-          dayHeaderContent={(arg) => (
+          dayHeaderContent={(arg) =>
             arg.view.type === "timeGridWeek" ? (
               <div className="flex flex-col items-center justify-center gap-0.5 leading-[1.05]">
                 <span className="text-[11px] font-medium text-neutral-400">
@@ -156,7 +135,7 @@ export function ExamCalendar() {
                   .replace(".", "")}
               </span>
             )
-          )}
+          }
           listDayFormat={{
             weekday: "long",
             day: "numeric",
@@ -164,26 +143,6 @@ export function ExamCalendar() {
           }}
           weekNumbers={false}
         />
-      </div>
-    </div>
-  );
-}
-
-function ExamCalendarSkeleton() {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
-      <div className="h-20 border-b border-black/[0.05] px-7 py-5">
-        <div className="h-6 w-44 animate-pulse rounded-lg bg-muted" />
-      </div>
-      <div className="grid h-[680px] grid-cols-7">
-        {Array.from({ length: 35 }).map((_, index) => (
-          <div
-            key={index}
-            className="border-b border-r border-black/[0.05] p-3 last:border-r-0"
-          >
-            <div className="size-5 animate-pulse rounded-md bg-muted" />
-          </div>
-        ))}
       </div>
     </div>
   );

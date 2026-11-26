@@ -32,6 +32,7 @@ import type {
   PasswordResetEmailRequest,
   PasswordResetRequest,
   PasswordResetTokenRequest,
+  PayloadTooLargeResponse,
   UnprocessableEntityResponse,
   UnsupportedMediaTypeResponse,
 } from "../../model";
@@ -91,7 +92,10 @@ export const getRequestPasswordResetMutationKey = () =>
 
 export const getRequestPasswordResetMutationOptions = <
   TError = ErrorType<
-    BadRequestResponse | UnsupportedMediaTypeResponse | InternalErrorResponse
+    | BadRequestResponse
+    | PayloadTooLargeResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(options?: {
@@ -134,7 +138,10 @@ export type RequestPasswordResetMutationResult = NonNullable<
 >;
 export type RequestPasswordResetMutationBody = PasswordResetEmailRequest;
 export type RequestPasswordResetMutationError = ErrorType<
-  BadRequestResponse | UnsupportedMediaTypeResponse | InternalErrorResponse
+  | BadRequestResponse
+  | PayloadTooLargeResponse
+  | UnsupportedMediaTypeResponse
+  | InternalErrorResponse
 >;
 export type RequestPasswordResetMutationVariables = {
   data: PasswordResetEmailRequest;
@@ -145,7 +152,10 @@ export type RequestPasswordResetMutationVariables = {
  */
 export const useRequestPasswordReset = <
   TError = ErrorType<
-    BadRequestResponse | UnsupportedMediaTypeResponse | InternalErrorResponse
+    | BadRequestResponse
+    | PayloadTooLargeResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(
@@ -219,6 +229,7 @@ export const getVerifyResetPasswordTokenMutationKey = () =>
 export const getVerifyResetPasswordTokenMutationOptions = <
   TError = ErrorType<
     | BadRequestResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | UnprocessableEntityResponse
     | InternalErrorResponse
@@ -265,6 +276,7 @@ export type VerifyResetPasswordTokenMutationResult = NonNullable<
 export type VerifyResetPasswordTokenMutationBody = PasswordResetTokenRequest;
 export type VerifyResetPasswordTokenMutationError = ErrorType<
   | BadRequestResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | UnprocessableEntityResponse
   | InternalErrorResponse
@@ -279,6 +291,7 @@ export type VerifyResetPasswordTokenMutationVariables = {
 export const useVerifyResetPasswordToken = <
   TError = ErrorType<
     | BadRequestResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | UnprocessableEntityResponse
     | InternalErrorResponse
@@ -354,6 +367,7 @@ export const getResetPasswordMutationKey = () => ["resetPassword"] as const;
 export const getResetPasswordMutationOptions = <
   TError = ErrorType<
     | Error
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | UnprocessableEntityResponse
     | InternalErrorResponse
@@ -400,6 +414,7 @@ export type ResetPasswordMutationResult = NonNullable<
 export type ResetPasswordMutationBody = PasswordResetRequest;
 export type ResetPasswordMutationError = ErrorType<
   | Error
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | UnprocessableEntityResponse
   | InternalErrorResponse
@@ -412,6 +427,7 @@ export type ResetPasswordMutationVariables = { data: PasswordResetRequest };
 export const useResetPassword = <
   TError = ErrorType<
     | Error
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | UnprocessableEntityResponse
     | InternalErrorResponse

@@ -2,11 +2,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetSubjectQueryKey,
   getGetSubjectTasksQueryKey,
-  invalidateGetDashboardStatus,
-  invalidateGetUserSubjects,
   invalidateGetUserTasks,
   useDeleteSubject as useDeleteSubjectMutation,
 } from "@/shared/api";
+import { invalidateSubjectData } from "@/entities/subject/model/invalidation";
 import { toast } from "@/shared/ui/sonner";
 
 export function useDeleteSubject() {
@@ -19,9 +18,8 @@ export function useDeleteSubject() {
         queryClient.removeQueries({ queryKey: getGetSubjectTasksQueryKey(id) });
 
         await Promise.all([
-          invalidateGetUserSubjects(queryClient),
+          invalidateSubjectData(queryClient),
           invalidateGetUserTasks(queryClient),
-          invalidateGetDashboardStatus(queryClient),
         ]);
       },
       onError: () => toast.error("Не удалось удалить предмет"),

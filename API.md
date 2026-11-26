@@ -10,6 +10,7 @@ The full contract is `backend/docs/openapi.yaml`. Swagger UI serves it at
 
 - Routes with a JSON body require `Content-Type: application/json`, otherwise
   they return `415 Unsupported Media Type`.
+- JSON request bodies are limited to 1 MiB. Larger bodies return `413`.
 - Errors are returned as plain text, for example `invalid email or password`.
 - Timestamps are RFC3339 strings, for example `2026-07-20T09:00:00Z`.
 - `{id}` path parameters must be integers, otherwise `400 Bad Request`.
@@ -29,14 +30,14 @@ Both cookies use `Path=/` and `SameSite=Lax`. They also use `Secure` when `ENV`
 is `prod` or `production`. Browser clients must send requests with credentials
 (`fetch(..., { credentials: "include" })`).
 
-Every route except register, login, login/totp, refresh, logout, the
-reset-password routes, and `/metrics` requires a valid `access_token` cookie.
+Protected routes require a valid `access_token` cookie.
 A missing or invalid token returns `401 Unauthorized`.
 
 ### Auth routes
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
+| `GET` | `/api/auth/session` | optional cookies | Check the browser session |
 | `POST` | `/api/auth/register` | – | Create a user, set cookies, send a confirmation email |
 | `POST` | `/api/auth/login` | – | Log in, or start a TOTP login |
 | `POST` | `/api/auth/login/totp` | – | Finish two-factor sign-in |
@@ -118,6 +119,12 @@ Success: `200 OK`, auth cookies, and the user object. An invalid or expired
 challenge or code returns `401`. A recovery code is consumed only when sign-in succeeds.
 
 ### Refresh and logout
+
+`GET /api/auth/session` returns `200` with `{"authenticated": false}` for a guest,
+or `{"authenticated": true, "user": {...}}` for a signed-in browser. An expired
+access cookie can be replaced if the refresh cookie is valid. If a concurrent
+request rotated the refresh cookie first, retry the `409` response with the
+browser's current cookies.
 
 `POST /api/auth/refresh` rotates the refresh token and sets new cookies for the
 same session. Success: `204 No Content`. Invalid tokens return `401`. If another
@@ -428,8 +435,9 @@ responses. `size_bytes` is a string.
 ### Create, replace, update
 
 `POST /api/subjects` takes all fields except `id`, `user_id`, and `files`, and
-returns `201 Created`. Only `name` is required. Each lecturer needs a valid
-`position`, otherwise the API returns `500`.
+returns `201 Created`. Only `name` is required. Subject and lecturer names have a
+limit of 100 characters, notes have a limit of 200, and each lecturer needs a
+valid `position`. Invalid values return `400` and duplicate names return `409`.
 
 ```json
 {
@@ -446,8 +454,8 @@ returns `201 Created`. Only `name` is required. Each lecturer needs a valid
 
 `PUT /api/subjects/{id}` takes the same body and clears omitted optional fields.
 
-`PATCH /api/subjects/{id}` changes only the fields it receives. `null` cannot
-clear a field.
+`PATCH /api/subjects/{id}` changes only the fields it receives. Pass `null`
+as `exam_date` to clear it.
 
 Lecturers can only be set on create. `PUT` and `PATCH` ignore `lecturers`.
 
@@ -528,10 +536,10 @@ a timestamp on its own replaces its matching calendar date.
 `200 OK`. Both take the task fields without `id`, `created_at`, and
 `updated_at`. The backend applies no defaults, so `type`, `status`,
 `difficulty`, and `priority` must be sent. Missing or invalid values return
-`500`. A subject that does not belong to the user returns `404`.
+`400`. Task names have a limit of 200 characters and descriptions have a limit
+of 2000. A subject that does not belong to the user returns `404`.
 
-`PATCH /api/tasks/{id}` changes only the fields it receives. Values are not
-validated, and an invalid one returns `500`.
+`PATCH /api/tasks/{id}` changes only the fields it receives. Invalid fields return `400`.
 
 ## Shared projects
 
@@ -599,7 +607,8 @@ Shared project response:
 inaccessible attachments return `404`. Avatar and thumbnail links are
 available to signed-in users. The API serves individual files without directory listings.
 
-`GET /metrics` exposes Prometheus metrics without authentication.
+`GET /metrics` is on the private metrics listener in production and Docker
+Compose. In standalone development, the default is the API listener.
 
 ## Request examples
 

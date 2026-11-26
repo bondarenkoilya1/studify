@@ -22,10 +22,13 @@ import type { SubjectScope } from "./subjectScope";
 import type { SubjectType } from "./subjectType";
 
 /**
- * Send only the fields to change. `null` values are ignored.
+ * Send only the fields to change. Pass `null` for `exam_date` to clear it.
  */
 export interface SubjectUpdateRequest {
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
   name?: string;
   /**
    * @maxLength 200

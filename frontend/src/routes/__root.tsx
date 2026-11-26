@@ -6,6 +6,15 @@ import {
 import type { QueryClient } from "@tanstack/react-query";
 import { Header } from "@/widgets/header";
 import { ArrowLeft, Home, Search } from "lucide-react";
+import { lazy, Suspense } from "react";
+
+const RouterDevtools = import.meta.env.DEV
+  ? lazy(() =>
+      import("@tanstack/react-router-devtools").then((module) => ({
+        default: module.TanStackRouterDevtools,
+      })),
+    )
+  : null;
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -23,6 +32,11 @@ function RootComponent() {
       <main className="flex-1 flex flex-col">
         <Outlet />
       </main>
+      {RouterDevtools && (
+        <Suspense fallback={null}>
+          <RouterDevtools position="bottom-left" />
+        </Suspense>
+      )}
     </div>
   );
 }

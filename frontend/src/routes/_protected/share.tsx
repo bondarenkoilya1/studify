@@ -2,7 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { ExternalLink, Plus, Share2 } from "lucide-react";
 
-import { useGetUserSharedProjects } from "@/shared/api";
+import {
+  getGetUserSharedProjectsQueryOptions,
+  useGetUserSharedProjectsSuspense,
+} from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 import { Avatar } from "@/widgets/avatar";
 import {
@@ -11,28 +14,14 @@ import {
 } from "@/features/shared-project";
 
 export const Route = createFileRoute("/_protected/share")({
+  loader: ({ context: { queryClient } }) =>
+    queryClient.ensureQueryData(getGetUserSharedProjectsQueryOptions()),
   component: SharePage,
 });
 
 function SharePage() {
-  const { data: projects = [], isPending, error } = useGetUserSharedProjects();
+  const { data: projects } = useGetUserSharedProjectsSuspense();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  if (isPending) {
-    return (
-      <div className="mx-auto flex h-64 w-full max-w-4xl items-center justify-center px-4 text-muted-foreground sm:px-6">
-        Загрузка...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="mx-auto flex h-64 w-full max-w-4xl items-center justify-center px-4 text-destructive sm:px-6">
-        Не удалось загрузить общие предметы. Попробуйте обновить страницу.
-      </div>
-    );
-  }
 
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -62,10 +51,7 @@ function SharePage() {
             Создайте свой первый общий предмет, чтобы поделиться им с другими
             студентами.
           </p>
-          <Button
-            className="mt-6 gap-2"
-            onClick={() => setIsCreateOpen(true)}
-          >
+          <Button className="mt-6 gap-2" onClick={() => setIsCreateOpen(true)}>
             <Plus className="size-4" />
             <span>Создать общий предмет</span>
           </Button>

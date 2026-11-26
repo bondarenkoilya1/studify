@@ -10,6 +10,7 @@ type Config struct {
 	TOTPEncryptionKey []byte
 	DatabaseURL       string
 	ServerAddr        string
+	MetricsAddr       string
 	AppURL            string
 	Env               string
 	CORSOrigins       []string

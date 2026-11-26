@@ -26,7 +26,10 @@ import type { SubjectType } from "./subjectType";
  * Empty `type`, `scope`, and `exam_type` default to `university`, `other`, and `exam`.
  */
 export interface SubjectCreateRequest {
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 100
+   */
   name: string;
   /**
    * @maxLength 200

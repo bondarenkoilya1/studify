@@ -41,7 +41,7 @@ This starts:
 - Mailpit, which catches every email the API sends, on `MAILPIT_WEB_PORT`
   (`8025` by default);
 - Prometheus on `PROMETHEUS_HOST_PORT` (`9090` by default), scraping
-  `backend:8080/metrics`;
+  `backend:9091/metrics` on the Compose network;
 - Grafana on `GRAFANA_HOST_PORT` (`3000` by default), login `admin` / `admin`.
   Dashboard JSON files go in `grafana/provisioning/dashboards/json/`.
 
@@ -76,6 +76,16 @@ cp backend/.env.example backend/.env
 to `:8080`, `ENV` defaults to `dev`, `SMTP_HOST` / `SMTP_PORT` default to
 `localhost` / `1025`, and `CORS_ALLOWED_ORIGINS` defaults to
 `http://localhost:5173,http://localhost:3000`.
+
+In standalone development, `/metrics` defaults to the API listener. Set
+`METRICS_ADDR` to run it on a separate address. In production, the default is
+`127.0.0.1:9091`. Keep that listener on a private network and omit it from
+public proxy routes. Docker Compose uses the internal port `9091` for backend
+metrics. The Prometheus UI binds to the host loopback interface.
+
+The API allows 5 seconds to read request headers, 2 minutes to read a request,
+and 3 minutes to write the response. `SIGINT` and `SIGTERM` stop new requests
+and allow up to 30 seconds for active requests to finish.
 
 PostgreSQL and Mailpit can still run in Docker:
 
