@@ -32,6 +32,7 @@ import type {
   LoginTOTPRequest,
   NotFoundResponse,
   Passcode,
+  PayloadTooLargeResponse,
   RecoveryCodesResponse,
   TOTPSetupResponse,
   UnauthorizedResponse,
@@ -93,6 +94,7 @@ export const getLoginTOTPMutationOptions = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -139,6 +141,7 @@ export type LoginTOTPMutationBody = LoginTOTPRequest;
 export type LoginTOTPMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -151,6 +154,7 @@ export const useLoginTOTP = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -329,6 +333,7 @@ export const getConfirmTOTPSetupMutationOptions = <
     | UnauthorizedResponse
     | NotFoundResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -377,6 +382,7 @@ export type ConfirmTOTPSetupMutationError = ErrorType<
   | UnauthorizedResponse
   | NotFoundResponse
   | ConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -391,6 +397,7 @@ export const useConfirmTOTPSetup = <
     | UnauthorizedResponse
     | NotFoundResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -467,6 +474,7 @@ export const getRegenerateRecoveryCodesMutationOptions = <
     | UnauthorizedResponse
     | NotFoundResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -515,6 +523,7 @@ export type RegenerateRecoveryCodesMutationError = ErrorType<
   | UnauthorizedResponse
   | NotFoundResponse
   | ConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -529,6 +538,7 @@ export const useRegenerateRecoveryCodes = <
     | UnauthorizedResponse
     | NotFoundResponse
     | ConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,

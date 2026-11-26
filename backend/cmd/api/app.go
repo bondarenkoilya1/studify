@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"studify/internal/auth/emailconfirm"
 	"studify/internal/auth/session"
 	"studify/internal/sharedproject"
+	"syscall"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -16,6 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"studify/internal/auth"
 	"studify/internal/auth/mfa"
@@ -79,7 +83,16 @@ func run() error {
 	}
 	defer app.close()
 
-	return http.ListenAndServe(app.addr, app.router)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	servers := []*http.Server{newHTTPServer(app.addr, app.router)}
+	if cfg.MetricsAddr != "" {
+		metrics := http.NewServeMux()
+		metrics.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		servers = append(servers, newHTTPServer(cfg.MetricsAddr, metrics))
+	}
+	return serveHTTP(ctx, servers...)
 }
 
 func newApplication(cfg *config.Config, reg *prometheus.Registry, m *Metrics) (*application, error) {

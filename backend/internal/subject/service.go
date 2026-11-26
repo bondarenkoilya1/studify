@@ -101,36 +101,28 @@ func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*S
 		return nil, ErrNoFieldsToUpdate
 	}
 
+	if err := validateSubjectChanges(req); err != nil {
+		return nil, invalid(err.Error())
+	}
+
 	subject, err := GetSubjectByID(s.db, id, userID)
 	if err != nil {
 		return nil, fmt.Errorf("load subject %d for update: %w", id, err)
 	}
 
 	if req.Name != nil {
-		if *req.Name == "" {
-			return nil, invalid("subject name cannot be empty")
-		}
 		subject.Name = *req.Name
 	}
 	if req.Note != nil {
 		subject.Note = req.Note
 	}
 	if req.Type != nil {
-		if *req.Type != "university" && *req.Type != "personal" {
-			return nil, invalid("invalid subject type")
-		}
 		subject.Type = *req.Type
 	}
 	if req.Scope != nil {
-		if !validScopes[*req.Scope] {
-			return nil, invalid("invalid subject scope")
-		}
 		subject.Scope = *req.Scope
 	}
 	if req.ExamType != nil {
-		if !validExamTypes[*req.ExamType] {
-			return nil, invalid("invalid exam type")
-		}
 		subject.ExamType = *req.ExamType
 	}
 	if req.ThumbnailURL != nil {
@@ -140,15 +132,9 @@ func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*S
 		subject.ExamDate = req.ExamDate
 	}
 	if req.Course != nil {
-		if err := validateCourse(req.Course); err != nil {
-			return nil, invalid(err.Error())
-		}
 		subject.Course = req.Course
 	}
 	if req.Term != nil {
-		if err := validateTerm(req.Term); err != nil {
-			return nil, invalid(err.Error())
-		}
 		subject.Term = req.Term
 	}
 

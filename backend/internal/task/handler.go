@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"studify/internal"
 	"studify/internal/util"
 
 	"studify/internal/httpx"
@@ -112,8 +113,16 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateTask(&newTask); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	task, err := h.Service.addTask(userID, &newTask)
 	if err != nil {
+		if internal.IsInvalidData(err) {
+			http.Error(w, "invalid task values", http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, "subject not found", err,
 				util.AttrUserID(userID))
@@ -148,8 +157,16 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateTask(&newTask); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	task, err := h.Service.replaceTask(userID, id, &newTask)
 	if err != nil {
+		if internal.IsInvalidData(err) {
+			http.Error(w, "invalid task values", http.StatusBadRequest)
+			return
+		}
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, fmt.Sprintf("no task with ID: %d", id), err,
 				util.AttrUserID(userID))
@@ -184,6 +201,10 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateTaskChanges(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	task, err := h.Service.updateTask(userID, id, &req)
 	if err != nil {
 		switch {
@@ -193,6 +214,8 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, sql.ErrNoRows):
 			respondError(w, r, http.StatusNotFound, "task not found", err,
 				util.AttrUserID(userID), util.AttrTaskID(id))
+		case internal.IsInvalidData(err):
+			http.Error(w, "invalid task values", http.StatusBadRequest)
 		default:
 			respondError(w, r, http.StatusInternalServerError, "failed to update task", err,
 				util.AttrUserID(userID), util.AttrTaskID(id))

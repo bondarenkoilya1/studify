@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"studify/internal"
 	"studify/internal/httpx"
 	"studify/internal/media"
 	"studify/internal/user"
@@ -91,11 +92,19 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if err := validateLecturers(req.Lecturers); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	createdSubject, err := h.Service.addSubject(userID, &req)
 	if err != nil {
 		if errors.Is(err, ErrSubjectAlreadyExists) {
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+			return
+		}
+		if internal.IsInvalidData(err) {
+			http.Error(w, "invalid subject values", http.StatusBadRequest)
 			return
 		}
 
@@ -142,6 +151,8 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 		case errors.Is(err, ErrSubjectAlreadyExists):
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+		case internal.IsInvalidData(err):
+			http.Error(w, "invalid subject values", http.StatusBadRequest)
 		default:
 			slog.ErrorContext(r.Context(), "failed to replace subject",
 				util.AttrUserID(userID),
@@ -190,6 +201,8 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Subject not found", http.StatusNotFound)
 		case errors.Is(err, ErrSubjectAlreadyExists):
 			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+		case internal.IsInvalidData(err):
+			http.Error(w, "invalid subject values", http.StatusBadRequest)
 		default:
 			slog.ErrorContext(r.Context(), "failed to update subject",
 				util.AttrUserID(userID),

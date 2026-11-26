@@ -10,6 +10,9 @@
 
 # Run requests independently or in the relevant group. Keep cookies enabled in your HTTP client.
 
+### Check the browser session (200 for signed-in users and guests)
+GET {{baseUrl}}/api/auth/session
+
 ### Register
 POST {{baseUrl}}/api/auth/register
 Content-Type: application/json

@@ -48,6 +48,7 @@ import type {
   ImageTooLargeResponse,
   InternalErrorResponse,
   NotFoundResponse,
+  PayloadTooLargeResponse,
   Subject,
   SubjectConflictResponse,
   SubjectCreateRequest,
@@ -434,6 +435,7 @@ export const getAddSubjectMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | SubjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -481,6 +483,7 @@ export type AddSubjectMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | SubjectConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -494,6 +497,7 @@ export const useAddSubject = <
     | BadRequestResponse
     | UnauthorizedResponse
     | SubjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1020,6 +1024,7 @@ export const getReplaceSubjectMutationOptions = <
     | UnauthorizedResponse
     | NotFoundResponse
     | SubjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1068,6 +1073,7 @@ export type ReplaceSubjectMutationError = ErrorType<
   | UnauthorizedResponse
   | NotFoundResponse
   | SubjectConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -1085,6 +1091,7 @@ export const useReplaceSubject = <
     | UnauthorizedResponse
     | NotFoundResponse
     | SubjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1113,7 +1120,7 @@ export const getUpdateSubjectUrl = (id: number) => {
 };
 
 /**
- * Only fields present with a non-null value are changed; `null` cannot clear a field.
+ * Only fields present with a non-null value are changed, except `exam_date`, which can be cleared with `null`.
  * `lecturers` is ignored, and a body with only `lecturers` returns 400 "no fields to update".
  * @summary Update selected fields of a subject
  */
@@ -1162,6 +1169,7 @@ export const getUpdateSubjectMutationOptions = <
     | UnauthorizedResponse
     | NotFoundResponse
     | SubjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1210,6 +1218,7 @@ export type UpdateSubjectMutationError = ErrorType<
   | UnauthorizedResponse
   | NotFoundResponse
   | SubjectConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -1227,6 +1236,7 @@ export const useUpdateSubject = <
     | UnauthorizedResponse
     | NotFoundResponse
     | SubjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,

@@ -43,7 +43,11 @@ func GetUserByEmail(db *sql.DB, email string) (*User, error) {
 }
 
 func GetUserByID(db *sql.DB, id int64) (*User, error) {
-	return getUserByID(context.Background(), db, id, false)
+	return GetUserByIDContext(context.Background(), db, id)
+}
+
+func GetUserByIDContext(ctx context.Context, db *sql.DB, id int64) (*User, error) {
+	return getUserByID(ctx, db, id, false)
 }
 
 func GetUserByIDForUpdate(ctx context.Context, tx *sql.Tx, id int64) (*User, error) {

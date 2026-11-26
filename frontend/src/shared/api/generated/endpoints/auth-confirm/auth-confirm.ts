@@ -30,7 +30,9 @@ import type {
   Error,
   InternalErrorResponse,
   NotFoundResponse,
+  PayloadTooLargeResponse,
   UnauthorizedResponse,
+  UnsupportedMediaTypeResponse,
 } from "../../model";
 
 import { fetcher } from "../../../fetcher";
@@ -141,7 +143,6 @@ export const getConfirmEmailUrl = () => {
  * Takes the confirmation token from the email link (valid for 4 hours) in the JSON body.
  * The user to verify is taken from the token record, not from the access cookie, so the
  * cookie only has to be valid. The token is deleted after a successful confirmation.
- * This route has no `Content-Type` check: a body that is not valid JSON returns 400, not 415.
  * @summary Confirm a user's email address
  */
 export const confirmEmail = async (
@@ -183,7 +184,13 @@ export const confirmEmail = async (
 export const getConfirmEmailMutationKey = () => ["confirmEmail"] as const;
 
 export const getConfirmEmailMutationOptions = <
-  TError = ErrorType<Error | UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    | Error
+    | UnauthorizedResponse
+    | PayloadTooLargeResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
+  >,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -225,7 +232,11 @@ export type ConfirmEmailMutationResult = NonNullable<
 >;
 export type ConfirmEmailMutationBody = ConfirmEmailRequest;
 export type ConfirmEmailMutationError = ErrorType<
-  Error | UnauthorizedResponse | InternalErrorResponse
+  | Error
+  | UnauthorizedResponse
+  | PayloadTooLargeResponse
+  | UnsupportedMediaTypeResponse
+  | InternalErrorResponse
 >;
 export type ConfirmEmailMutationVariables = { data: ConfirmEmailRequest };
 
@@ -233,7 +244,13 @@ export type ConfirmEmailMutationVariables = { data: ConfirmEmailRequest };
  * @summary Confirm a user's email address
  */
 export const useConfirmEmail = <
-  TError = ErrorType<Error | UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    | Error
+    | UnauthorizedResponse
+    | PayloadTooLargeResponse
+    | UnsupportedMediaTypeResponse
+    | InternalErrorResponse
+  >,
   TContext = unknown,
 >(
   options?: {

@@ -45,6 +45,7 @@ import type {
   BadRequestResponse,
   InternalErrorResponse,
   NotFoundResponse,
+  PayloadTooLargeResponse,
   Task,
   TaskCreateRequest,
   TaskUpdateRequest,
@@ -363,8 +364,8 @@ export const getAddTaskUrl = () => {
 
 /**
  * The subject must belong to the current user. The backend does not apply defaults:
- * `type`, `status`, `difficulty`, and `priority` must be sent with valid values, otherwise
- * the database rejects the row and the API returns 500.
+ * `type`, `status`, `difficulty`, and `priority` must be sent with valid values.
+ * Invalid fields return 400.
  * @summary Create a task
  */
 export const addTask = async (
@@ -410,6 +411,7 @@ export const getAddTaskMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -457,6 +459,7 @@ export type AddTaskMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | NotFoundResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -470,6 +473,7 @@ export const useAddTask = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -988,6 +992,7 @@ export const getReplaceTaskMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1035,6 +1040,7 @@ export type ReplaceTaskMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | NotFoundResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -1051,6 +1057,7 @@ export const useReplaceTask = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1079,8 +1086,7 @@ export const getUpdateTaskUrl = (id: number) => {
 };
 
 /**
- * Only fields present with a non-null value are changed. Values are not validated by the
- * handler; an invalid enum value returns 500.
+ * Only fields present with a non-null value are changed. Invalid fields return 400.
  * @summary Update selected task fields
  */
 export const updateTask = async (
@@ -1127,6 +1133,7 @@ export const getUpdateTaskMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1174,6 +1181,7 @@ export type UpdateTaskMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | NotFoundResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -1190,6 +1198,7 @@ export const useUpdateTask = <
     | BadRequestResponse
     | UnauthorizedResponse
     | NotFoundResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,

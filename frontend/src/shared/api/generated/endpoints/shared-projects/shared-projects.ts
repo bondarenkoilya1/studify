@@ -45,6 +45,7 @@ import type {
   BadRequestResponse,
   InternalErrorResponse,
   NotFoundResponse,
+  PayloadTooLargeResponse,
   SharedProject,
   SharedProjectConflictResponse,
   SharedProjectRequest,
@@ -432,6 +433,7 @@ export const getCreateSharedProjectMutationOptions = <
     | BadRequestResponse
     | UnauthorizedResponse
     | SharedProjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -479,6 +481,7 @@ export type CreateSharedProjectMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
   | SharedProjectConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -494,6 +497,7 @@ export const useCreateSharedProject = <
     | BadRequestResponse
     | UnauthorizedResponse
     | SharedProjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -956,6 +960,7 @@ export const getUpdateSharedProjectMutationOptions = <
     | UnauthorizedResponse
     | NotFoundResponse
     | SharedProjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,
@@ -1004,6 +1009,7 @@ export type UpdateSharedProjectMutationError = ErrorType<
   | UnauthorizedResponse
   | NotFoundResponse
   | SharedProjectConflictResponse
+  | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
   | InternalErrorResponse
 >;
@@ -1021,6 +1027,7 @@ export const useUpdateSharedProject = <
     | UnauthorizedResponse
     | NotFoundResponse
     | SharedProjectConflictResponse
+    | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
     | InternalErrorResponse
   >,

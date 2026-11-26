@@ -21,6 +21,7 @@ services:
       dockerfile: Dockerfile.dev
     working_dir: /app
     command: air
+    stop_grace_period: 35s
     environment:
       # Security
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
@@ -33,6 +34,7 @@ services:
       APP_URL: ${APP_URL:-http://localhost:5173}
       ENV: ${ENV:-dev}
       SERVER_ADDR: :${BACKEND_CONTAINER_PORT:-8080}
+      METRICS_ADDR: :9091
 
       # Database
       DATABASE_URL: postgres://${POSTGRES_USER:-studify}:${POSTGRES_PASSWORD:-studify}@postgres:5432/${POSTGRES_DB:-studify}?sslmode=disable
@@ -114,7 +116,7 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
     ports:
-      - "${PROMETHEUS_HOST_PORT:-9090}:9090"
+      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
 
   grafana:
     image: grafana/grafana:latest

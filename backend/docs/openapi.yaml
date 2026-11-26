@@ -45,6 +45,25 @@ tags:
     description: Prometheus metrics
 
 paths:
+  /api/auth/session:
+    get:
+      tags: [Auth]
+      summary: Check the browser session
+      description: Returns the current user, refreshing the cookies when needed, or an anonymous session.
+      operationId: checkAuthSession
+      security: []
+      responses:
+        '200':
+          description: Current session or anonymous visitor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '409':
+          description: A concurrent request has already rotated the refresh cookie. Retry with browser cookies.
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/auth/register:
     post:
       tags: [Auth]
@@ -70,6 +89,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '409':
           $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -102,6 +123,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -133,6 +156,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -219,7 +244,6 @@ paths:
         Takes the confirmation token from the email link (valid for 4 hours) in the JSON body.
         The user to verify is taken from the token record, not from the access cookie, so the
         cookie only has to be valid. The token is deleted after a successful confirmation.
-        This route has no `Content-Type` check: a body that is not valid JSON returns 400, not 415.
       operationId: confirmEmail
       security:
         - accessCookie: []
@@ -240,6 +264,10 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -300,6 +328,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -334,6 +364,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -376,6 +408,8 @@ paths:
           description: Password reset email was sent (or email does not exist, returning 204 to prevent enumeration).
         '400':
           $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -398,6 +432,8 @@ paths:
           description: Token is valid. The body is empty.
         '400':
           $ref: '#/components/responses/BadRequest'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -426,6 +462,8 @@ paths:
             text/plain:
               schema:
                 $ref: '#/components/schemas/Error'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
@@ -579,6 +617,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/SubjectConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -651,6 +691,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/SubjectConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -659,7 +701,7 @@ paths:
       tags: [Subjects]
       summary: Update selected fields of a subject
       description: |
-        Only fields present with a non-null value are changed; `null` cannot clear a field.
+        Only fields present with a non-null value are changed, except `exam_date`, which can be cleared with `null`.
         `lecturers` is ignored, and a body with only `lecturers` returns 400 "no fields to update".
       operationId: updateSubject
       security:
@@ -685,6 +727,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/SubjectConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -863,8 +907,8 @@ paths:
       summary: Create a task
       description: |
         The subject must belong to the current user. The backend does not apply defaults:
-        `type`, `status`, `difficulty`, and `priority` must be sent with valid values, otherwise
-        the database rejects the row and the API returns 500.
+        `type`, `status`, `difficulty`, and `priority` must be sent with valid values.
+        Invalid fields return 400.
       operationId: addTask
       security:
         - accessCookie: []
@@ -887,6 +931,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -955,6 +1001,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -963,8 +1011,7 @@ paths:
       tags: [Tasks]
       summary: Update selected task fields
       description: |
-        Only fields present with a non-null value are changed. Values are not validated by the
-        handler; an invalid enum value returns 500.
+        Only fields present with a non-null value are changed. Invalid fields return 400.
       operationId: updateTask
       security:
         - accessCookie: []
@@ -987,6 +1034,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -1058,6 +1107,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '409':
           $ref: '#/components/responses/SharedProjectConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -1118,6 +1169,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/SharedProjectConflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -1195,6 +1248,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -1228,6 +1283,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '500':
@@ -1337,7 +1394,7 @@ paths:
     get:
       tags: [Monitoring]
       summary: Prometheus metrics
-      description: Prometheus text exposition format. Not authenticated.
+      description: Prometheus text exposition on the metrics listener (separate from the production API).
       operationId: getMetrics
       security: []
       responses:
@@ -1387,6 +1444,12 @@ components:
             $ref: '#/components/schemas/Credentials'
 
   responses:
+    PayloadTooLarge:
+      description: The JSON request body exceeds 1 MiB.
+      content:
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/Error'
     BadRequest:
       description: Invalid JSON, missing fields, or invalid payload values.
       content:
@@ -1768,6 +1831,7 @@ components:
         name:
           type: string
           minLength: 1
+          maxLength: 100
           example: Databases
         note:
           type: string
@@ -1810,11 +1874,12 @@ components:
     SubjectUpdateRequest:
       type: object
       minProperties: 1
-      description: Send only the fields to change. `null` values are ignored.
+      description: Send only the fields to change. Pass `null` for `exam_date` to clear it.
       properties:
         name:
           type: string
           minLength: 1
+          maxLength: 100
           example: Advanced Databases
         note:
           type: string
@@ -1922,16 +1987,20 @@ components:
           example: 1
         name:
           type: string
+          minLength: 1
+          maxLength: 200
           example: Read chapter 4
         type:
           $ref: '#/components/schemas/TaskType'
         description:
           type: string
+          maxLength: 2000
           example: Write a short summary and review the key terms.
         estimated_time:
           type: integer
           nullable: true
           minimum: 1
+          maximum: 2147483647
           example: 90
         scheduled_at:
           type: string
@@ -1969,16 +2038,20 @@ components:
       properties:
         name:
           type: string
+          minLength: 1
+          maxLength: 200
           example: Read chapters 4 and 5
         type:
           $ref: '#/components/schemas/TaskType'
         description:
           type: string
+          maxLength: 2000
           example: Review the primary definitions and examples.
         estimated_time:
           type: integer
           nullable: true
           minimum: 1
+          maximum: 2147483647
           example: 120
         scheduled_at:
           type: string
@@ -2159,6 +2232,16 @@ components:
         author_avatar_url:
           type: string
           example: https://avatars.githubusercontent.com/u/1234567
+
+    AuthSession:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated:
+          type: boolean
+          example: true
+        user:
+          $ref: '#/components/schemas/User'
 
     Session:
       type: object

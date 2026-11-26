@@ -35,7 +35,9 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 	r.Use(middlewares.RequestLogger)
 	r.Use(middlewares.Metrics(m.requestsTotal, m.requestsDuration))
 
-	r.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+	if h.Config.MetricsAddr == "" {
+		r.Get("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}).ServeHTTP)
+	}
 
 	validateAuth := middlewares.ValidateAuth(h.TokenManager, h.Session.Service)
 
@@ -76,6 +78,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 }
 
 func registerAuthRoutes(r chi.Router, h *auth.Handler) {
+	r.Get("/session", h.CheckSession)
 	r.Post("/logout", h.LogoutUser)
 	r.Post("/refresh", h.RefreshTokens)
 
@@ -165,7 +168,7 @@ func registerPasswordResetRoutes(r chi.Router, h *resetpassword.Handler) {
 func registerEmailConfirmRoutes(r chi.Router, h *emailconfirm.Handler) {
 	r.Route("/confirm", func(r chi.Router) {
 		r.Post("/resend", h.ResendConfirmationMail)
-		r.Post("/", h.ConfirmEmail)
+		r.With(middlewares.RequireJSON).Post("/", h.ConfirmEmail)
 	})
 }
 

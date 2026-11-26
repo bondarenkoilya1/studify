@@ -19,6 +19,7 @@ func Load() (*Config, error) {
 		JWTAccessSecret:  os.Getenv("JWT_ACCESS_SECRET"),
 		JWTRefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
 		ServerAddr:       os.Getenv("SERVER_ADDR"),
+		MetricsAddr:      os.Getenv("METRICS_ADDR"),
 		CORSOrigins:      splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
 	}
 
@@ -72,6 +73,9 @@ func Load() (*Config, error) {
 
 	if cfg.Env == "" {
 		cfg.Env = "dev"
+	}
+	if cfg.IsProduction() && cfg.MetricsAddr == "" {
+		cfg.MetricsAddr = "127.0.0.1:9091"
 	}
 
 	smtpHost := os.Getenv("SMTP_HOST")

@@ -26,11 +26,17 @@ import type { TaskType } from "./taskType";
  * Send only the fields to change. Null values are ignored. Sending a timestamp without its matching calendar date replaces that date.
  */
 export interface TaskUpdateRequest {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
   name?: string;
   type?: TaskType;
+  /** @maxLength 2000 */
   description?: string;
   /**
    * @minimum 1
+   * @maximum 2147483647
    * @nullable
    */
   estimated_time?: number | null;
