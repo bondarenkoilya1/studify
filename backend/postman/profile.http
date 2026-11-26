@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:8080
+@newEmail = updated-student@example.com
+@password = ExamplePassword123
+@newPassword = NewExamplePassword123
+
+# Sign in using auth.http and keep cookies enabled in your HTTP client.
+
+### Read the current profile
+GET {{baseUrl}}/api/users/me
+
+### Change the email after confirming the current address
+PATCH {{baseUrl}}/api/users/me/email
+Content-Type: application/json
+
+{"new_email":"{{newEmail}}"}
+
+### Upload a PNG avatar
+# Put an avatar.png next to this file or replace the file path below.
+POST {{baseUrl}}/api/users/me/avatar
+Content-Type: image/png
+
+< ./avatar.png
+
+### Remove the avatar
+DELETE {{baseUrl}}/api/users/me/avatar
+
+### Change the password and revoke all sessions
+PATCH {{baseUrl}}/api/users/me/password
+Content-Type: application/json
+
+{"current_password":"{{password}}","new_password":"{{newPassword}}"}

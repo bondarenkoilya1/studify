@@ -1,56 +1,96 @@
 @baseUrl = http://localhost:8080
-@email = maxonchik@gmail.com
-@updatedEmail = maxonchik5@gmail.com
-@password = veryverystrong
+@email = student@example.com
+@password = ExamplePassword123
+@newPassword = NewExamplePassword123
+@confirmationToken = paste-token-from-mailpit
+@resetToken = paste-token-from-mailpit
+@challengeToken = paste-token-from-login-response
+@authenticatorCode = 123456
+@sessionId = 1
 
-### Register user
+# Run requests independently or in the relevant group. Keep cookies enabled in your HTTP client.
+
+### Register
 POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
-Accept: application/json
 
-{
-  "email": "{{email}}",
-  "password": "{{password}}"
-}
+{"email":"{{email}}","password":"{{password}}"}
 
-### Login user
+### Sign in
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
-Accept: application/json
 
-{
-  "email": "{{email}}",
-  "password": "{{password}}"
-}
+{"email":"{{email}}","password":"{{password}}"}
 
-### Refresh tokens
+### Complete a 2FA sign-in after receiving challenge_token
+POST {{baseUrl}}/api/auth/login/totp
+Content-Type: application/json
+
+{"challenge_token":"{{challengeToken}}","code":"{{authenticatorCode}}"}
+
+### Refresh the current session
 POST {{baseUrl}}/api/auth/refresh
-Accept: application/json
 
-### Logout user
+### Resend the confirmation email
+POST {{baseUrl}}/api/auth/confirm/resend
+
+### Confirm the email using the token from Mailpit
+POST {{baseUrl}}/api/auth/confirm/
+Content-Type: application/json
+
+{"confirm_email_token":"{{confirmationToken}}"}
+
+### Request a password reset
+POST {{baseUrl}}/api/auth/reset-password/request
+Content-Type: application/json
+
+{"email":"{{email}}"}
+
+### Check a reset token from Mailpit
+POST {{baseUrl}}/api/auth/reset-password/verify
+Content-Type: application/json
+
+{"password_reset_token":"{{resetToken}}"}
+
+### Reset the password and revoke all sessions
+POST {{baseUrl}}/api/auth/reset-password/
+Content-Type: application/json
+
+{
+  "password_reset_token": "{{resetToken}}",
+  "new_password": "{{newPassword}}",
+  "new_password_confirmed": "{{newPassword}}"
+}
+
+### Start 2FA setup and copy the key into your authenticator
+POST {{baseUrl}}/api/auth/totp/setup/
+
+### Confirm 2FA using a current authenticator code
+POST {{baseUrl}}/api/auth/totp/setup/confirm
+Content-Type: application/json
+
+{"passcode":"{{authenticatorCode}}"}
+
+### Replace recovery codes
+POST {{baseUrl}}/api/auth/totp/recovery-codes
+Content-Type: application/json
+
+{"passcode":"{{authenticatorCode}}"}
+
+### Disable 2FA
+DELETE {{baseUrl}}/api/auth/totp/
+
+### List active sessions
+GET {{baseUrl}}/api/auth/sessions/
+
+### Get one session by ID from the list
+GET {{baseUrl}}/api/auth/sessions/{{sessionId}}
+
+### Revoke one device session
+DELETE {{baseUrl}}/api/auth/sessions/{{sessionId}}
+
+### Sign out of the current session
 POST {{baseUrl}}/api/auth/logout
-Accept: application/json
 
-### Login updated user
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-Accept: application/json
-
-{
-  "email": "{{updatedEmail}}",
-  "password": "{{password}}"
-}
-
-### Register: invalid body example
-POST {{baseUrl}}/api/auth/register
-Content-Type: application/json
-Accept: application/json
-
-{
-  "email": "",
-  "password": ""
-}
-
-### Get newly generated TOTP code
-POST {{baseUrl}}/api/auth/totp
-Accept: application/json
+### Sign out of all sessions
+POST {{baseUrl}}/api/auth/logout-all

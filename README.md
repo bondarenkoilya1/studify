@@ -48,6 +48,8 @@ JWT_REFRESH_SECRET=replace-with-a-different-random-secret
 TOTP_ENCRYPTION_KEY=output-of-openssl-rand-base64-32
 ```
 
+Generate each JWT secret separately with `openssl rand -hex 32`.
+
 Start the stack and apply the migrations:
 
 ```bash
