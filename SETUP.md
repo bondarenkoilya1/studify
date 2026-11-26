@@ -77,6 +77,11 @@ to `:8080`, `ENV` defaults to `dev`, `SMTP_HOST` / `SMTP_PORT` default to
 `localhost` / `1025`, and `CORS_ALLOWED_ORIGINS` defaults to
 `http://localhost:5173,http://localhost:3000`.
 
+The authentication rate limiter uses the request's peer address by default.
+If you run the API behind a reverse proxy, set `TRUSTED_PROXY_CIDRS` to the
+comma-separated networks of your proxies so the API can resolve the client
+address from `X-Forwarded-For`.
+
 In standalone development, `/metrics` defaults to the API listener. Set
 `METRICS_ADDR` to run it on a separate address. In production, the default is
 `127.0.0.1:9091`. Keep that listener on a private network and omit it from

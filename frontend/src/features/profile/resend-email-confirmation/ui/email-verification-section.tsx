@@ -10,11 +10,11 @@ export function EmailVerificationSection() {
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-sm font-medium">Email verification</h3>
+        <h3 className="text-sm font-medium">Подтверждение почты</h3>
 
         {!isVerified && (
           <p className="text-sm text-muted-foreground">
-            Confirm your email address to unlock all account features.
+            Подтвердите адрес, чтобы менять почту и подключить 2FA.
           </p>
         )}
       </div>

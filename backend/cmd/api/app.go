@@ -129,10 +129,7 @@ func newApplication(cfg *config.Config, reg *prometheus.Registry, m *Metrics) (*
 
 		User: &user.Handler{Service: userService, Cookies: cookiesService},
 
-		Mfa: &mfa.Handler{
-			UserService: userService,
-			Service:     mfaService,
-		},
+		Mfa:        &mfa.Handler{Service: mfaService},
 		MfaService: mfaService,
 
 		ResetPassword: &resetpassword.Handler{

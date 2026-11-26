@@ -27,12 +27,11 @@ import {
   COURSE_OPTIONS,
   LECTURER_POSITIONS,
   LECTURER_POSITION_LABELS,
-  type CreateSubjectDialogProps,
   SCOPE_LABELS,
   TERM_LABELS,
   TERM_OPTIONS,
   EXAM_TYPES,
-} from "../model/constants";
+} from "@/entities/subject/model/constants";
 
 import { useCreateSubjectForm } from "../model/use-create-subject-form";
 import type { LecturerPosition } from "@/shared/api";
@@ -148,6 +147,11 @@ function Collapse({
     </div>
   );
 }
+
+type CreateSubjectDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
 
 export function CreateSubjectDialog({
   open,

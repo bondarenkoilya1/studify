@@ -9,7 +9,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { formatRelativeDeadline, formatDate } from "@/widgets/dashboard";
+import { formatRelativeDeadline } from "@/widgets/dashboard";
+import { formatStudyDate } from "@/shared/lib/study-date";
 import {
   getGetDashboardStatusQueryOptions,
   useGetDashboardStatusSuspense,
@@ -224,7 +225,7 @@ function DashboardPage() {
                     dashboardStatus.nearest_deadline_task.deadline,
                   )}{" "}
                   ·{" "}
-                  {formatDate(
+                  {formatStudyDate(
                     dashboardStatus.nearest_deadline_task.deadline_date ??
                       dashboardStatus.nearest_deadline_task.deadline!,
                   )}

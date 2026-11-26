@@ -1,1 +1,1 @@
-export { formatRelativeDeadline, formatDate } from "./model/utils";
+export { formatRelativeDeadline } from "./model/utils";

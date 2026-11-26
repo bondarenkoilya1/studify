@@ -53,7 +53,12 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.Service.SendConfirmationEmail(r.Context(), internal.UserID(currentUser.ID), currentUser.Email); err != nil {
+		if errors.Is(err, ErrAlreadyVerified) {
+			http.Error(w, "email already verified", http.StatusConflict)
+			return
+		}
 		if errors.Is(err, ErrResendTooSoon) {
+			w.Header().Set("Retry-After", "60")
 			http.Error(w, "confirmation email requested too soon", http.StatusTooManyRequests)
 			return
 		}

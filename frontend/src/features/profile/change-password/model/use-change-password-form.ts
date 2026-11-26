@@ -22,10 +22,10 @@ export function useChangePasswordForm() {
     mutation: {
       onSuccess: async () => {
         endSession(queryClient);
-        toast.success("Password changed. Sign in with your new password.");
+        toast.success("Пароль изменён. Войдите с новым паролем.");
         await navigate({ to: "/login", replace: true });
       },
-      onError: () => toast.error("Failed to update password."),
+      onError: () => toast.error("Не удалось изменить пароль."),
     },
   });
 

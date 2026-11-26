@@ -93,6 +93,8 @@ paths:
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -127,6 +129,8 @@ paths:
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -160,6 +164,8 @@ paths:
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -228,11 +234,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '429':
-          description: A confirmation email was requested less than a minute ago.
-          content:
-            text/plain:
-              schema:
-                $ref: '#/components/schemas/Error'
+          $ref: '#/components/responses/TooManyRequests'
+        '409':
+          $ref: '#/components/responses/EmailAlreadyVerified'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -295,6 +299,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -332,6 +338,8 @@ paths:
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -375,9 +383,16 @@ paths:
     delete:
       tags: [Auth / TOTP]
       summary: Disable TOTP for the authenticated user
+      description: Requires the current account password. Recovery codes and unfinished MFA sign-ins are revoked.
       operationId: disableTOTP
       security:
         - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CurrentPasswordRequest'
       responses:
         '204':
           description: TOTP was disabled. Recovery codes and pending login challenges were invalidated.
@@ -385,6 +400,16 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -412,6 +437,8 @@ paths:
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -438,6 +465,8 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -468,6 +497,8 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1220,7 +1251,8 @@ paths:
       tags: [Profile]
       summary: Update the authenticated user's email
       description: |
-        Sets `is_email_verified` to false and sends a new confirmation email. The new email must
+        Requires the current password and an already verified email. Sets `is_email_verified`
+        to false, invalidates older links, and sends a new confirmation email. The new email must
         be a valid address and differ from the current one. An email that is already taken returns 409 Conflict.
         The response has `is_totp_enabled: false` and `avatar_url: null` regardless of the
         stored values; call GET /api/users/me for the full profile.
@@ -1235,7 +1267,7 @@ paths:
               $ref: '#/components/schemas/EmailRequest'
       responses:
         '200':
-          description: Email updated and a confirmation email was sent.
+          description: Email updated. A new confirmation email can also be requested with the resend endpoint.
           content:
             application/json:
               schema:
@@ -1252,6 +1284,10 @@ paths:
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -1444,6 +1480,24 @@ components:
             $ref: '#/components/schemas/Credentials'
 
   responses:
+    EmailAlreadyVerified:
+      description: The current email address is already verified.
+      content:
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooManyRequests:
+      description: Request quota exceeded.
+      headers:
+        Retry-After:
+          description: Suggested wait time in seconds.
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        text/plain:
+          schema:
+            $ref: '#/components/schemas/Error'
     PayloadTooLarge:
       description: The JSON request body exceeds 1 MiB.
       content:
@@ -1672,12 +1726,27 @@ components:
 
     EmailRequest:
       type: object
-      required: [new_email]
+      required: [new_email, current_password]
       properties:
         new_email:
           type: string
           format: email
           example: new_student@example.com
+        current_password:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
+
+    CurrentPasswordRequest:
+      type: object
+      required: [current_password]
+      properties:
+        current_password:
+          type: string
+          format: password
+          writeOnly: true
+          minLength: 1
 
     PasswordRequest:
       type: object

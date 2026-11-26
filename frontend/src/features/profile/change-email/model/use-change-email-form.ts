@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { currentUserQuery, useCurrentUser } from "@/entities/user";
 import { useUpdateUserEmail } from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import { toast } from "@/shared/ui/sonner";
 import { ChangeEmailSchema, type ChangeEmailFormData } from "./schema";
 
@@ -14,22 +15,47 @@ export function useChangeEmailForm() {
     resolver: zodResolver(ChangeEmailSchema),
     defaultValues: {
       newEmail: "",
+      currentPassword: "",
     },
   });
 
   const changeEmailMutation = useUpdateUserEmail({
     mutation: {
-      onSuccess: async () => {
-        // The response omits some profile fields, so refetch the full user.
+      onSuccess: async (user) => {
+        form.reset();
+        queryClient.setQueryData(currentUserQuery.queryKey, user);
         await queryClient.invalidateQueries(currentUserQuery);
-        toast.success("Your email was successfully updated!");
+        toast.success("Адрес изменён. Подтвердите его по ссылке из письма.");
       },
-      onError: () => toast.error("Failed to update email."),
+      onError: (error) => {
+        if (error.status === 403) {
+          if (error.message === "verified email required") {
+            toast.error("Сначала подтвердите текущий адрес почты.");
+          } else {
+            form.setError("currentPassword", {
+              message: "Неверный текущий пароль",
+            });
+          }
+          return;
+        }
+        if (error.status === 409) {
+          form.setError("newEmail", { message: "Этот адрес уже используется" });
+          return;
+        }
+        toast.error(
+          getRequestErrorMessage(error, "Не удалось изменить почту."),
+        );
+      },
     },
   });
 
   const onSubmit = (value: ChangeEmailFormData) => {
-    changeEmailMutation.mutate({ data: { new_email: value.newEmail } });
+    changeEmailMutation.mutate({
+      data: {
+        new_email: value.newEmail,
+        current_password: value.currentPassword,
+      },
+    });
   };
 
   return {

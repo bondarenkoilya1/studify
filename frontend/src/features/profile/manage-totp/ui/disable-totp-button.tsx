@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/shared/ui/button";
+import { FormField } from "@/shared/ui/form-field";
+import { Input } from "@/shared/ui/input";
 import {
   Dialog,
   DialogBody,
@@ -12,6 +14,7 @@ import { useDisableTotp } from "../model/use-disable-totp";
 
 export function DisableTotpButton() {
   const [isOpen, setIsOpen] = useState(false);
+  const [password, setPassword] = useState("");
   const { mutate, reset, isPending, errorMessage } = useDisableTotp();
 
   const openConfirmation = () => {
@@ -20,8 +23,24 @@ export function DisableTotpButton() {
   };
 
   const changeOpen = (open: boolean) => {
-    if (!isPending) setIsOpen(open);
+    if (isPending) return;
+    if (!open) setPassword("");
+    setIsOpen(open);
   };
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!password || isPending) return;
+    mutate(
+      { data: { current_password: password } },
+      {
+        onSuccess: () => {
+          setPassword("");
+          setIsOpen(false);
+        },
+      },
+    );
+  }
 
   return (
     <>
@@ -37,33 +56,44 @@ export function DisableTotpButton() {
             перестанут действовать.
           </DialogDescription>
         </DialogHeader>
-        {errorMessage && (
+        <form onSubmit={submit}>
           <DialogBody>
-            <p role="alert" className="text-sm text-destructive">
-              {errorMessage}
-            </p>
+            <FormField htmlFor="disable-totp-password" label="Текущий пароль">
+              <Input
+                id="disable-totp-password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.currentTarget.value)}
+                aria-invalid={Boolean(errorMessage)}
+                disabled={isPending}
+              />
+              {errorMessage && (
+                <p role="alert" className="text-sm text-destructive">
+                  {errorMessage}
+                </p>
+              )}
+            </FormField>
           </DialogBody>
-        )}
-        <DialogFooter className="flex-row justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isPending}
-            onClick={() => changeOpen(false)}
-          >
-            Отмена
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={isPending}
-            onClick={() =>
-              mutate(undefined, { onSuccess: () => setIsOpen(false) })
-            }
-          >
-            {isPending ? "Отключаем..." : "Отключить"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter className="flex-row justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => changeOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="submit"
+              variant="destructive"
+              disabled={isPending || !password}
+            >
+              {isPending ? "Отключаем..." : "Отключить"}
+            </Button>
+          </DialogFooter>
+        </form>
       </Dialog>
     </>
   );

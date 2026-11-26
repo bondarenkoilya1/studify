@@ -2,16 +2,17 @@ import type React from "react";
 import { CalendarDays, GraduationCap, type LucideIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
+import { Card } from "@/shared/ui/card";
 import { ImageUpload } from "@/shared/ui/image";
 import { cn } from "@/shared/lib/cn";
+import { formatStudyDate } from "@/shared/lib/study-date";
 import { toast } from "@/shared/ui/sonner";
 import { useUploadSubjectThumbnail } from "../model/use-upload-subject-thumbnail";
-import { DeleteSubjectButton } from "@/features/subject/delete-subject";
 import {
   LECTURER_POSITIONS,
   LECTURER_POSITION_LABELS,
   SCOPE_LABELS,
-} from "@/features/subject/create-subject/model/constants";
+} from "@/entities/subject/model/constants";
 import type { Subject } from "@/shared/api";
 import {
   SCOPE_DOT_COLORS,
@@ -48,13 +49,19 @@ function MetaRow({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5" title={title}>
-      <Icon className="size-[15px] shrink-0 text-neutral-400" />
-      <p className="truncate text-[13px] text-neutral-700">{children}</p>
+      <Icon className="size-[15px] shrink-0 text-muted-foreground" />
+      <p className="truncate text-[13px] text-foreground">{children}</p>
     </div>
   );
 }
 
-export function SubjectCard({ subject }: { subject: Subject }) {
+export function SubjectCard({
+  subject,
+  children,
+}: {
+  subject: Subject;
+  children?: React.ReactNode;
+}) {
   const uploadThumbnail = useUploadSubjectThumbnail();
 
   const { gradient } = getSubjectPresentation(subject.scope, subject.id);
@@ -62,11 +69,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
   const lecturers = subject.lecturers ?? [];
 
   const examDate = subject.exam_date
-    ? new Date(subject.exam_date).toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
+    ? formatStudyDate(subject.exam_date, "d MMMM yyyy")
     : null;
 
   const lecturerGroups = isUniversity
@@ -94,16 +97,12 @@ export function SubjectCard({ subject }: { subject: Subject }) {
     });
   };
 
-  const handleThumbnailReject = (reason: string) => {
-    toast.error(reason);
-  };
-
   return (
-    <div className="group relative h-[300px] rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)] transition-all duration-300 hover:-translate-y-[3px] hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.14)]">
+    <Card className="group relative h-[300px] transition-shadow hover:shadow-md motion-safe:transition-[transform,box-shadow] motion-safe:hover:-translate-y-1">
       <Link
         to="/subjects/$id"
         params={{ id: subject.id }}
-        className="flex h-full flex-col rounded-[22px] p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+        className="flex h-full flex-col rounded-2xl p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {/* Header */}
         <div className="flex min-h-11 items-center gap-3.5 pr-8">
@@ -119,7 +118,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
             loading={uploadThumbnail.isPending}
             disabled={uploadThumbnail.isPending}
             onFileSelect={handleThumbnailSelect}
-            onFileReject={handleThumbnailReject}
+            onFileReject={toast.error}
             containerClassName={cn(
               "size-11 shrink-0 rounded-[13px] shadow-sm text-[14px] font-semibold text-white",
               `bg-gradient-to-br ${gradient}`,
@@ -129,7 +128,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
           <h3
             title={subject.name}
-            className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-neutral-900"
+            className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-foreground"
           >
             {subject.name}
           </h3>
@@ -139,7 +138,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
         {subject.note && (
           <p
             title={subject.note}
-            className="mt-3 line-clamp-2 text-[13px] leading-[1.4] text-neutral-500"
+            className="mt-3 line-clamp-2 text-[13px] leading-[1.4] text-muted-foreground"
           >
             {subject.note}
           </p>
@@ -147,28 +146,28 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
         {/* Meta */}
         {hasMeta && (
-          <div className="mt-3 space-y-2 border-t border-black/[0.04] pt-3">
+          <div className="mt-3 space-y-2 border-t border-border pt-3">
             {visibleLecturers.map(({ pos, label, names }) => (
               <MetaRow
                 key={pos}
                 icon={GraduationCap}
                 title={`${label}: ${names}`}
               >
-                <span className="text-neutral-400">{label}: </span>
+                <span className="text-muted-foreground">{label}: </span>
 
-                <span className="font-medium text-neutral-700">{names}</span>
+                <span className="font-medium text-foreground">{names}</span>
               </MetaRow>
             ))}
 
             {hiddenCount > 0 && (
-              <p className="pl-[23px] text-[12px] text-neutral-400">
+              <p className="pl-[23px] text-[12px] text-muted-foreground">
                 +{hiddenCount} ещё
               </p>
             )}
 
             {examDate && (
               <MetaRow icon={CalendarDays} title={examDate}>
-                <span className="font-medium text-neutral-700">{examDate}</span>
+                <span className="font-medium text-foreground">{examDate}</span>
               </MetaRow>
             )}
           </div>
@@ -176,17 +175,17 @@ export function SubjectCard({ subject }: { subject: Subject }) {
 
         {/* Footer */}
         <div className="mt-auto flex items-center gap-2 pt-4">
-          <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600">
+          <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
             {isUniversity ? "Университет" : "Личный"}
           </span>
 
           {(subject.course || subject.term) && (
-            <span className="flex shrink-0 overflow-hidden rounded-full border border-black/[0.04] text-[11px] font-medium">
+            <span className="flex shrink-0 overflow-hidden rounded-full border border-border text-[11px] font-medium">
               {subject.course && (
                 <span
                   className={`px-2.5 py-0.5 ${
                     COURSE_COLORS[subject.course] ??
-                    "bg-neutral-100 text-neutral-600"
+                    "bg-muted text-muted-foreground"
                   }`}
                 >
                   {subject.course} курс
@@ -197,7 +196,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
                 <span
                   className={`px-2.5 py-0.5 ${
                     subject.course ? "border-l border-black/[0.06] " : ""
-                  }${TERM_COLORS[subject.term] ?? "bg-neutral-100 text-neutral-600"}`}
+                  }${TERM_COLORS[subject.term] ?? "bg-muted text-muted-foreground"}`}
                 >
                   {subject.term} семестр
                 </span>
@@ -205,7 +204,7 @@ export function SubjectCard({ subject }: { subject: Subject }) {
             </span>
           )}
 
-          <span className="ml-auto flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-neutral-500">
+          <span className="ml-auto flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
             <span
               className={`size-1.5 shrink-0 rounded-full ${
                 SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400"
@@ -219,10 +218,11 @@ export function SubjectCard({ subject }: { subject: Subject }) {
         </div>
       </Link>
 
-      {/* Action Button */}
-      <div className="absolute right-4 top-4 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <DeleteSubjectButton id={subject.id} subjectName={subject.name} />
-      </div>
-    </div>
+      {children && (
+        <div className="absolute right-4 top-4 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+          {children}
+        </div>
+      )}
+    </Card>
   );
 }

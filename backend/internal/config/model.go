@@ -14,6 +14,7 @@ type Config struct {
 	AppURL            string
 	Env               string
 	CORSOrigins       []string
+	TrustedProxyCIDRs []string
 	SMTPAddr          string
 }
 

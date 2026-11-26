@@ -2,11 +2,13 @@ import { publicEnv } from "@/shared/config";
 
 export class ApiError extends Error {
   readonly status: number;
+  readonly retryAfter?: number;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, retryAfter?: number) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -71,10 +73,17 @@ async function readBody(response: Response): Promise<unknown> {
 async function toError(response: Response): Promise<ApiError> {
   const text = (await response.text()).trim();
   const message = text || `Request failed with status ${response.status}`;
+  const waitSeconds = Number(response.headers.get("Retry-After"));
 
   return response.status === 401
     ? new UnauthorizedError(message)
-    : new ApiError(response.status, message);
+    : new ApiError(
+        response.status,
+        message,
+        waitSeconds > 0 && Number.isFinite(waitSeconds)
+          ? waitSeconds
+          : undefined,
+      );
 }
 
 /**

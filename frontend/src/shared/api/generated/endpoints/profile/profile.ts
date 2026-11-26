@@ -53,6 +53,7 @@ import type {
   NotFoundResponse,
   PasswordRequest,
   PayloadTooLargeResponse,
+  TooManyRequestsResponse,
   UnauthorizedResponse,
   UnsupportedImageResponse,
   UnsupportedMediaTypeResponse,
@@ -390,7 +391,8 @@ export const getUpdateUserEmailUrl = () => {
 };
 
 /**
- * Sets `is_email_verified` to false and sends a new confirmation email. The new email must
+ * Requires the current password and an already verified email. Sets `is_email_verified`
+ * to false, invalidates older links, and sends a new confirmation email. The new email must
  * be a valid address and differ from the current one. An email that is already taken returns 409 Conflict.
  * The response has `is_totp_enabled: false` and `avatar_url: null` regardless of the
  * stored values; call GET /api/users/me for the full profile.
@@ -438,10 +440,12 @@ export const getUpdateUserEmailMutationOptions = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | ConflictResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,
@@ -487,10 +491,12 @@ export type UpdateUserEmailMutationBody = EmailRequest;
 export type UpdateUserEmailMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
+  | ForbiddenResponse
   | NotFoundResponse
   | ConflictResponse
   | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
+  | TooManyRequestsResponse
   | InternalErrorResponse
 >;
 export type UpdateUserEmailMutationVariables = { data: EmailRequest };
@@ -502,10 +508,12 @@ export const useUpdateUserEmail = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | ConflictResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,

@@ -20,6 +20,8 @@ import {
   taskToCalendarEvents,
   type CalendarView,
 } from "../model/calendar-events";
+import { formatStudyDate } from "@/shared/lib/study-date";
+import { Card } from "@/shared/ui/card";
 import { ExamCalendarToolbar } from "./exam-calendar-toolbar";
 import { ExamCalendarEvent } from "./exam-calendar-event";
 
@@ -60,7 +62,7 @@ export function ExamCalendar() {
   };
 
   return (
-    <div className="exam-calendar overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.03)]">
+    <Card className="exam-calendar overflow-hidden">
       <ExamCalendarToolbar
         title={title}
         view={view}
@@ -109,30 +111,22 @@ export function ExamCalendar() {
           dayHeaderContent={(arg) =>
             arg.view.type === "timeGridWeek" ? (
               <div className="flex flex-col items-center justify-center gap-0.5 leading-[1.05]">
-                <span className="text-[11px] font-medium text-neutral-400">
-                  {new Intl.DateTimeFormat("ru-RU", {
-                    weekday: "short",
-                  })
-                    .format(arg.date)
-                    .replace(".", "")}
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {formatStudyDate(arg.date, "EEEEEE")}
                 </span>
                 <span
                   className={
                     arg.isToday
                       ? "flex size-7 items-center justify-center rounded-full bg-red-500 text-[13px] font-semibold text-white"
-                      : "text-[13px] font-semibold tabular-nums text-neutral-700"
+                      : "text-[13px] font-semibold tabular-nums text-foreground"
                   }
                 >
                   {arg.date.getDate()}
                 </span>
               </div>
             ) : (
-              <span className="text-[11px] font-medium text-neutral-400">
-                {new Intl.DateTimeFormat("ru-RU", {
-                  weekday: "narrow",
-                })
-                  .format(arg.date)
-                  .replace(".", "")}
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {formatStudyDate(arg.date, "EEEEE")}
               </span>
             )
           }
@@ -144,6 +138,6 @@ export function ExamCalendar() {
           weekNumbers={false}
         />
       </div>
-    </div>
+    </Card>
   );
 }

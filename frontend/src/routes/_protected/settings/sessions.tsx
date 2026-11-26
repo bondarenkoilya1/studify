@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { format, isValid } from "date-fns";
-import { ru } from "date-fns/locale";
+import { formatStudyDate } from "@/shared/lib/study-date";
 import {
   Globe2,
   Laptop,
@@ -264,7 +263,7 @@ function SessionRow({
   onRevoke: (isCurrent: boolean) => void;
 }) {
   const DeviceIcon = getDeviceIcon(session.device);
-  const lastLogin = formatSessionDate(session.last_login);
+  const lastLogin = formatStudyDate(session.last_login, "d MMMM yyyy, HH:mm");
 
   return (
     <div className="group flex flex-col gap-4 px-6 py-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:px-8">
@@ -437,12 +436,4 @@ function getDeviceIcon(device: string) {
   }
 
   return Monitor;
-}
-
-function formatSessionDate(value: string) {
-  const date = new Date(value);
-
-  return isValid(date)
-    ? format(date, "d MMM yyyy, HH:mm", { locale: ru })
-    : "Дата неизвестна";
 }

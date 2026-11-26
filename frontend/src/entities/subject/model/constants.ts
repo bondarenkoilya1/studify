@@ -1,10 +1,5 @@
 import type { LecturerPosition } from "@/shared/api";
 
-export type CreateSubjectDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-};
-
 export const SCOPE_LABELS: Record<string, string> = {
   technology: "Технологии",
   healthcare: "Медицина",

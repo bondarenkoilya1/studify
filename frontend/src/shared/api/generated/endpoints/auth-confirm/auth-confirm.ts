@@ -27,10 +27,12 @@ import type {
 
 import type {
   ConfirmEmailRequest,
+  EmailAlreadyVerifiedResponse,
   Error,
   InternalErrorResponse,
   NotFoundResponse,
   PayloadTooLargeResponse,
+  TooManyRequestsResponse,
   UnauthorizedResponse,
   UnsupportedMediaTypeResponse,
 } from "../../model";
@@ -61,7 +63,11 @@ export const getResendConfirmationEmailMutationKey = () =>
 
 export const getResendConfirmationEmailMutationOptions = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | Error | InternalErrorResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | EmailAlreadyVerifiedResponse
+    | TooManyRequestsResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(options?: {
@@ -102,7 +108,11 @@ export type ResendConfirmationEmailMutationResult = NonNullable<
 >;
 
 export type ResendConfirmationEmailMutationError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse | Error | InternalErrorResponse
+  | UnauthorizedResponse
+  | NotFoundResponse
+  | EmailAlreadyVerifiedResponse
+  | TooManyRequestsResponse
+  | InternalErrorResponse
 >;
 
 /**
@@ -110,7 +120,11 @@ export type ResendConfirmationEmailMutationError = ErrorType<
  */
 export const useResendConfirmationEmail = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | Error | InternalErrorResponse
+    | UnauthorizedResponse
+    | NotFoundResponse
+    | EmailAlreadyVerifiedResponse
+    | TooManyRequestsResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(

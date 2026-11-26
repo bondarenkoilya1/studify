@@ -1,5 +1,6 @@
 import type { Subject } from "@/shared/api";
 import { SubjectCard } from "@/entities/subject/ui/subject-card";
+import { DeleteSubjectButton } from "@/features/subject/delete-subject";
 
 interface SubjectListProps {
   subjects: Subject[];
@@ -21,7 +22,9 @@ export function SubjectList({ subjects }: SubjectListProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
       {subjects.map((subject) => (
-        <SubjectCard key={subject.id} subject={subject} />
+        <SubjectCard key={subject.id} subject={subject}>
+          <DeleteSubjectButton id={subject.id} subjectName={subject.name} />
+        </SubjectCard>
       ))}
     </div>
   );

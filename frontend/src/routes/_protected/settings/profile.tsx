@@ -1,3 +1,4 @@
+import { Card } from "@/shared/ui/card";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCurrentUser } from "@/entities/user";
 import { ChangeEmailSection } from "@/features/profile/change-email";
@@ -18,7 +19,7 @@ function RouteComponent() {
 
   return (
     <div className="min-w-0">
-      <div className="rounded-2xl border bg-card p-5 shadow-xs sm:p-6">
+      <Card className="p-5 sm:p-6">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
             Настройки профиля
@@ -36,7 +37,7 @@ function RouteComponent() {
           <div className="border-t" />
           <EmailVerificationSection />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

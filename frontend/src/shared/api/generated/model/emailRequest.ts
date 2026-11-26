@@ -20,4 +20,6 @@
 
 export interface EmailRequest {
   new_email: string;
+  /** @minLength 1 */
+  current_password: string;
 }

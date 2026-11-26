@@ -1,3 +1,4 @@
+import { Card } from "@/shared/ui/card";
 import { createFileRoute } from "@tanstack/react-router";
 import { ChangePasswordSection } from "@/features/profile/change-password";
 import { TotpSection } from "@/features/profile/manage-totp";
@@ -9,14 +10,14 @@ export const Route = createFileRoute("/_protected/settings/security")({
 function RouteComponent() {
   return (
     <div className="min-w-0">
-      <div className="rounded-2xl border bg-card p-5 shadow-xs sm:p-6">
+      <Card className="p-5 sm:p-6">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">
             Настройки безопасности
           </h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage your password and account security.
+            Управляйте паролем и двухфакторной аутентификацией.
           </p>
         </div>
 
@@ -26,7 +27,7 @@ function RouteComponent() {
           <ChangePasswordSection />
           <TotpSection />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

@@ -8,10 +8,10 @@ export function TotpEmailVerificationRequired() {
       </div>
 
       <div>
-        <h3 className="font-semibold">Two-factor authentication unavailable</h3>
+        <h3 className="font-semibold">Подтвердите почту для настройки 2FA</h3>
 
         <p className="mt-1 text-sm text-muted-foreground">
-          Verify your email address before enabling an authenticator app.
+          После подтверждения адреса можно подключить приложение-аутентификатор.
         </p>
       </div>
     </div>

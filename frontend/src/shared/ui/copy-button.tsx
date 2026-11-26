@@ -22,8 +22,8 @@ export function CopyButton({ value }: { value: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      aria-label={copied ? "Copied" : "Copy secret key"}
-      title={copied ? "Copied" : "Copy"}
+      aria-label={copied ? "Скопировано" : "Скопировать ключ"}
+      title={copied ? "Скопировано" : "Copy"}
       className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       {copied ? <Check className="size-4" /> : <Copy className="size-4" />}

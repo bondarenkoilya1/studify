@@ -31,10 +31,10 @@ function EmptyState() {
         </svg>
       </div>
 
-      <p className="text-[15px] font-medium text-gray-900">All clear</p>
+      <p className="text-[15px] font-medium text-gray-900">Задач пока нет</p>
 
       <p className="mt-1 text-[13px] text-gray-400">
-        No tasks for this subject yet
+        Создайте первую задачу для этого предмета.
       </p>
     </div>
   );

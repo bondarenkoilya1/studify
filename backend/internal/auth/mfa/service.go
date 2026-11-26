@@ -34,8 +34,24 @@ func NewService(db *sql.DB, cfg *config.Config) *Service {
 // generateTOTP creates a new TOTP secret for the user, stores it encrypted
 // and returns a QR code and a text key for the authenticator app.
 // MFA is not enabled until the code is confirmed in confirmTOTPSetup.
-func (s *Service) generateTOTP(ctx context.Context, email string, userID int64) (*TOTPResponse, error) {
-	key, err := s.generateTOTPKey(email, s.cfg.AppName)
+func (s *Service) generateTOTP(ctx context.Context, userID int64) (*TOTPResponse, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	currentUser, err := user.GetUserByIDForUpdate(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !currentUser.IsEmailVerified {
+		return nil, user.ErrVerifiedEmailRequired
+	}
+	if currentUser.IsTOTPEnabled {
+		return nil, ErrAlreadyEnabled
+	}
+
+	key, err := s.generateTOTPKey(currentUser.Email, s.cfg.AppName)
 	if err != nil {
 		return nil, fmt.Errorf("generate totp key: %w", err)
 	}
@@ -52,8 +68,11 @@ func (s *Service) generateTOTP(ctx context.Context, email string, userID int64) 
 		return nil, fmt.Errorf("encrypt totp key: %w", err)
 	}
 
-	if err = UpdateUserTOTPSecret(ctx, s.db, userID, encryptedSecret); err != nil {
+	if err = UpdateUserTOTPSecret(ctx, tx, userID, encryptedSecret); err != nil {
 		return nil, fmt.Errorf("save totp secret for user %d: %w", userID, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 
 	return &TOTPResponse{
@@ -77,6 +96,9 @@ func (s *Service) confirmTOTPSetup(ctx context.Context, userID internal.UserID, 
 	}
 	if currentUser.IsTOTPEnabled {
 		return nil, ErrAlreadyEnabled
+	}
+	if !currentUser.IsEmailVerified {
+		return nil, user.ErrVerifiedEmailRequired
 	}
 	if err := s.validateTOTP(ctx, tx, userID, code); err != nil {
 		return nil, fmt.Errorf("validate totp code: %w", err)
@@ -138,20 +160,28 @@ func replaceRecoveryCodes(ctx context.Context, tx *sql.Tx, userID int64) (*Recov
 }
 
 // disableTOTP turns off TOTP for the user.
-func (s *Service) disableTOTP(ctx context.Context, userID internal.UserID) error {
+func (s *Service) disableTOTP(ctx context.Context, userID int64, currentPassword string) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin TOTP disable: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if err := DisableUserTOTP(ctx, tx, int64(userID)); err != nil {
-		return fmt.Errorf("disable totp for user %d: %w", userID, err)
-	}
-	if err := rc.DeleteRecoveryCodes(ctx, tx, int64(userID)); err != nil {
+	currentUser, err := user.GetUserByIDForUpdate(ctx, tx, userID)
+	if err != nil {
 		return err
 	}
-	if err := challenge.DeleteAuthChallengesByUserID(ctx, tx, int64(userID)); err != nil {
+	if err := user.VerifyCurrentPassword(currentUser, currentPassword); err != nil {
+		return err
+	}
+
+	if err := DisableUserTOTP(ctx, tx, userID); err != nil {
+		return fmt.Errorf("disable totp for user %d: %w", userID, err)
+	}
+	if err := rc.DeleteRecoveryCodes(ctx, tx, userID); err != nil {
+		return err
+	}
+	if err := challenge.DeleteAuthChallengesByUserID(ctx, tx, userID); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {

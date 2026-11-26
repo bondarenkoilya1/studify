@@ -49,6 +49,7 @@ import type {
   CredentialsBody,
   InternalErrorResponse,
   PayloadTooLargeResponse,
+  TooManyRequestsResponse,
   UnauthorizedResponse,
   UnsupportedMediaTypeResponse,
   User,
@@ -428,6 +429,7 @@ export const getRegisterUserMutationOptions = <
     | ConflictResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,
@@ -475,6 +477,7 @@ export type RegisterUserMutationError = ErrorType<
   | ConflictResponse
   | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
+  | TooManyRequestsResponse
   | InternalErrorResponse
 >;
 export type RegisterUserMutationVariables = { data: CredentialsBody };
@@ -488,6 +491,7 @@ export const useRegisterUser = <
     | ConflictResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,
@@ -561,6 +565,7 @@ export const getLoginUserMutationOptions = <
     | UnauthorizedResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,
@@ -608,6 +613,7 @@ export type LoginUserMutationError = ErrorType<
   | UnauthorizedResponse
   | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
+  | TooManyRequestsResponse
   | InternalErrorResponse
 >;
 export type LoginUserMutationVariables = { data: CredentialsBody };
@@ -621,6 +627,7 @@ export const useLoginUser = <
     | UnauthorizedResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,

@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/shared/ui/sonner";
-import { requestPasswordReset } from "@/shared/api";
+import { ApiError, requestPasswordReset } from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import {
   type ForgotPasswordFormValues,
   forgotPasswordSchema,
@@ -19,8 +20,13 @@ export function useForgotPassword(onSuccess?: () => void) {
       await requestPasswordReset(values);
       toast.success("Ссылка для сброса пароля отправлена на вашу почту");
       onSuccess?.();
-    } catch {
-      toast.error("Не удалось отправить ссылку");
+    } catch (error) {
+      const fallback = "Не удалось отправить ссылку";
+      toast.error(
+        error instanceof ApiError
+          ? getRequestErrorMessage(error, fallback)
+          : fallback,
+      );
     }
   });
 

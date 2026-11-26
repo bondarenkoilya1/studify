@@ -17,7 +17,8 @@ type User struct {
 }
 
 type emailRequest struct {
-	NewEmail string `json:"new_email"`
+	NewEmail        string `json:"new_email"`
+	CurrentPassword string `json:"current_password"`
 }
 
 type passwordRequest struct {

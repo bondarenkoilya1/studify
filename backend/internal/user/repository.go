@@ -152,6 +152,15 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 	return &user, nil
 }
 
+func invalidateEmailTokens(ctx context.Context, tx *sql.Tx, userID int64) error {
+	_, err := tx.ExecContext(ctx, `DELETE FROM auth_tokens
+		WHERE user_id = $1 AND type IN ('email_confirmation', 'password_reset')`, userID)
+	if err != nil {
+		return fmt.Errorf("invalidate email tokens: %w", err)
+	}
+	return nil
+}
+
 // ReplacePasswordAndRevokeSessions requires a transaction holding the user row lock.
 func ReplacePasswordAndRevokeSessions(ctx context.Context, tx *sql.Tx, id int64, newPasswordHash string) error {
 	query := `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2;`

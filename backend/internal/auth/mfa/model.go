@@ -1,12 +1,7 @@
 package mfa
 
-import (
-	"studify/internal/user"
-)
-
 type Handler struct {
-	UserService *user.Service
-	Service     *Service
+	Service *Service
 }
 
 type Passcode struct {

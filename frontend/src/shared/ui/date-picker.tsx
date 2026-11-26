@@ -1,6 +1,6 @@
 import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import { formatStudyDate } from "@/shared/lib/study-date";
 
 import { Calendar } from "@/shared/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
@@ -45,9 +45,7 @@ export function DatePicker({
         )}
       >
         <span className="truncate">
-          {value
-            ? format(value, "d MMMM yyyy", { locale: ru })
-            : "Выберите дату"}
+          {value ? formatStudyDate(value, "d MMMM yyyy") : "Выберите дату"}
         </span>
         <CalendarIcon className="size-4.5 text-neutral-400 dark:text-neutral-500 shrink-0 ml-2" />
       </PopoverTrigger>

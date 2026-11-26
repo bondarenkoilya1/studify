@@ -6,9 +6,12 @@ export function RegisterButton() {
   return (
     <Link
       to="/register"
-      className={cn(buttonVariants({ variant: "secondary", size: "default" }), "px-6")}
+      className={cn(
+        buttonVariants({ variant: "secondary", size: "default" }),
+        "px-6",
+      )}
     >
-      Create account
+      Создать аккаунт
     </Link>
   );
 }
