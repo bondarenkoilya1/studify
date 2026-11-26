@@ -21,7 +21,10 @@ func GetUserTOTPKeyEncryptedByID(ctx context.Context, db internal.DBTX, id int64
 }
 
 func UpdateUserTOTPSecret(ctx context.Context, db internal.DBTX, id int64, secret string) error {
-	result, err := db.ExecContext(ctx, `UPDATE users SET totp_encrypted = $1 WHERE id = $2 AND NOT is_totp_enabled`, secret, id)
+	result, err := db.ExecContext(ctx, `
+		UPDATE users SET totp_encrypted = $1, updated_at = NOW()
+		WHERE id = $2 AND NOT is_totp_enabled
+	`, secret, id)
 	if err != nil {
 		return fmt.Errorf("update user TOTP secret: %w", err)
 	}
@@ -36,7 +39,9 @@ func UpdateUserTOTPSecret(ctx context.Context, db internal.DBTX, id int64, secre
 }
 
 func UpdateUserTOTPStatus(ctx context.Context, db internal.DBTX, id int64, enabled bool) error {
-	result, err := db.ExecContext(ctx, `UPDATE users SET is_totp_enabled = $1 WHERE id = $2`, enabled, id)
+	result, err := db.ExecContext(ctx, `
+		UPDATE users SET is_totp_enabled = $1, updated_at = NOW() WHERE id = $2
+	`, enabled, id)
 	if err != nil {
 		return fmt.Errorf("update user TOTP status: %w", err)
 	}
@@ -51,7 +56,9 @@ func UpdateUserTOTPStatus(ctx context.Context, db internal.DBTX, id int64, enabl
 }
 
 func DisableUserTOTP(ctx context.Context, db internal.DBTX, id int64) error {
-	result, err := db.ExecContext(ctx, `UPDATE users SET totp_encrypted = '', is_totp_enabled = FALSE WHERE id = $1`, id)
+	result, err := db.ExecContext(ctx, `
+		UPDATE users SET totp_encrypted = '', is_totp_enabled = FALSE, updated_at = NOW() WHERE id = $1
+	`, id)
 	if err != nil {
 		return fmt.Errorf("disable user TOTP: %w", err)
 	}

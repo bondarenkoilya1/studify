@@ -9,47 +9,22 @@ import (
 )
 
 type RefreshTokenRecord struct {
-	ID                int64
 	UserID            int64
 	SessionID         sql.NullInt64
-	TokenID           string
 	TokenHash         string
 	ExpiresAt         time.Time
-	CreatedAt         time.Time
 	RevokedAt         *time.Time
 	ReplacedByTokenID *string
 }
 
-const refreshTokenColumns = `
-	id, user_id, session_id, token_id, token_hash,
-	expires_at, created_at, revoked_at, replaced_by_token_id
-`
-
-func GetRefreshTokenByID(ctx context.Context, db internal.DBTX, id int64) (*RefreshTokenRecord, error) {
+func GetRefreshTokenByTokenIDForUpdate(ctx context.Context, db internal.DBTX, tokenID string) (*RefreshTokenRecord, error) {
 	var token RefreshTokenRecord
 	err := db.QueryRowContext(ctx, `
-		SELECT `+refreshTokenColumns+`
-		FROM refresh_tokens WHERE id = $1
-	`, id).Scan(
-		&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
-		&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get refresh token by ID: %w", err)
-	}
-	return &token, nil
-}
-
-func GetRefreshTokenByTokenID(ctx context.Context, db internal.DBTX, tokenID string, forUpdate bool) (*RefreshTokenRecord, error) {
-	query := `SELECT ` + refreshTokenColumns + ` FROM refresh_tokens WHERE token_id = $1`
-	if forUpdate {
-		query += ` FOR UPDATE`
-	}
-
-	var token RefreshTokenRecord
-	err := db.QueryRowContext(ctx, query, tokenID).Scan(
-		&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
-		&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
+		SELECT user_id, session_id, token_hash, expires_at, revoked_at, replaced_by_token_id
+		FROM refresh_tokens WHERE token_id = $1 FOR UPDATE
+	`, tokenID).Scan(
+		&token.UserID, &token.SessionID, &token.TokenHash,
+		&token.ExpiresAt, &token.RevokedAt, &token.ReplacedByTokenID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get refresh token by token ID: %w", err)
@@ -57,86 +32,15 @@ func GetRefreshTokenByTokenID(ctx context.Context, db internal.DBTX, tokenID str
 	return &token, nil
 }
 
-func GetRefreshTokenByTokenHash(ctx context.Context, db internal.DBTX, tokenHash string) (*RefreshTokenRecord, error) {
-	var token RefreshTokenRecord
-	err := db.QueryRowContext(ctx, `
-		SELECT `+refreshTokenColumns+`
-		FROM refresh_tokens WHERE token_hash = $1
-	`, tokenHash).Scan(
-		&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
-		&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("get refresh token by hash: %w", err)
-	}
-	return &token, nil
-}
-
-func GetRefreshTokens(ctx context.Context, db internal.DBTX) ([]RefreshTokenRecord, error) {
-	rows, err := db.QueryContext(ctx, `SELECT `+refreshTokenColumns+` FROM refresh_tokens`)
-	if err != nil {
-		return nil, fmt.Errorf("get refresh tokens: %w", err)
-	}
-	defer rows.Close()
-
-	var tokens []RefreshTokenRecord
-	for rows.Next() {
-		var token RefreshTokenRecord
-		if err := rows.Scan(
-			&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
-			&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
-		); err != nil {
-			return nil, fmt.Errorf("scan refresh token: %w", err)
-		}
-		tokens = append(tokens, token)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate refresh tokens: %w", err)
-	}
-	return tokens, nil
-}
-
-func GetRefreshTokensByUserID(ctx context.Context, db internal.DBTX, userID int64) ([]RefreshTokenRecord, error) {
-	rows, err := db.QueryContext(ctx, `
-		SELECT `+refreshTokenColumns+`
-		FROM refresh_tokens WHERE user_id = $1
-	`, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get refresh tokens by user ID: %w", err)
-	}
-	defer rows.Close()
-
-	var tokens []RefreshTokenRecord
-	for rows.Next() {
-		var token RefreshTokenRecord
-		if err := rows.Scan(
-			&token.ID, &token.UserID, &token.SessionID, &token.TokenID, &token.TokenHash,
-			&token.ExpiresAt, &token.CreatedAt, &token.RevokedAt, &token.ReplacedByTokenID,
-		); err != nil {
-			return nil, fmt.Errorf("scan refresh token: %w", err)
-		}
-		tokens = append(tokens, token)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate refresh tokens: %w", err)
-	}
-	return tokens, nil
-}
-
-func InsertRefreshToken(ctx context.Context, db internal.DBTX, userID, sessionID int64, tokenID, tokenHash string, expiresAt time.Time) (*RefreshTokenRecord, error) {
-	var token RefreshTokenRecord
-	err := db.QueryRowContext(ctx, `
+func InsertRefreshToken(ctx context.Context, db internal.DBTX, userID, sessionID int64, tokenID, tokenHash string, expiresAt time.Time) error {
+	_, err := db.ExecContext(ctx, `
 		INSERT INTO refresh_tokens (user_id, session_id, token_id, token_hash, expires_at)
 		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id, created_at
-	`, userID, sessionID, tokenID, tokenHash, expiresAt).Scan(&token.ID, &token.CreatedAt)
+	`, userID, sessionID, tokenID, tokenHash, expiresAt)
 	if err != nil {
-		return nil, fmt.Errorf("insert refresh token: %w", err)
+		return fmt.Errorf("insert refresh token: %w", err)
 	}
-
-	token.UserID, token.TokenID, token.TokenHash, token.ExpiresAt = userID, tokenID, tokenHash, expiresAt
-	token.SessionID = sql.NullInt64{Int64: sessionID, Valid: true}
-	return &token, nil
+	return nil
 }
 
 func RevokeRefreshToken(ctx context.Context, db internal.DBTX, tokenID string) error {
@@ -171,22 +75,6 @@ func ReplaceRefreshToken(ctx context.Context, db internal.DBTX, tokenID, replace
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("get replaced refresh tokens count: %w", err)
-	}
-	if rows == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
-}
-
-func DeleteRefreshToken(ctx context.Context, db internal.DBTX, id int64) error {
-	result, err := db.ExecContext(ctx, `DELETE FROM refresh_tokens WHERE id = $1`, id)
-	if err != nil {
-		return fmt.Errorf("delete refresh token: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("get deleted refresh tokens count: %w", err)
 	}
 	if rows == 0 {
 		return sql.ErrNoRows

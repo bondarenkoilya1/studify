@@ -34,10 +34,6 @@ func (h *Handler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, r, http.StatusOK, sessions)
 }
 
-func (h *Handler) GetSessions(w http.ResponseWriter, r *http.Request) {
-	h.GetUserSessions(w, r)
-}
-
 // GetSession returns a single session by its ID for the authenticated user.
 func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
@@ -105,10 +101,6 @@ func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (h *Handler) DeleteSession(w http.ResponseWriter, r *http.Request) {
-	h.RevokeSession(w, r)
-}
-
 // RevokeAllSessions deletes all active sessions of the authenticated user.
 func (h *Handler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
@@ -127,8 +119,4 @@ func (h *Handler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func (h *Handler) DeleteUserSessions(w http.ResponseWriter, r *http.Request) {
-	h.RevokeAllSessions(w, r)
 }

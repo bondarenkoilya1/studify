@@ -128,18 +128,3 @@ func DeleteAuthChallengesByUserID(ctx context.Context, db internal.DBTX, userID 
 
 	return nil
 }
-
-func DeleteExpiredAuthChallenges(db *sql.DB) (int64, error) {
-	query := `
-		DELETE FROM auth_tokens
-		WHERE type = $1
-		  AND expires_at < now();
-	`
-
-	result, err := db.Exec(query, authChallengeTokenType)
-	if err != nil {
-		return 0, fmt.Errorf("delete expired auth challenges: %w", err)
-	}
-
-	return result.RowsAffected()
-}

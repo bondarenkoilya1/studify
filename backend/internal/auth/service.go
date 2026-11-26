@@ -237,7 +237,7 @@ func (s *Service) refreshTokens(ctx context.Context, refreshToken token.RefreshT
 }
 
 func storedRefreshToken(ctx context.Context, q internal.DBTX, raw token.RefreshToken, userID internal.UserID, id token.TokenID) (*token.RefreshTokenRecord, error) {
-	record, err := token.GetRefreshTokenByTokenID(ctx, q, string(id), true)
+	record, err := token.GetRefreshTokenByTokenIDForUpdate(ctx, q, string(id))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrTokenNotFound
 	}
@@ -294,9 +294,8 @@ func (s *Service) issueTokens(ctx context.Context, q internal.DBTX, userID inter
 	}
 
 	expiresAt := time.Now().Add(s.tokenManager.RefreshTTL())
-	_, err = token.InsertRefreshToken(ctx, q, int64(userID), sessionID, string(id), util.HashSHA256(string(refresh)), expiresAt)
-	if err != nil {
-		return token.Pair{}, "", fmt.Errorf("insert refresh token: %w", err)
+	if err := token.InsertRefreshToken(ctx, q, int64(userID), sessionID, string(id), util.HashSHA256(string(refresh)), expiresAt); err != nil {
+		return token.Pair{}, "", err
 	}
 
 	access, err := s.tokenManager.NewAccess(userID, sessionID)

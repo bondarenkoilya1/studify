@@ -49,7 +49,7 @@ func scanSubject(scanner interface{ Scan(dest ...any) error }) (*Subject, error)
 
 func getLecturersBySubjectID(db internal.DBTX, subjectID int64) ([]Lecturer, error) {
 	rows, err := db.Query(
-		`SELECT name, position FROM lecturers WHERE subject_id = $1;`,
+		`SELECT name, position FROM lecturers WHERE subject_id = $1 ORDER BY id;`,
 		subjectID,
 	)
 	if err != nil {
@@ -74,7 +74,7 @@ func getLecturersBySubjectID(db internal.DBTX, subjectID int64) ([]Lecturer, err
 
 func getFilesBySubjectID(db internal.DBTX, subjectID int64) ([]File, error) {
 	rows, err := db.Query(
-		`SELECT path, original_name, mime_type, size_bytes FROM subjects_files WHERE subject_id = $1;`,
+		`SELECT path, original_name, mime_type, size_bytes FROM subjects_files WHERE subject_id = $1 ORDER BY id;`,
 		subjectID,
 	)
 	if err != nil {

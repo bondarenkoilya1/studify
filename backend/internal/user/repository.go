@@ -99,7 +99,7 @@ func InsertUser(db *sql.DB, email, passwordHash string) (*User, error) {
 }
 
 func VerifyUserEmail(db internal.DBTX, id int64) error {
-	query := `UPDATE users SET is_email_verified = TRUE WHERE id = $1;`
+	query := `UPDATE users SET is_email_verified = TRUE, updated_at = NOW() WHERE id = $1;`
 
 	result, err := db.Exec(query, id)
 	if err != nil {
@@ -121,7 +121,7 @@ func VerifyUserEmail(db internal.DBTX, id int64) error {
 func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail string) (*User, error) {
 	query := `
 		UPDATE users
-		SET email = $1, is_email_verified = FALSE
+		SET email = $1, is_email_verified = FALSE, updated_at = NOW()
 		WHERE id = $2
 		RETURNING id, email, is_email_verified;
 	`
@@ -138,7 +138,7 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) &&
 			pgErr.Code == uniqueViolation &&
-			pgErr.ConstraintName == "users_email_key" { // подставьте имя вашего ограничения/индекса
+			pgErr.ConstraintName == "users_email_key" {
 			return nil, ErrEmailTaken
 		}
 
@@ -150,7 +150,7 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 
 // ReplacePasswordAndRevokeSessions requires a transaction holding the user row lock.
 func ReplacePasswordAndRevokeSessions(ctx context.Context, tx *sql.Tx, id int64, newPasswordHash string) error {
-	query := `UPDATE users SET password_hash = $1 WHERE id = $2;`
+	query := `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2;`
 	if err := execExpectOne(ctx, tx, query, "update user password", newPasswordHash, id); err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func ReplacePasswordAndRevokeSessions(ctx context.Context, tx *sql.Tx, id int64,
 func ReplaceUserAvatar(ctx context.Context, db *sql.DB, id int64, newURL string) (*string, error) {
 	const query = `
 		UPDATE users u
-		SET avatar_url = $2
+		SET avatar_url = $2, updated_at = NOW()
 		FROM (SELECT id, avatar_url FROM users WHERE id = $1 FOR UPDATE) old
 		WHERE u.id = old.id
 		RETURNING old.avatar_url;`
@@ -189,7 +189,7 @@ func ReplaceUserAvatar(ctx context.Context, db *sql.DB, id int64, newURL string)
 func DeleteUserAvatar(ctx context.Context, db *sql.DB, id int64) (*string, error) {
 	const query = `
 		UPDATE users u
-		SET avatar_url = NULL
+		SET avatar_url = NULL, updated_at = NOW()
 		FROM (SELECT id, avatar_url FROM users WHERE id = $1 FOR UPDATE) old
 		WHERE u.id = old.id
 		RETURNING old.avatar_url;`

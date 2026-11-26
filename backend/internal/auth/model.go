@@ -10,17 +10,9 @@ type Handler struct {
 	Cookies *token.Cookies
 }
 
-type registerReq struct {
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	IsEmailVerified bool   `json:"is_email_verified"`
-}
-
-type userReq struct {
-	Email           string `json:"email"`
-	Password        string `json:"password"`
-	IsEmailVerified bool   `json:"is_email_verified"`
-	TOTPCode        string `json:"totp_code"`
+type credentialsRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type totpReq struct {

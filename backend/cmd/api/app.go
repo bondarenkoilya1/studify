@@ -66,10 +66,14 @@ type Metrics struct {
 }
 
 func run() error {
-	initLogger()
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	initLogger(cfg.IsProduction())
 	reg, m := initPrometheus()
 
-	app, err := newApplication(reg, m)
+	app, err := newApplication(cfg, reg, m)
 	if err != nil {
 		return err
 	}
@@ -78,12 +82,7 @@ func run() error {
 	return http.ListenAndServe(app.addr, app.router)
 }
 
-func newApplication(reg *prometheus.Registry, m *Metrics) (*application, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return nil, err
-	}
-
+func newApplication(cfg *config.Config, reg *prometheus.Registry, m *Metrics) (*application, error) {
 	db, err := openDB(cfg.DatabaseURL)
 	if err != nil {
 		return nil, err
@@ -175,16 +174,16 @@ func openDB(databaseURL string) (*sql.DB, error) {
 	return nil, fmt.Errorf("connect to database: %w", pingErr)
 }
 
-func initLogger() {
+func initLogger(production bool) {
 	var h slog.Handler
 
-	if os.Getenv("ENV") == "prod" {
+	if production {
 		h = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
+			Level: slog.LevelInfo,
 		})
 	} else {
 		h = tint.NewTextHandler(os.Stdout, &tint.Options{
-			Level:      slog.LevelInfo,
+			Level:      slog.LevelDebug,
 			TimeFormat: time.Kitchen,
 		})
 	}

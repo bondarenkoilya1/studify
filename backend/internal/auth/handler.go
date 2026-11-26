@@ -14,7 +14,7 @@ import (
 )
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
-	body := registerReq{}
+	body := credentialsRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
@@ -50,7 +50,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
-	body := userReq{}
+	body := credentialsRequest{}
 
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
