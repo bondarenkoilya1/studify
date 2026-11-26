@@ -1,4 +1,5 @@
 import { useRouter, type ErrorComponentProps } from "@tanstack/react-router";
+import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { LoaderCircle, TriangleAlert, WifiOff } from "lucide-react";
 import { NetworkError } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
@@ -11,10 +12,19 @@ export function PageLoader() {
   );
 }
 
-export function PageError({ error }: ErrorComponentProps) {
+export function PageError({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  const queryErrorBoundary = useQueryErrorResetBoundary();
 
-  return <RequestError error={error} onRetry={() => router.invalidate()} />;
+  return (
+    <RequestError
+      error={error}
+      onRetry={() => {
+        queryErrorBoundary.reset();
+        void router.invalidate().then(reset);
+      }}
+    />
+  );
 }
 
 export function RequestError({

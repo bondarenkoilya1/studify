@@ -4,12 +4,11 @@ import { type DefaultValues, useForm } from "react-hook-form";
 
 import {
   type ApiError,
-  invalidateGetDashboardStatus,
   NetworkError,
-  invalidateGetUserSubjects,
   type SubjectCreateRequest,
   useAddSubject,
 } from "@/shared/api";
+import { invalidateSubjectData } from "@/entities/subject/model/invalidation";
 import { createSubjectSchema, type CreateSubjectFormValues } from "./schema";
 
 const defaultValues: DefaultValues<CreateSubjectFormValues> = {
@@ -72,10 +71,7 @@ export function useCreateSubjectForm(onSuccess?: () => void) {
         form.setError("root", { message: getSubjectErrorMessage(error) });
       },
       onSuccess: async () => {
-        await Promise.all([
-          invalidateGetUserSubjects(queryClient),
-          invalidateGetDashboardStatus(queryClient),
-        ]);
+        await invalidateSubjectData(queryClient);
 
         form.reset(defaultValues);
         form.clearErrors("root");
