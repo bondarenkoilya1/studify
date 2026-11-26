@@ -186,6 +186,8 @@ test("creates a subject and task, opens its month and removes completed work fro
   const subjectLink = page.getByRole("link", { name: new RegExp(subjectName) });
   await expect(subjectLink).toBeVisible();
   await subjectLink.click();
+  await expect(page).toHaveURL(/\/subjects\/\d+\/?$/);
+  const subjectUrl = page.url();
 
   await page.getByRole("button", { name: "Новая задача" }).click();
   const taskForm = page.getByRole("dialog", { name: "Новая задача" });
@@ -202,19 +204,24 @@ test("creates a subject and task, opens its month and removes completed work fro
   await page
     .getByRole("link", { name: "Календарь экзаменов", exact: true })
     .click();
-  const event = page.getByText(taskName, { exact: true });
+  await expect(page).toHaveURL(/\/calendar\/?$/);
+  const calendar = page.locator(".exam-calendar");
+  const event = calendar.getByText(taskName, { exact: true });
   await expect(event).toBeVisible();
   await event.click();
+  await expect(page).toHaveURL(subjectUrl);
   await expect(
     page.getByRole("heading", { name: subjectName, exact: true }),
   ).toBeVisible();
-  await page
-    .getByLabel(`Статус задачи «${taskName}»`)
-    .selectOption("completed");
-  await expect(page.getByLabel(`Статус задачи «${taskName}»`)).toBeEnabled();
+  const status = page.getByLabel(`Статус задачи «${taskName}»`);
+  await status.selectOption("completed");
+  await expect(status).toBeEnabled();
+  await expect(status).toHaveValue("completed");
   await page
     .getByRole("link", { name: "Календарь экзаменов", exact: true })
     .click();
+  await expect(page).toHaveURL(/\/calendar\/?$/);
+  await expect(calendar.getByRole("button", { name: "Сегодня" })).toBeVisible();
   await expect(event).toHaveCount(0);
 });
 
