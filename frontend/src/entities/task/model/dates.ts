@@ -1,5 +1,6 @@
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import { differenceInCalendarDays, isValid, parseISO } from "date-fns";
 import type { Task } from "@/shared/api";
+import { formatStudyDate } from "@/shared/lib/study-date";
 
 export function formatTaskDeadline(
   task: Pick<Task, "deadline" | "deadline_date">,
@@ -9,23 +10,20 @@ export function formatTaskDeadline(
   if (!value) return null;
 
   const date = parseISO(value);
+  if (!isValid(date)) return null;
   const daysUntilDue = differenceInCalendarDays(date, now);
-  const formatted = date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
 
   if (daysUntilDue < 0 || (!task.deadline_date && date < now)) {
-    return { text: `${formatted} · overdue`, urgent: true };
+    return { text: `${formatStudyDate(date)} · просрочено`, urgent: true };
   }
 
   if (daysUntilDue === 0) {
-    return { text: "Due today", urgent: true };
+    return { text: "Дедлайн сегодня", urgent: true };
   }
 
   if (daysUntilDue === 1) {
-    return { text: "Due tomorrow", urgent: true };
+    return { text: "Дедлайн завтра", urgent: true };
   }
 
-  return { text: `Due ${formatted}`, urgent: false };
+  return { text: `До ${formatStudyDate(date)}`, urgent: false };
 }

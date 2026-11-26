@@ -9,11 +9,11 @@ export function UnverifiedEmailCard() {
 
         <div>
           <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
-            Email not verified
+            Почта не подтверждена
           </p>
 
           <p className="text-sm text-muted-foreground">
-            Check your inbox or request a new confirmation email.
+            Проверьте входящие или запросите новое письмо.
           </p>
         </div>
       </div>

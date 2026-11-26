@@ -82,6 +82,9 @@ Content-Type: application/json
 
 ### Disable 2FA
 DELETE {{baseUrl}}/api/auth/totp/
+Content-Type: application/json
+
+{"current_password":"{{password}}"}
 
 ### List active sessions
 GET {{baseUrl}}/api/auth/sessions/

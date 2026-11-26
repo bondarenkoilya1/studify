@@ -7,12 +7,10 @@ export function VerifiedEmailCard() {
 
       <div>
         <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          Email verified
+          Почта подтверждена
         </p>
 
-        <p className="text-sm text-muted-foreground">
-          Your email address has been successfully confirmed.
-        </p>
+        <p className="text-sm text-muted-foreground">Адрес подтверждён.</p>
       </div>
     </div>
   );

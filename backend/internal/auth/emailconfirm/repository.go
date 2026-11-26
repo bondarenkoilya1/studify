@@ -10,6 +10,18 @@ import (
 
 const emailConfirmTokenType = "email_confirmation"
 
+func findConfirmationUserID(ctx context.Context, tx *sql.Tx, tokenHash []byte) (int64, error) {
+	var userID int64
+	err := tx.QueryRowContext(ctx, `
+		SELECT user_id FROM auth_tokens
+		WHERE token_hash = $1 AND type = $2 AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')
+	`, tokenHash, emailConfirmTokenType).Scan(&userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, ErrInvalidConfirmationToken
+	}
+	return userID, err
+}
+
 func saveConfirmationToken(ctx context.Context, db internal.DBTX, userID int64, tokenHash []byte, ttlSeconds int64) error {
 	result, err := db.ExecContext(ctx, `
 		INSERT INTO auth_tokens (user_id, token_hash, type, expires_at)

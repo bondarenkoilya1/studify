@@ -21,7 +21,7 @@ export function TotpSetupConfirmationForm() {
           <div className="space-y-2">
             <Input
               {...register("passcode")}
-              placeholder="Auth passcode"
+              placeholder="Код аутентификатора"
               inputMode="numeric"
               type="text"
               maxLength={6}
@@ -35,7 +35,7 @@ export function TotpSetupConfirmationForm() {
           </div>
 
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Verifying..." : "Confirm"}
+            {isPending ? "Проверяем…" : "Подтвердить"}
           </Button>
         </form>
       )}

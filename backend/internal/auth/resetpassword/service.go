@@ -35,7 +35,7 @@ func (s *Service) requestPasswordReset(ctx context.Context, email string) error 
 		return fmt.Errorf("get user by email: %w", err)
 	}
 
-	t, err := s.createResetPasswordToken(ctx, currentUser.ID)
+	t, err := s.createResetPasswordToken(ctx, currentUser.ID, currentUser.Email)
 	if err != nil {
 		return fmt.Errorf("create password reset token: %w", err)
 	}
@@ -137,18 +137,26 @@ func (s *Service) validateResetPasswordToken(ctx context.Context, t token.Token)
 	return resetToken, nil
 }
 
-func (s *Service) createResetPasswordToken(ctx context.Context, userID int64) (token.Token, error) {
+func (s *Service) createResetPasswordToken(ctx context.Context, userID int64, email string) (token.Token, error) {
 	t, err := token.GenerateAuthToken()
 	if err != nil {
 		return "", fmt.Errorf("generate reset password token: %w", err)
 	}
 
 	hash := util.HashSHA256(string(t))
-	tx, err := session.BeginForUser(ctx, s.db, userID)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", fmt.Errorf("begin password reset token tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	currentUser, err := user.GetUserByIDForUpdate(ctx, tx, userID)
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = tx.Rollback() }()
+	if currentUser.Email != email {
+		return "", user.ErrUserNotFound
+	}
 
 	if err = DeleteResetPasswordToken(ctx, tx, userID); err != nil && !errors.Is(err, ErrNotFoundResetToken) {
 		return "", fmt.Errorf("delete previous reset password token: %w", err)

@@ -5,22 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"strings"
 )
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		AppName:          os.Getenv("APP_NAME"),
-		AppURL:           os.Getenv("APP_URL"),
-		DatabaseURL:      os.Getenv("DATABASE_URL"),
-		Env:              os.Getenv("ENV"),
-		Issuer:           os.Getenv("ISSUER"),
-		JWTAccessSecret:  os.Getenv("JWT_ACCESS_SECRET"),
-		JWTRefreshSecret: os.Getenv("JWT_REFRESH_SECRET"),
-		ServerAddr:       os.Getenv("SERVER_ADDR"),
-		MetricsAddr:      os.Getenv("METRICS_ADDR"),
-		CORSOrigins:      splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
+		AppName:           os.Getenv("APP_NAME"),
+		AppURL:            os.Getenv("APP_URL"),
+		DatabaseURL:       os.Getenv("DATABASE_URL"),
+		Env:               os.Getenv("ENV"),
+		Issuer:            os.Getenv("ISSUER"),
+		JWTAccessSecret:   os.Getenv("JWT_ACCESS_SECRET"),
+		JWTRefreshSecret:  os.Getenv("JWT_REFRESH_SECRET"),
+		ServerAddr:        os.Getenv("SERVER_ADDR"),
+		MetricsAddr:       os.Getenv("METRICS_ADDR"),
+		CORSOrigins:       splitEnvList(os.Getenv("CORS_ALLOWED_ORIGINS")),
+		TrustedProxyCIDRs: splitEnvList(os.Getenv("TRUSTED_PROXY_CIDRS")),
 	}
 
 	if cfg.AppName == "" {
@@ -94,6 +96,12 @@ func Load() (*Config, error) {
 		cfg.CORSOrigins = []string{
 			"http://localhost:5173",
 			"http://localhost:3000",
+		}
+	}
+
+	for _, cidr := range cfg.TrustedProxyCIDRs {
+		if _, err := netip.ParsePrefix(cidr); err != nil {
+			return nil, fmt.Errorf("invalid TRUSTED_PROXY_CIDRS entry %q: %w", cidr, err)
 		}
 	}
 

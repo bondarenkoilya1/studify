@@ -16,7 +16,12 @@ export function useDisableTotp() {
     },
   });
   const errorMessage = mutation.error
-    ? getRequestErrorMessage(mutation.error, "Не удалось отключить двухфакторную аутентификацию.")
+    ? mutation.error.status === 403
+      ? "Неверный текущий пароль"
+      : getRequestErrorMessage(
+          mutation.error,
+          "Не удалось отключить двухфакторную аутентификацию.",
+        )
     : null;
 
   return { ...mutation, errorMessage };

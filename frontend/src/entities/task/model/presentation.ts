@@ -10,19 +10,19 @@ export const STATUS_CONFIG: Record<
   { label: string; dot: string; text: string }
 > = {
   not_completed: {
-    label: "Not started",
-    dot: "bg-gray-300",
-    text: "text-gray-400",
+    label: "Не начато",
+    dot: "bg-muted-foreground/50",
+    text: "text-muted-foreground",
   },
   ongoing: {
-    label: "In progress",
-    dot: "bg-[#0A84FF]",
-    text: "text-[#0A84FF]",
+    label: "В процессе",
+    dot: "bg-primary",
+    text: "text-primary",
   },
   completed: {
-    label: "Completed",
-    dot: "bg-[#30B855]",
-    text: "text-[#2FA84A]",
+    label: "Выполнено",
+    dot: "bg-emerald-500",
+    text: "text-emerald-600 dark:text-emerald-400",
   },
 };
 
@@ -41,15 +41,15 @@ export const DIFFICULTY_LEVEL: Record<TaskDifficulty, 1 | 2 | 3> = {
 };
 
 export const DIFFICULTY_LABELS: Record<TaskDifficulty, string> = {
-  low: "Easy",
-  medium: "Medium",
-  high: "Hard",
+  low: "Легко",
+  medium: "Средне",
+  high: "Сложно",
 };
 
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
+  low: "Низкий",
+  medium: "Средний",
+  high: "Высокий",
 };
 
 export const PRIORITY_CHIP: Record<
@@ -58,12 +58,12 @@ export const PRIORITY_CHIP: Record<
 > = {
   low: null,
   medium: {
-    bg: "bg-amber-50",
-    text: "text-amber-600",
+    bg: "bg-amber-500/10",
+    text: "text-amber-700 dark:text-amber-400",
   },
   high: {
-    bg: "bg-red-50",
-    text: "text-red-500",
+    bg: "bg-destructive/10",
+    text: "text-destructive",
   },
 };
 

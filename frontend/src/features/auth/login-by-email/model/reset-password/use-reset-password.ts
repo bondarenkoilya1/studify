@@ -5,7 +5,8 @@ import {
   resetPasswordSchema,
   type ResetPasswordFormValues,
 } from "./reset-password.schema";
-import { resetPassword } from "@/shared/api";
+import { ApiError, resetPassword } from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 
 export function useResetPassword(token: string, onSuccess?: () => void) {
   const form = useForm<ResetPasswordFormValues>({
@@ -21,8 +22,13 @@ export function useResetPassword(token: string, onSuccess?: () => void) {
     try {
       await resetPassword({ ...values, password_reset_token: token });
       onSuccess?.();
-    } catch {
-      toast.error("Не удалось сменить пароль");
+    } catch (error) {
+      const fallback = "Не удалось сменить пароль";
+      toast.error(
+        error instanceof ApiError
+          ? getRequestErrorMessage(error, fallback)
+          : fallback,
+      );
     }
   });
 

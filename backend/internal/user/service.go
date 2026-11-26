@@ -62,7 +62,7 @@ func (s *Service) CurrentUser(r *http.Request) (*User, error) {
 	return currentUser, nil
 }
 
-func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, newEmail string) (*User, error) {
+func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, newEmail, currentPassword string) (*User, error) {
 	newEmail = strings.ToLower(strings.TrimSpace(newEmail))
 	if newEmail == "" {
 		return nil, ErrEmailRequired
@@ -73,20 +73,35 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 		return nil, ErrEmailInvalid
 	}
 
-	if newEmail == strings.ToLower(strings.TrimSpace(oldEmail)) {
-		return nil, ErrEmailUnchanged
-	}
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin update user email tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
+	currentUser, err := GetUserByIDForUpdate(ctx, tx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !currentUser.IsEmailVerified {
+		return nil, ErrVerifiedEmailRequired
+	}
+	if err := VerifyCurrentPassword(currentUser, currentPassword); err != nil {
+		return nil, err
+	}
+	if newEmail == strings.ToLower(strings.TrimSpace(currentUser.Email)) {
+		return nil, ErrEmailUnchanged
+	}
 	newUser, err := updateEmail(ctx, tx, userID, newEmail)
 	if err != nil {
 		return nil, fmt.Errorf("update user email (user_id=%d): %w", userID, err)
 	}
+	if err := invalidateEmailTokens(ctx, tx, userID); err != nil {
+		return nil, err
+	}
+
+	newUser.IsTOTPEnabled = currentUser.IsTOTPEnabled
+	newUser.AvatarURL = currentUser.AvatarURL
 
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit update user email tx (user_id=%d): %w", userID, err)
@@ -96,7 +111,6 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, oldEmail, n
 		slog.ErrorContext(ctx, "failed to send confirmation email",
 			util.AttrError(err),
 		)
-		return nil, fmt.Errorf("send confirmation email: %w", err)
 	}
 
 	return newUser, nil
@@ -123,11 +137,8 @@ func (s *Service) UpdateUserPassword(ctx context.Context, userID int64, oldPassw
 	if err != nil {
 		return err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(currentUser.PasswordHash), []byte(oldPassword)); err != nil {
-		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return ErrInvalidCurrentPassword
-		}
-		return fmt.Errorf("compare password hash: %w", err)
+	if err := VerifyCurrentPassword(currentUser, oldPassword); err != nil {
+		return err
 	}
 
 	newPasswordHash, err := credentials.HashPassword(newPassword)
@@ -140,6 +151,23 @@ func (s *Service) UpdateUserPassword(ctx context.Context, userID int64, oldPassw
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit password change: %w", err)
+	}
+	return nil
+}
+
+// VerifyCurrentPassword checks the password hash on a user loaded under a row lock.
+func VerifyCurrentPassword(current *User, password string) error {
+	if password == "" {
+		return ErrCurrentPasswordRequired
+	}
+	if credentials.ValidatePassword(password, credentials.ActionLogin) != nil {
+		return ErrInvalidCurrentPassword
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(current.PasswordHash), []byte(password)); err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return ErrInvalidCurrentPassword
+		}
+		return fmt.Errorf("compare password hash: %w", err)
 	}
 	return nil
 }

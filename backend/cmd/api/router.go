@@ -14,8 +14,10 @@ import (
 	"studify/internal/subject"
 	"studify/internal/task"
 	"studify/internal/user"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -28,12 +30,19 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 		AllowedOrigins:   corsOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Content-Type"},
+		ExposedHeaders:   []string{"Retry-After"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 	r.Use(middlewares.RequestID)
 	r.Use(middlewares.RequestLogger)
 	r.Use(middlewares.Metrics(m.requestsTotal, m.requestsDuration))
+	if len(h.Config.TrustedProxyCIDRs) > 0 {
+		r.Use(chiMiddleware.ClientIPFromXFF(h.Config.TrustedProxyCIDRs...))
+	} else {
+		r.Use(chiMiddleware.ClientIPFromRemoteAddr)
+	}
+	limits := middlewares.NewAuthLimiter()
 
 	if h.Config.MetricsAddr == "" {
 		r.Get("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}).ServeHTTP)
@@ -44,16 +53,16 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			// Public
-			registerAuthRoutes(r, h.Auth)
-			registerPasswordResetRoutes(r, h.ResetPassword)
+			registerAuthRoutes(r, h.Auth, limits)
+			registerPasswordResetRoutes(r, h.ResetPassword, limits)
 
 			// Protected
 			r.Group(func(r chi.Router) {
 				r.Use(validateAuth)
 
 				r.Post("/logout-all", h.Auth.LogoutAllSessions)
-				registerMfaRoutes(r, h.Mfa)
-				registerEmailConfirmRoutes(r, h.EmailConfirm)
+				registerMfaRoutes(r, h.Mfa, limits)
+				registerEmailConfirmRoutes(r, h.EmailConfirm, limits)
 				registerSessionRoutes(r, h.Session)
 			})
 		})
@@ -63,7 +72,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 
 			registerSubjectRoutes(r, h.Subject, h.Task)
 			registerTaskRoutes(r, h.Task)
-			registerUserRoutes(r, h.User)
+			registerUserRoutes(r, h.User, limits)
 			registerDashboardRoutes(r, h.Dashboard)
 			registerSharedProjectRoutes(r, h.SharedProjectHandler)
 		})
@@ -77,14 +86,17 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 	return r
 }
 
-func registerAuthRoutes(r chi.Router, h *auth.Handler) {
+func registerAuthRoutes(r chi.Router, h *auth.Handler, limits *middlewares.AuthLimiter) {
 	r.Get("/session", h.CheckSession)
 	r.Post("/logout", h.LogoutUser)
 	r.Post("/refresh", h.RefreshTokens)
 
-	r.With(middlewares.RequireJSON).Post("/register", h.Register)
-	r.With(middlewares.RequireJSON).Post("/login", h.LoginUser)
-	r.With(middlewares.RequireJSON).Post("/login/totp", h.LoginTOTP)
+	r.With(limits.ByIP("register", 8, 15*time.Minute), middlewares.RequireJSON,
+		limits.ByJSONField("register", "email", 3, 15*time.Minute)).Post("/register", h.Register)
+	r.With(limits.ByIP("login", 30, time.Minute), middlewares.RequireJSON,
+		limits.ByJSONField("login", "email", 10, time.Minute)).Post("/login", h.LoginUser)
+	r.With(limits.ByIP("mfa-login", 30, time.Minute), middlewares.RequireJSON,
+		limits.ByJSONField("mfa-login", "challenge_token", 5, 2*time.Minute)).Post("/login/totp", h.LoginTOTP)
 }
 
 func registerSubjectRoutes(r chi.Router, h *subject.Handler, t *task.Handler) {
@@ -124,11 +136,11 @@ func registerTaskRoutes(r chi.Router, h *task.Handler) {
 	})
 }
 
-func registerUserRoutes(r chi.Router, h *user.Handler) {
+func registerUserRoutes(r chi.Router, h *user.Handler, limits *middlewares.AuthLimiter) {
 	r.Route("/users", func(r chi.Router) {
 		r.Route("/me", func(r chi.Router) {
 			r.Get("/", h.GetUser)
-			r.With(middlewares.RequireJSON).Patch("/email", h.UpdateEmail)
+			r.With(limits.ByAccount("change-email", 5, time.Minute), middlewares.RequireJSON).Patch("/email", h.UpdateEmail)
 			r.With(middlewares.RequireJSON).Patch("/password", h.UpdatePassword)
 
 			r.Route("/avatar", func(r chi.Router) {
@@ -143,7 +155,7 @@ func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
 	r.Get("/dashboard", h.GetDashboardStatus)
 }
 
-func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
+func registerMfaRoutes(r chi.Router, h *mfa.Handler, limits *middlewares.AuthLimiter) {
 	r.Route("/totp", func(r chi.Router) {
 		r.Route("/setup", func(r chi.Router) {
 			r.Post("/", h.GenerateTOTP)
@@ -151,23 +163,23 @@ func registerMfaRoutes(r chi.Router, h *mfa.Handler) {
 		})
 
 		r.With(middlewares.RequireJSON).Post("/recovery-codes", h.RegenerateRecoveryCodes)
-		r.Delete("/", h.DisableTOTP)
+		r.With(limits.ByAccount("disable-mfa", 5, time.Minute), middlewares.RequireJSON).Delete("/", h.DisableTOTP)
 	})
 }
 
-func registerPasswordResetRoutes(r chi.Router, h *resetpassword.Handler) {
+func registerPasswordResetRoutes(r chi.Router, h *resetpassword.Handler, limits *middlewares.AuthLimiter) {
 	r.Route("/reset-password", func(r chi.Router) {
-		r.Use(middlewares.RequireJSON)
-
-		r.Post("/request", h.RequestPasswordReset)
-		r.Post("/verify", h.VerifyResetPasswordToken)
-		r.Post("/", h.ResetPassword)
+		r.With(limits.ByIP("reset-mail", 10, 15*time.Minute), middlewares.RequireJSON,
+			limits.ByJSONField("reset-mail", "email", 3, 15*time.Minute)).Post("/request", h.RequestPasswordReset)
+		r.With(limits.ByIP("reset-token", 30, 5*time.Minute), middlewares.RequireJSON).Post("/verify", h.VerifyResetPasswordToken)
+		r.With(limits.ByIP("reset-token", 30, 5*time.Minute), middlewares.RequireJSON).Post("/", h.ResetPassword)
 	})
 }
 
-func registerEmailConfirmRoutes(r chi.Router, h *emailconfirm.Handler) {
+func registerEmailConfirmRoutes(r chi.Router, h *emailconfirm.Handler, limits *middlewares.AuthLimiter) {
 	r.Route("/confirm", func(r chi.Router) {
-		r.Post("/resend", h.ResendConfirmationMail)
+		r.With(limits.ByIP("confirm-resend", 10, 15*time.Minute),
+			limits.ByAccount("confirm-resend", 3, 15*time.Minute)).Post("/resend", h.ResendConfirmationMail)
 		r.With(middlewares.RequireJSON).Post("/", h.ConfirmEmail)
 	})
 }

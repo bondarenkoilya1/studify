@@ -1,10 +1,11 @@
+import { Card } from "@/shared/ui/card";
 import { ShieldCheck } from "lucide-react";
 import { DisableTotpButton } from "./disable-totp-button";
 import { RegenerateRecoveryCodesButton } from "./regenerate-recovery-codes-button";
 
 export function TotpEnabled() {
   return (
-    <section className="rounded-xl border p-5">
+    <Card className="rounded-xl p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-full bg-green-100 p-2 text-green-600">
@@ -12,10 +13,12 @@ export function TotpEnabled() {
           </div>
 
           <div>
-            <h3 className="font-semibold">Two-factor authentication enabled</h3>
+            <h3 className="font-semibold">
+              Двухфакторная аутентификация включена
+            </h3>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Your account is protected with an authenticator app.
+              Вход в аккаунт защищён кодом из приложения.
             </p>
           </div>
         </div>
@@ -25,6 +28,6 @@ export function TotpEnabled() {
           <DisableTotpButton />
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

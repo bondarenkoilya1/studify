@@ -3,6 +3,7 @@ package emailconfirm
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"studify/internal"
 	"studify/internal/auth/token"
@@ -22,7 +23,7 @@ func NewService(db *sql.DB, mailService *mail.Service) *Service {
 	return &Service{db: db, mailService: mailService}
 }
 
-func (s *Service) CreateConfirmationToken(ctx context.Context, userID int64) (token.Token, error) {
+func (s *Service) createConfirmationToken(ctx context.Context, userID int64, email string) (token.Token, error) {
 	authToken, err := token.GenerateAuthToken()
 	if err != nil {
 		return "", fmt.Errorf("generate confirmation token: %w", err)
@@ -30,7 +31,25 @@ func (s *Service) CreateConfirmationToken(ctx context.Context, userID int64) (to
 
 	hash := util.HashSHA256(string(authToken))
 	ttlSeconds := int64(config.ConfirmationTokenTTL / time.Second)
-	if err := saveConfirmationToken(ctx, s.db, userID, []byte(hash), ttlSeconds); err != nil {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = tx.Rollback() }()
+	current, err := user.GetUserByIDForUpdate(ctx, tx, userID)
+	if err != nil {
+		return "", err
+	}
+	if current.IsEmailVerified {
+		return "", ErrAlreadyVerified
+	}
+	if current.Email != email {
+		return "", errors.New("confirmation email no longer current")
+	}
+	if err := saveConfirmationToken(ctx, tx, userID, []byte(hash), ttlSeconds); err != nil {
+		return "", err
+	}
+	if err := tx.Commit(); err != nil {
 		return "", err
 	}
 	return authToken, nil
@@ -44,8 +63,17 @@ func (s *Service) ConfirmEmail(ctx context.Context, t token.Token) error {
 	defer func() { _ = tx.Rollback() }()
 
 	hash := util.HashSHA256(string(t))
-	userID, err := consumeConfirmationToken(ctx, tx, []byte(hash))
+	userID, err := findConfirmationUserID(ctx, tx, []byte(hash))
 	if err != nil {
+		return err
+	}
+	if _, err := user.GetUserByIDForUpdate(ctx, tx, userID); err != nil {
+		if errors.Is(err, user.ErrUserNotFound) {
+			return ErrInvalidConfirmationToken
+		}
+		return err
+	}
+	if _, err := consumeConfirmationToken(ctx, tx, []byte(hash)); err != nil {
 		return err
 	}
 	if err := user.VerifyUserEmail(tx, userID); err != nil {
@@ -58,7 +86,7 @@ func (s *Service) ConfirmEmail(ctx context.Context, t token.Token) error {
 }
 
 func (s *Service) SendConfirmationEmail(ctx context.Context, userID internal.UserID, email string) error {
-	t, err := s.CreateConfirmationToken(ctx, int64(userID))
+	t, err := s.createConfirmationToken(ctx, int64(userID), email)
 	if err != nil {
 		return fmt.Errorf("create confirmation token: %w", err)
 	}

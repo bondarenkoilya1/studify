@@ -33,7 +33,7 @@ export function DevelopmentServices({ isEmailVerified, isTotpEnabled }: Props) {
       })}
 
       <div className="ml-1 flex h-8 items-center gap-1 rounded-lg bg-muted/50 px-1">
-        <StatusItem icon={MailCheck} label="Email" active={isEmailVerified} />
+        <StatusItem icon={MailCheck} label="Почта" active={isEmailVerified} />
         <StatusItem icon={ShieldCheck} label="2FA" active={isTotpEnabled} />
       </div>
     </nav>
@@ -54,7 +54,7 @@ function StatusItem({ icon: Icon, label, active }: StatusItemProps) {
         "text-[11px] font-medium",
         active ? "text-foreground" : "text-muted-foreground",
       )}
-      title={`${label}: ${active ? "enabled" : "disabled"}`}
+      title={`${label}: ${active ? "включено" : "выключено"}`}
     >
       <span
         className={cn(

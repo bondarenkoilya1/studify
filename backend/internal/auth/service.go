@@ -85,6 +85,12 @@ func (s *Service) login(ctx context.Context, email, password string, client sess
 	}
 
 	currentUser, err := user.GetUserByEmail(s.db, email)
+	if errors.Is(err, user.ErrUserNotFound) {
+		// Run the same bcrypt comparison for a valid-looking but unknown login.
+		const dummyPasswordHash = "$2b$10$XBxY6lDPOlgng9x8j4tXse0waWdlpj3/Gq92cRfzvJJkmC2/pgkxe"
+		_ = bcrypt.CompareHashAndPassword([]byte(dummyPasswordHash), []byte(password))
+		return nil, ErrInvalidCredentials
+	}
 	if err != nil {
 		return nil, err
 	}

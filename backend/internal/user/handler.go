@@ -44,31 +44,29 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.Service.CurrentUser(r)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
-			return
-		}
-		slog.ErrorContext(r.Context(), "failed to get current user",
-			util.AttrError(err),
-		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	newUser, err := h.Service.UpdateUserEmail(r.Context(), user.ID, user.Email, body.NewEmail)
+	newUser, err := h.Service.UpdateUserEmail(r.Context(), userID, body.NewEmail, body.CurrentPassword)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrEmailRequired),
 			errors.Is(err, ErrEmailInvalid),
-			errors.Is(err, ErrEmailUnchanged):
+			errors.Is(err, ErrEmailUnchanged),
+			errors.Is(err, ErrCurrentPasswordRequired):
 			http.Error(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, ErrInvalidCurrentPassword), errors.Is(err, ErrVerifiedEmailRequired):
+			http.Error(w, err.Error(), http.StatusForbidden)
+		case errors.Is(err, ErrUserNotFound):
+			http.Error(w, "user not found", http.StatusNotFound)
 		case errors.Is(err, ErrEmailTaken):
 			http.Error(w, err.Error(), http.StatusConflict)
 		default:
 			slog.ErrorContext(r.Context(), "failed to update user email",
-				util.AttrUserID(user.ID),
+				util.AttrUserID(userID),
 				util.AttrError(err),
 			)
 			http.Error(w, "internal server error", http.StatusInternalServerError)

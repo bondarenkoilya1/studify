@@ -1,13 +1,13 @@
 import * as z from "zod";
 import { newPasswordSchema } from "@/shared/lib/new-password-schema";
 
-const currentPasswordSchema = z.string().min(1, "Password is required");
+const currentPasswordSchema = z.string().min(1, "Введите текущий пароль");
 
 export const ChangePasswordSchema = z.object({
   currentPassword: currentPasswordSchema,
   newPassword: newPasswordSchema({
-    min: "Password must be at least 8 characters",
-    max: "Password must be no longer than 72 bytes",
+    min: "Пароль должен содержать минимум 8 символов",
+    max: "Пароль должен занимать не более 72 байт",
   }),
 });
 

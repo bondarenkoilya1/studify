@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CalendarDays, X } from "lucide-react";
 import type { ExamType, Subject } from "@/shared/api";
 import { EXAM_TYPE_LABELS } from "@/entities/subject";
-import { EXAM_TYPES } from "@/features/subject/create-subject/model/constants";
+import { EXAM_TYPES } from "@/entities/subject/model/constants";
 import { Button } from "@/shared/ui/button";
 import { DatePicker } from "@/shared/ui/date-picker";
 import {

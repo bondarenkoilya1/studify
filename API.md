@@ -51,6 +51,25 @@ A missing or invalid token returns `401 Unauthorized`.
 | `GET` | `/api/auth/sessions/{id}` | ✓ | Get a session by ID |
 | `DELETE` | `/api/auth/sessions/{id}` | ✓ | Revoke a session by ID |
 
+### Request limits
+
+Authentication routes return `429 Too Many Requests` with a `Retry-After`
+header in seconds once a limit is reached. Limits apply per API process.
+Limits by client IP and by account, email, or challenge apply independently.
+
+| Operation | Limit by IP | Additional limit |
+| --- | --- | --- |
+| Sign-in | 30 per minute | 10 per minute per email |
+| TOTP sign-in | 30 per minute | 5 per 2 minutes per challenge |
+| Registration | 8 per 15 minutes | 3 per 15 minutes per email |
+| Request a password reset | 10 per 15 minutes | 3 per 15 minutes per email |
+| Verify or complete a password reset | 30 combined per 5 minutes | — |
+| Resend email confirmation | 10 per 15 minutes | 3 per 15 minutes per account |
+| Change email or disable TOTP | — | 5 per minute per account, separately for each operation |
+
+Sign-in returns the same `401` response for an unknown email and a wrong
+password.
+
 ### Register
 
 ```http
@@ -150,7 +169,8 @@ Changing the email through `PATCH /api/users/me/email` resets
 
 ## Two-factor authentication (TOTP)
 
-The TOTP settings routes below require authentication.
+The TOTP settings routes below require authentication. Starting and confirming
+TOTP setup also require a verified email. An unverified account receives `403`.
 
 | Method | Path | Description |
 | --- | --- | --- |
@@ -194,8 +214,13 @@ To replace your recovery codes, send a current authenticator code as
 replaces the entire set. Codes issued before migration 000012 require
 replacement through this endpoint.
 
-`DELETE /api/auth/totp` disables TOTP, invalidates recovery codes and pending
-sign-in challenges, and returns `204 No Content`.
+Send the current password as JSON with `DELETE /api/auth/totp`. A wrong
+password returns `403`. Success returns `204 No Content` and invalidates
+recovery codes and pending sign-in challenges.
+
+```json
+{ "current_password": "strongPassword123" }
+```
 
 ## Password reset
 
@@ -248,17 +273,17 @@ These routes do not require authentication.
 
 `GET /api/users/me` returns the user object shown under [Register](#register).
 
-Change the email. Success: `200 OK` with the user. The new email must differ
-from the current one.
+Changing the email requires a verified current address and the current password.
+Either missing verification or a wrong password returns `403`. An invalid or
+unchanged address returns `400`, and an address in use returns `409`.
 
 ```json
-{ "new_email": "new_student@example.com" }
+{ "new_email": "new_student@example.com", "current_password": "strongPassword123" }
 ```
 
-The response has `is_totp_enabled: false` and `avatar_url: null` even when the
-stored values differ. Call `GET /api/users/me` for the full profile. The new
-email is not format-validated, and an email that is already taken returns
-`500`.
+Success returns `200 OK` with the updated profile. The new address needs to
+be confirmed. Earlier confirmation and password reset links expire. Use
+`POST /api/auth/confirm/resend` if the message does not arrive.
 
 Change the password. Success: `204 No Content`. The server revokes all sessions
 and clears the current browser's auth cookies. A wrong current password returns

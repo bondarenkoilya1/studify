@@ -3,7 +3,7 @@ import {
   EXAM_TYPES,
   LECTURER_POSITIONS,
   SUBJECT_SCOPES,
-} from "@/features/subject/create-subject/model/constants";
+} from "@/entities/subject/model/constants";
 
 const lecturerSchema = z.object({
   name: z

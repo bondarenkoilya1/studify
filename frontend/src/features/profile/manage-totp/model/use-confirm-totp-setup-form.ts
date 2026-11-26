@@ -23,7 +23,8 @@ export function useConfirmTOTPSetupForm() {
   const confirmMutation = useConfirmTOTPSetup({
     mutation: {
       onSuccess: () => setIsDialogOpen(true),
-      onError: () => setError("passcode", { message: "Invalid code" }),
+      onError: () =>
+        setError("passcode", { message: "Неверный код аутентификатора" }),
     },
   });
 

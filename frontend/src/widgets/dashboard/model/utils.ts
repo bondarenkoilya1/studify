@@ -1,5 +1,3 @@
-import { parseISO } from "date-fns";
-
 export function formatRelativeDeadline(iso: string | null) {
   if (!iso) {
     return "Без дедлайна";
@@ -21,11 +19,4 @@ export function formatRelativeDeadline(iso: string | null) {
 
   const days = Math.round(abs / 24);
   return diffMs >= 0 ? `через ${days} дн` : `${days} дн назад`;
-}
-
-export function formatDate(iso: string) {
-  return parseISO(iso).toLocaleDateString("ru-RU", {
-    day: "numeric",
-    month: "long",
-  });
 }

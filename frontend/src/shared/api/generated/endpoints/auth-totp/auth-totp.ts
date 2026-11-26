@@ -28,6 +28,8 @@ import type {
 import type {
   BadRequestResponse,
   ConflictResponse,
+  CurrentPasswordRequest,
+  ForbiddenResponse,
   InternalErrorResponse,
   LoginTOTPRequest,
   NotFoundResponse,
@@ -35,6 +37,7 @@ import type {
   PayloadTooLargeResponse,
   RecoveryCodesResponse,
   TOTPSetupResponse,
+  TooManyRequestsResponse,
   UnauthorizedResponse,
   UnsupportedMediaTypeResponse,
   User,
@@ -96,6 +99,7 @@ export const getLoginTOTPMutationOptions = <
     | UnauthorizedResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,
@@ -143,6 +147,7 @@ export type LoginTOTPMutationError = ErrorType<
   | UnauthorizedResponse
   | PayloadTooLargeResponse
   | UnsupportedMediaTypeResponse
+  | TooManyRequestsResponse
   | InternalErrorResponse
 >;
 export type LoginTOTPMutationVariables = { data: LoginTOTPRequest };
@@ -156,6 +161,7 @@ export const useLoginTOTP = <
     | UnauthorizedResponse
     | PayloadTooLargeResponse
     | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
     | InternalErrorResponse
   >,
   TContext = unknown,
@@ -202,6 +208,7 @@ export const getGenerateTOTPMutationKey = () => ["generateTOTP"] as const;
 export const getGenerateTOTPMutationOptions = <
   TError = ErrorType<
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | ConflictResponse
     | InternalErrorResponse
@@ -246,6 +253,7 @@ export type GenerateTOTPMutationResult = NonNullable<
 
 export type GenerateTOTPMutationError = ErrorType<
   | UnauthorizedResponse
+  | ForbiddenResponse
   | NotFoundResponse
   | ConflictResponse
   | InternalErrorResponse
@@ -257,6 +265,7 @@ export type GenerateTOTPMutationError = ErrorType<
 export const useGenerateTOTP = <
   TError = ErrorType<
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | ConflictResponse
     | InternalErrorResponse
@@ -331,6 +340,7 @@ export const getConfirmTOTPSetupMutationOptions = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | ConflictResponse
     | PayloadTooLargeResponse
@@ -380,6 +390,7 @@ export type ConfirmTOTPSetupMutationBody = Passcode;
 export type ConfirmTOTPSetupMutationError = ErrorType<
   | BadRequestResponse
   | UnauthorizedResponse
+  | ForbiddenResponse
   | NotFoundResponse
   | ConflictResponse
   | PayloadTooLargeResponse
@@ -395,6 +406,7 @@ export const useConfirmTOTPSetup = <
   TError = ErrorType<
     | BadRequestResponse
     | UnauthorizedResponse
+    | ForbiddenResponse
     | NotFoundResponse
     | ConflictResponse
     | PayloadTooLargeResponse
@@ -570,14 +582,42 @@ export const getDisableTOTPUrl = () => {
 };
 
 /**
+ * Requires the current account password. Recovery codes and unfinished MFA sign-ins are revoked.
  * @summary Disable TOTP for the authenticated user
  */
 export const disableTOTP = async (
+  currentPasswordRequest: CurrentPasswordRequest,
   options?: Parameters<typeof fetcher>[1],
 ): Promise<void> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit["headers"]>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<
+      string | readonly string[] | undefined
+    >(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
   return fetcher<void>(getDisableTOTPUrl(), {
     ...options,
     method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...getHeaders(options?.headers),
+    },
+    body: JSON.stringify(currentPasswordRequest),
   });
 };
 
@@ -585,21 +625,28 @@ export const getDisableTOTPMutationKey = () => ["disableTOTP"] as const;
 
 export const getDisableTOTPMutationOptions = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    | BadRequestResponse
+    | UnauthorizedResponse
+    | ForbiddenResponse
+    | NotFoundResponse
+    | PayloadTooLargeResponse
+    | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof disableTOTP>>,
     TError,
-    void,
+    DisableTOTPMutationVariables,
     TContext
   >;
   request?: SecondParameter<typeof fetcher>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof disableTOTP>>,
   TError,
-  void,
+  DisableTOTPMutationVariables,
   TContext
 > => {
   const mutationKey = getDisableTOTPMutationKey();
@@ -613,9 +660,11 @@ export const getDisableTOTPMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof disableTOTP>>,
-    void
-  > = () => {
-    return disableTOTP(requestOptions);
+    DisableTOTPMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return disableTOTP(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -624,17 +673,32 @@ export const getDisableTOTPMutationOptions = <
 export type DisableTOTPMutationResult = NonNullable<
   Awaited<ReturnType<typeof disableTOTP>>
 >;
-
+export type DisableTOTPMutationBody = CurrentPasswordRequest;
 export type DisableTOTPMutationError = ErrorType<
-  UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+  | BadRequestResponse
+  | UnauthorizedResponse
+  | ForbiddenResponse
+  | NotFoundResponse
+  | PayloadTooLargeResponse
+  | UnsupportedMediaTypeResponse
+  | TooManyRequestsResponse
+  | InternalErrorResponse
 >;
+export type DisableTOTPMutationVariables = { data: CurrentPasswordRequest };
 
 /**
  * @summary Disable TOTP for the authenticated user
  */
 export const useDisableTOTP = <
   TError = ErrorType<
-    UnauthorizedResponse | NotFoundResponse | InternalErrorResponse
+    | BadRequestResponse
+    | UnauthorizedResponse
+    | ForbiddenResponse
+    | NotFoundResponse
+    | PayloadTooLargeResponse
+    | UnsupportedMediaTypeResponse
+    | TooManyRequestsResponse
+    | InternalErrorResponse
   >,
   TContext = unknown,
 >(
@@ -642,7 +706,7 @@ export const useDisableTOTP = <
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof disableTOTP>>,
       TError,
-      void,
+      DisableTOTPMutationVariables,
       TContext
     >;
     request?: SecondParameter<typeof fetcher>;
@@ -651,7 +715,7 @@ export const useDisableTOTP = <
 ): UseMutationResult<
   Awaited<ReturnType<typeof disableTOTP>>,
   TError,
-  void,
+  DisableTOTPMutationVariables,
   TContext
 > => {
   return useMutation(getDisableTOTPMutationOptions(options), queryClient);

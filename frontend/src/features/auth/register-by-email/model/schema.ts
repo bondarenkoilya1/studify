@@ -4,12 +4,12 @@ import { newPasswordSchema } from "@/shared/lib/new-password-schema";
 const emailSchema = z
   .string()
   .trim()
-  .email("Invalid email address")
-  .max(255, "Email is too long.");
+  .email("Введите корректный адрес почты")
+  .max(255, "Адрес почты слишком длинный");
 
 const passwordSchema = newPasswordSchema({
-  min: "Password must be at least 8 characters",
-  max: "Password must be no longer than 72 bytes",
+  min: "Пароль должен содержать минимум 8 символов",
+  max: "Пароль должен занимать не более 72 байт",
 });
 
 export const RegisterByEmailSchema = z.object({

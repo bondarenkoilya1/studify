@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { parseISO } from "date-fns";
+import { formatStudyDate } from "@/shared/lib/study-date";
 import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
 import type { Task, TaskDifficulty } from "@/shared/api";
 import { formatTaskDeadline } from "../model/dates";
@@ -23,7 +23,7 @@ function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
     <span
       className="flex items-end gap-[2px]"
       title={DIFFICULTY_LABELS[difficulty]}
-      aria-label={`Difficulty: ${DIFFICULTY_LABELS[difficulty]}`}
+      aria-label={`Сложность: ${DIFFICULTY_LABELS[difficulty]}`}
     >
       {heights.map((height, index) => (
         <span
@@ -57,13 +57,13 @@ export function TaskCard({ task }: TaskCardProps) {
   return (
     <article
       className={`
-        group relative overflow-hidden rounded-[20px]
-        border border-black/[0.06]
-        bg-white p-5
-        shadow-[0_1px_2px_rgba(0,0,0,0.03)]
+        group relative overflow-hidden rounded-2xl
+        border border-border
+        bg-card p-5
+        shadow-sm
         transition-all duration-200 ease-out
-        hover:border-black/[0.09]
-        hover:shadow-[0_6px_18px_rgba(0,0,0,0.06)]
+        hover:border-ring/30
+        hover:shadow-md
         sm:p-6
         ${isDone ? "opacity-[0.55]" : ""}
       `}
@@ -73,7 +73,7 @@ export function TaskCard({ task }: TaskCardProps) {
           className={`
             absolute right-0 top-0
             flex items-center gap-1
-            rounded-bl-xl rounded-tr-[20px]
+            rounded-bl-xl rounded-tr-2xl
             px-3 py-1.5
             text-[11px] font-medium
             ${priorityChip.bg}
@@ -90,7 +90,7 @@ export function TaskCard({ task }: TaskCardProps) {
           pr-16
           text-[16px] font-semibold leading-snug
           tracking-[-0.01em]
-          ${isDone ? "text-gray-400 line-through" : "text-gray-900"}
+          ${isDone ? "text-muted-foreground line-through" : "text-foreground"}
         `}
       >
         {task.name}
@@ -102,7 +102,7 @@ export function TaskCard({ task }: TaskCardProps) {
             className={`
               text-[13.5px]
               leading-relaxed
-              text-gray-500
+              text-muted-foreground
               ${descriptionExpanded ? "" : "line-clamp-2"}
             `}
           >
@@ -117,12 +117,12 @@ export function TaskCard({ task }: TaskCardProps) {
                 mt-1
                 flex items-center gap-1
                 text-[12px] font-medium
-                text-gray-400
+                text-muted-foreground
                 transition-colors
-                hover:text-gray-600
+                hover:text-foreground
               "
             >
-              {descriptionExpanded ? "Show less" : "Show more"}
+              {descriptionExpanded ? "Свернуть" : "Подробнее"}
 
               <ChevronDown
                 className={`h-3.5 w-3.5 transition-transform duration-200 ${
@@ -141,10 +141,10 @@ export function TaskCard({ task }: TaskCardProps) {
             text-[13px] font-medium
             ${
               isDone
-                ? "text-gray-400"
+                ? "text-muted-foreground"
                 : deadline.urgent
                   ? "text-red-500"
-                  : "text-gray-600"
+                  : "text-foreground"
             }
           `}
         >
@@ -152,7 +152,7 @@ export function TaskCard({ task }: TaskCardProps) {
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-black/[0.05] pt-3.5 text-[12.5px] text-gray-500">
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3.5 text-[12.5px] text-muted-foreground">
         {task.status !== "not_completed" && (
           <span className={`flex items-center gap-1.5 ${status.text}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
@@ -180,7 +180,7 @@ export function TaskCard({ task }: TaskCardProps) {
               sm:group-hover:opacity-100
             "
           >
-            <Clock className="h-3.5 w-3.5 shrink-0" />~{task.estimated_time} min
+            <Clock className="h-3.5 w-3.5 shrink-0" />~{task.estimated_time} мин
           </span>
         )}
 
@@ -197,10 +197,7 @@ export function TaskCard({ task }: TaskCardProps) {
             "
           >
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            {parseISO(scheduled).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
+            {formatStudyDate(scheduled)}
           </span>
         )}
       </div>
