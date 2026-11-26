@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { getUTF8Length } from "@/shared/utils";
+import { newPasswordSchema } from "@/shared/lib/new-password-schema";
 
 const emailSchema = z
   .string()
@@ -7,14 +7,10 @@ const emailSchema = z
   .email("Invalid email address")
   .max(255, "Email is too long.");
 
-const passwordSchema = z
-  .string()
-  .refine((value) => getUTF8Length(value) >= 8, {
-    message: "Password must be at least 8 characters",
-  })
-  .refine((value) => getUTF8Length(value) <= 72, {
-    message: "Password must be no longer than 72 characters",
-  });
+const passwordSchema = newPasswordSchema({
+  min: "Password must be at least 8 characters",
+  max: "Password must be no longer than 72 bytes",
+});
 
 export const RegisterByEmailSchema = z.object({
   email: emailSchema,

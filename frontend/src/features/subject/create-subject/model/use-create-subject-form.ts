@@ -17,8 +17,8 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
   note: "",
   type: "university",
   scope: "other",
-  course: 1,
-  term: 1,
+  course: null,
+  term: null,
   examType: "exam",
   lecturers: [
     {
@@ -30,7 +30,6 @@ const defaultValues: DefaultValues<CreateSubjectFormValues> = {
       position: "practical_instructor",
     },
   ],
-  lecturerAvatarUrl: null,
   examDate: undefined,
 };
 
@@ -47,10 +46,9 @@ function toCreateSubjectRequest(
       values.type === "university"
         ? (values.examDate?.toISOString() ?? null)
         : null,
-    course: values.course ?? 1,
-    term: values.term ?? 1,
+    course: values.course ?? null,
+    term: values.term ?? null,
     lecturers: values.lecturers,
-    thumbnail_url: values.lecturerAvatarUrl ?? null,
   };
 }
 
