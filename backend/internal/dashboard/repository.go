@@ -1,192 +1,60 @@
 package dashboard
 
 import (
+	"context"
 	"database/sql"
-	"errors"
+	"encoding/json"
 	"fmt"
-	"studify/internal/task"
-	"studify/internal/util"
+	"math"
 )
 
-// GetSubjectsCount returns the number of subjects.
-// If there is no tasks, it returns 0, nil
-func GetSubjectsCount(db *sql.DB, userID int64) (int64, error) {
-	query := `
-	SELECT COUNT(*)
-	FROM subjects
-	WHERE user_id = $1;
-`
-
-	var count int64
-	err := db.QueryRow(query, userID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get subjects count: %w", err)
-	}
-
-	return count, nil
-}
-
-// GetTasksCount returns the number of tasks.
-// If there is no tasks, it returns 0, nil
-func GetTasksCount(db *sql.DB, userID int64) (int64, error) {
-	query := `
-	SELECT COUNT(*)
-	FROM tasks t
-	JOIN subjects s ON s.id = t.subject_id
-	WHERE s.user_id = $1;
-`
-
-	var count int64
-	err := db.QueryRow(query, userID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get tasks count: %w", err)
-	}
-
-	return count, nil
-}
-
-// GetCompletedTasksCount returns the number of completed tasks.
-// If there is no completed tasks, it returns 0, nil
-func GetCompletedTasksCount(db *sql.DB, userID int64) (int64, error) {
-	query := `
-	SELECT COUNT(*)
-	FROM tasks t
-	JOIN subjects s ON s.id = t.subject_id
-	WHERE t.status = 'completed' AND s.user_id = $1;
-`
-
-	var count int64
-	err := db.QueryRow(query, userID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get completed tasks count: %w", err)
-	}
-
-	return count, nil
-}
-
-// GetOngoingTasksCount returns the number of ongoing tasks.
-// If there is no ongoing tasks, it returns 0, nil
-func GetOngoingTasksCount(db *sql.DB, userID int64) (int64, error) {
-	query := `
-	SELECT COUNT(*)
-	FROM tasks t
-	JOIN subjects s ON s.id = t.subject_id
-	WHERE t.status = 'ongoing' AND s.user_id = $1;
-`
-
-	var count int64
-	err := db.QueryRow(query, userID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get ongoing tasks count: %w", err)
-	}
-
-	return count, nil
-}
-
-// GetNotCompletedTasksCount returns the number of not completed tasks.
-// If there are no not completed tasks, it returns 0, nil.
-func GetNotCompletedTasksCount(db *sql.DB, userID int64) (int64, error) {
-	query := `
-	SELECT COUNT(*)
-	FROM tasks t
-	JOIN subjects s ON s.id = t.subject_id
-	WHERE t.status = 'not_completed' AND s.user_id = $1;
-`
-
-	var count int64
-	err := db.QueryRow(query, userID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get not completed tasks count: %w", err)
-	}
-
-	return count, nil
-}
-
-// GetOverdueTasks returns overdue tasks.
-// If there is no task, it returns an empty slice and nil
-func GetOverdueTasks(db *sql.DB, userID int64) ([]task.Task, error) {
-	query := `
+func getStatus(ctx context.Context, db *sql.DB, userID int64) (*Status, error) {
+	const query = `
+		WITH owned_subjects AS (
+			SELECT id FROM subjects WHERE user_id = $1
+		), owned_tasks AS (
+			SELECT t.id, t.subject_id, t.name, t.description, t.status, t.deadline, t.deadline_date
+			FROM tasks t JOIN owned_subjects s ON s.id = t.subject_id
+		), upcoming AS (
+			SELECT * FROM owned_tasks
+			WHERE status <> 'completed' AND deadline >= statement_timestamp()
+			ORDER BY deadline, id LIMIT 1
+		)
 		SELECT
-			t.id,
-			t.name,
-			t.description,
-			t.deadline,
-			to_char(t.deadline_date, 'YYYY-MM-DD'),
-			t.status,
-			t.subject_id
-		FROM tasks t
-		JOIN subjects s ON s.id = t.subject_id
-		WHERE
-			t.status <> 'completed'
-			AND t.deadline IS NOT NULL
-			AND t.deadline < CURRENT_TIMESTAMP
-			AND s.user_id = $1
-		ORDER BY t.deadline DESC;
+			(SELECT COUNT(*) FROM owned_subjects),
+			COUNT(*),
+			COUNT(*) FILTER (WHERE status = 'completed'),
+			COUNT(*) FILTER (WHERE status = 'ongoing'),
+			COUNT(*) FILTER (WHERE status = 'not_completed'),
+			(SELECT to_jsonb(upcoming) FROM upcoming),
+			COALESCE(
+				jsonb_agg(to_jsonb(owned_tasks) ORDER BY deadline DESC, id DESC)
+					FILTER (WHERE status <> 'completed' AND deadline < statement_timestamp()),
+				'[]'::jsonb
+			)
+		FROM owned_tasks;
 	`
 
-	rows, err := db.Query(query, userID)
+	var status Status
+	var nearest, overdue []byte
+	err := db.QueryRowContext(ctx, query, userID).Scan(
+		&status.TotalSubjects, &status.TotalTasks, &status.TotalCompletedTasks,
+		&status.TotalOngoingTasks, &status.TotalNotCompleted, &nearest, &overdue,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query overdue tasks: %w", err)
+		return nil, fmt.Errorf("read dashboard snapshot: %w", err)
 	}
-	defer rows.Close()
-
-	tasks := make([]task.Task, 0)
-
-	for rows.Next() {
-		var t task.Task
-		var deadline sql.NullTime
-
-		err := rows.Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.DeadlineDate, &t.Status, &t.SubjectID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan overdue task: %w", err)
+	if len(nearest) != 0 {
+		if err := json.Unmarshal(nearest, &status.NearestDeadlineTask); err != nil {
+			return nil, fmt.Errorf("decode nearest deadline: %w", err)
 		}
-
-		t.Deadline = util.NullTimePtr(deadline)
-		tasks = append(tasks, t)
+	}
+	if err := json.Unmarshal(overdue, &status.OverdueTasks); err != nil {
+		return nil, fmt.Errorf("decode overdue tasks: %w", err)
+	}
+	if status.TotalTasks != 0 {
+		status.CompletionPercent = math.Round(10000*float64(status.TotalCompletedTasks)/float64(status.TotalTasks)) / 100
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read overdue tasks rows: %w", err)
-	}
-
-	return tasks, nil
-}
-
-// GetNearestDeadlineTask returns closest unfinished task.
-// If there is no task, it returns nil, nil
-func GetNearestDeadlineTask(db *sql.DB, userID int64) (*task.Task, error) {
-	query := `
-		SELECT
-			t.id,
-			t.name,
-			t.description,
-			t.deadline,
-			to_char(t.deadline_date, 'YYYY-MM-DD'),
-			t.status,
-			t.subject_id
-	FROM tasks t
-	JOIN subjects s ON s.id = t.subject_id
-	WHERE
-		t.status <> 'completed'
-		AND t.deadline IS NOT NULL
-		AND t.deadline >= CURRENT_TIMESTAMP
-		AND s.user_id = $1
-	ORDER BY t.deadline
-	LIMIT 1;
-`
-
-	var t task.Task
-	var deadline sql.NullTime
-
-	err := db.QueryRow(query, userID).Scan(&t.ID, &t.Name, &t.Description, &deadline, &t.DeadlineDate, &t.Status, &t.SubjectID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("failed to get nearest deadline task: %w", err)
-	}
-	t.Deadline = util.NullTimePtr(deadline)
-
-	return &t, nil
+	return &status, nil
 }

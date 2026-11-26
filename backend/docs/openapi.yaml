@@ -14,7 +14,8 @@ info:
     through the /api/auth/refresh endpoint.
 
     Endpoints with a JSON body require `Content-Type: application/json`, otherwise they return
-    415. Errors are returned as plain text.
+    415. Application errors are JSON objects with a stable code and a message.
+    Unknown JSON fields in request objects are rejected with 400.
 servers:
   - url: http://localhost:8080
     description: Local development server
@@ -68,9 +69,11 @@ paths:
     post:
       tags: [Auth]
       summary: Register a new user
-      description: |
-        Creates the user, issues auth cookies, and sends an email confirmation link
-        (`{APP_URL}/confirm/`). The confirmation token is valid for 4 hours.
+      description: >-
+        Creates the user, issues auth cookies, and attempts to send a confirmation link.
+        New email addresses are stored in lowercase. An existing address is rejected
+        regardless of case. Mail delivery failure does not roll back registration
+        or prevent session cookies from being set.
       operationId: registerUser
       security: []
       requestBody:
@@ -263,7 +266,7 @@ paths:
         '400':
           description: Invalid JSON, or the confirmation token is invalid, expired or empty.
           content:
-            text/plain:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
@@ -488,7 +491,7 @@ paths:
         '400':
           description: Missing token, passwords do not match, or invalid new password.
           content:
-            text/plain:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '413':
@@ -846,7 +849,7 @@ paths:
         '400':
           description: Invalid subject ID, undecodable image, or dimensions above 2560x2560.
           content:
-            text/plain:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
@@ -894,7 +897,7 @@ paths:
         '400':
           description: Invalid multipart data, missing or empty `file`, or invalid subject ID.
           content:
-            text/plain:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
@@ -904,7 +907,7 @@ paths:
         '413':
           description: File exceeds 50 MiB or multipart body exceeds the upload limit.
           content:
-            text/plain:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '415':
@@ -1145,6 +1148,35 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/shared-projects/catalog:
+    get:
+      tags: [Shared Projects]
+      summary: List published shared projects
+      operationId: getSharedProjectCatalog
+      security:
+        - accessCookie: []
+      parameters:
+        - in: query
+          name: before
+          description: Return entries older than this project ID.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Up to 24 public projects ordered from newest to oldest.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedProjectCatalogPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/shared-projects/{id}:
     parameters:
       - $ref: '#/components/parameters/NumericId'
@@ -1361,7 +1393,7 @@ paths:
         '400':
           description: Undecodable image or dimensions above 2560x2560.
           content:
-            text/plain:
+            application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '401':
@@ -1483,7 +1515,7 @@ components:
     EmailAlreadyVerified:
       description: The current email address is already verified.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     TooManyRequests:
@@ -1495,92 +1527,92 @@ components:
             type: integer
             minimum: 1
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     PayloadTooLarge:
       description: The JSON request body exceeds 1 MiB.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     BadRequest:
       description: Invalid JSON, missing fields, or invalid payload values.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Missing or invalid authentication cookies.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Forbidden:
       description: Action forbidden (e.g. invalid current password).
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     NotFound:
       description: Resource not found.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Conflict:
       description: A user with this email already exists.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     UnsupportedMediaType:
       description: Content-Type must be application/json for JSON endpoints.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     UnprocessableEntity:
       description: The submitted token is invalid or expired.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     SubjectConflict:
       description: The user already has a subject with this name.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     SharedProjectConflict:
       description: A shared project with this URL already exists.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     ImageTooLarge:
       description: Image is larger than 2 MB.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     UnsupportedImage:
       description: Image format is not PNG, JPEG, or WebP.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
     InternalError:
       description: Internal server error.
       content:
-        text/plain:
+        application/json:
           schema:
             $ref: '#/components/schemas/Error'
 
   schemas:
     LecturerPosition:
       type: string
-      description: Required by the backend on create; an empty or unknown value returns 500.
+      description: Required by the backend on create; an empty or unknown value returns 400.
       enum: [lecturer, practical_instructor, lab_instructor, assistant]
 
     SubjectType:
@@ -1612,9 +1644,17 @@ components:
       enum: [low, medium, high]
 
     Error:
-      type: string
-      description: Plain-text error message.
-      example: invalid email or password
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Stable machine-readable application error code.
+          example: invalid_credentials
+        message:
+          type: string
+          description: Human-readable explanation.
+          example: invalid email or password
 
     Credentials:
       type: object
@@ -1943,7 +1983,7 @@ components:
     SubjectUpdateRequest:
       type: object
       minProperties: 1
-      description: Send only the fields to change. Pass `null` for `exam_date` to clear it.
+      description: Send only the fields to change. Pass null for note, course, term, or exam_date to clear the field.
       properties:
         name:
           type: string
@@ -1978,6 +2018,12 @@ components:
           maximum: 4
           nullable: true
           example: 1
+        lecturers:
+          type: array
+          nullable: true
+          description: Replaces the complete list. An empty array or null clears it.
+          items:
+            $ref: '#/components/schemas/Lecturer'
         thumbnail_url:
           type: string
           nullable: true
@@ -2103,7 +2149,7 @@ components:
     TaskUpdateRequest:
       type: object
       minProperties: 1
-      description: Send only the fields to change. Null values are ignored. Sending a timestamp without its matching calendar date replaces that date.
+      description: Send only the fields to change. Null clears the estimate, schedule, or deadline. Sending only one member of a date and timestamp pair replaces the pair.
       properties:
         name:
           type: string
@@ -2254,6 +2300,7 @@ components:
         - url
         - author
         - author_avatar_url
+        - is_public
       properties:
         id:
           type: integer
@@ -2275,6 +2322,9 @@ components:
         author:
           type: string
           example: Alex River
+        is_public:
+          type: boolean
+          description: Whether the owner has published the project in the catalog.
         author_avatar_url:
           type: string
           example: https://avatars.githubusercontent.com/u/1234567
@@ -2298,9 +2348,25 @@ components:
           type: string
           minLength: 1
           example: Alex River
+        is_public:
+          type: boolean
+          description: Defaults to false on create and preserves visibility if omitted on update.
         author_avatar_url:
           type: string
           example: https://avatars.githubusercontent.com/u/1234567
+
+    SharedProjectCatalogPage:
+      type: object
+      required: [items, next_before]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SharedProject'
+        next_before:
+          type: integer
+          format: int64
+          nullable: true
 
     AuthSession:
       type: object

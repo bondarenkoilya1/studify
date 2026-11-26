@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"studify/internal/auth/session"
 	"studify/internal/auth/token"
+	"studify/internal/httpx"
 	"studify/internal/user"
 	"studify/internal/util"
 )
@@ -45,7 +46,7 @@ func (h *Handler) CheckSession(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case errors.Is(err, errRefreshReplaced):
 		// The browser may be receiving new cookies from another tab.
-		http.Error(w, "session already refreshed", http.StatusConflict)
+		httpx.WriteCodedError(w, http.StatusConflict, "session_already_refreshed", "session already refreshed")
 		return
 	case errors.Is(err, ErrInvalidToken), errors.Is(err, ErrTokenNotFound):
 		h.Cookies.Clear(w)
@@ -85,5 +86,5 @@ func (s *Service) userFromAccess(ctx context.Context, raw token.AccessToken) (*u
 
 func sessionCheckFailed(w http.ResponseWriter, r *http.Request, err error) {
 	slog.ErrorContext(r.Context(), "failed to check current session", util.AttrError(err))
-	http.Error(w, "internal server error", http.StatusInternalServerError)
+	httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 }

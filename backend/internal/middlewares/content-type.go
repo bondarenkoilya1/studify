@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"studify/internal/httpx"
 )
 
 const maxJSONBytes = 1 << 20
@@ -21,7 +22,7 @@ func RequireJSON(next http.Handler) http.Handler {
 
 		mediaType, _, err := mime.ParseMediaType(contentType)
 		if err != nil || mediaType != required {
-			http.Error(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
+			httpx.WriteError(w, "Content-Type must be application/json", http.StatusUnsupportedMediaType)
 			return
 		}
 
@@ -29,11 +30,11 @@ func RequireJSON(next http.Handler) http.Handler {
 		defer body.Close()
 		data, err := io.ReadAll(body)
 		if _, oversized := errors.AsType[*http.MaxBytesError](err); oversized {
-			http.Error(w, "JSON body exceeds 1 MiB", http.StatusRequestEntityTooLarge)
+			httpx.WriteError(w, "JSON body exceeds 1 MiB", http.StatusRequestEntityTooLarge)
 			return
 		}
-		if err != nil || !json.Valid(data) {
-			http.Error(w, "invalid JSON", http.StatusBadRequest)
+		if err != nil || !json.Valid(data) || !bytes.HasPrefix(bytes.TrimSpace(data), []byte("{")) {
+			httpx.WriteCodedError(w, http.StatusBadRequest, "invalid_json", "expected a JSON object")
 			return
 		}
 		r.Body = io.NopCloser(bytes.NewReader(data))

@@ -1,6 +1,7 @@
 package subject
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -42,8 +43,8 @@ func NewService(db *sql.DB) *Service {
 	return &Service{db: db}
 }
 
-func (s *Service) getSubject(id, userID int64) (*Subject, error) {
-	subject, err := GetSubjectByID(s.db, id, userID)
+func (s *Service) getSubject(ctx context.Context, id, userID int64) (*Subject, error) {
+	subject, err := GetSubjectByID(ctx, s.db, id, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get subject %d: %w", id, err)
 	}
@@ -51,8 +52,8 @@ func (s *Service) getSubject(id, userID int64) (*Subject, error) {
 	return subject, nil
 }
 
-func (s *Service) getUserSubjects(userID int64) ([]Subject, error) {
-	subjects, err := GetSubjectsByUserID(s.db, userID)
+func (s *Service) getUserSubjects(ctx context.Context, userID int64) ([]Subject, error) {
+	subjects, err := GetSubjectsByUserID(ctx, s.db, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get subjects of user %d: %w", userID, err)
 	}
@@ -64,9 +65,9 @@ func (s *Service) getUserSubjects(userID int64) ([]Subject, error) {
 	return subjects, nil
 }
 
-func (s *Service) addSubject(userID int64, req *CreateSubjectRequest) (*Subject, error) {
+func (s *Service) addSubject(ctx context.Context, userID int64, req *CreateSubjectRequest) (*Subject, error) {
 	subject, err := InsertSubject(
-		s.db, userID, req.Name,
+		ctx, s.db, userID, req.Name,
 		req.Note, req.Type, req.Scope,
 		req.ExamType, req.ThumbnailURL, req.ExamDate,
 		req.Course, req.Term, req.Lecturers,
@@ -78,9 +79,9 @@ func (s *Service) addSubject(userID int64, req *CreateSubjectRequest) (*Subject,
 	return subject, nil
 }
 
-func (s *Service) replaceSubject(userID, id int64, req *CreateSubjectRequest) (*Subject, error) {
+func (s *Service) replaceSubject(ctx context.Context, userID, id int64, req *CreateSubjectRequest) (*Subject, error) {
 	if err := UpdateSubject(
-		s.db, userID, id, req.Name,
+		ctx, s.db, userID, id, req.Name,
 		req.Note, req.Type, req.Scope,
 		req.ExamType, req.ThumbnailURL, req.ExamDate,
 		req.Course, req.Term,
@@ -88,7 +89,7 @@ func (s *Service) replaceSubject(userID, id int64, req *CreateSubjectRequest) (*
 		return nil, fmt.Errorf("replace subject %d: %w", id, err)
 	}
 
-	subject, err := GetSubjectByID(s.db, id, userID)
+	subject, err := GetSubjectByID(ctx, s.db, id, userID)
 	if err != nil {
 		return nil, fmt.Errorf("load replaced subject %d: %w", id, err)
 	}
@@ -96,7 +97,7 @@ func (s *Service) replaceSubject(userID, id int64, req *CreateSubjectRequest) (*
 	return subject, nil
 }
 
-func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*Subject, error) {
+func (s *Service) updateSubject(ctx context.Context, userID, id int64, req *UpdateSubjectRequest) (*Subject, error) {
 	if req.isEmpty() {
 		return nil, ErrNoFieldsToUpdate
 	}
@@ -105,7 +106,19 @@ func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*S
 		return nil, invalid(err.Error())
 	}
 
-	subject, err := GetSubjectByID(s.db, id, userID)
+	if req.Lecturers != nil {
+		if err := validateLecturers(*req.Lecturers); err != nil {
+			return nil, invalid(err.Error())
+		}
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin subject update: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	subject, err := getSubjectByID(ctx, tx, id, userID, true)
 	if err != nil {
 		return nil, fmt.Errorf("load subject %d for update: %w", id, err)
 	}
@@ -113,7 +126,7 @@ func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*S
 	if req.Name != nil {
 		subject.Name = *req.Name
 	}
-	if req.Note != nil {
+	if req.NoteSet || req.Note != nil {
 		subject.Note = req.Note
 	}
 	if req.Type != nil {
@@ -131,15 +144,15 @@ func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*S
 	if req.ExamDateSet {
 		subject.ExamDate = req.ExamDate
 	}
-	if req.Course != nil {
+	if req.CourseSet || req.Course != nil {
 		subject.Course = req.Course
 	}
-	if req.Term != nil {
+	if req.TermSet || req.Term != nil {
 		subject.Term = req.Term
 	}
 
 	if err := UpdateSubject(
-		s.db, userID, id, subject.Name,
+		ctx, tx, userID, id, subject.Name,
 		subject.Note, subject.Type, subject.Scope,
 		subject.ExamType, subject.ThumbnailURL, subject.ExamDate,
 		subject.Course, subject.Term,
@@ -147,19 +160,34 @@ func (s *Service) updateSubject(userID, id int64, req *UpdateSubjectRequest) (*S
 		return nil, fmt.Errorf("save updated subject %d: %w", id, err)
 	}
 
+	if req.LecturersSet || req.Lecturers != nil {
+		var lecturers []Lecturer
+		if req.Lecturers != nil {
+			lecturers = *req.Lecturers
+		}
+		subject.Lecturers, err = replaceLecturers(ctx, tx, id, lecturers)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit subject update: %w", err)
+	}
+
 	return subject, nil
 }
 
-func (s *Service) deleteUserSubjects(userID int64) error {
-	if err := DeleteSubjectsByUserID(s.db, userID); err != nil {
+func (s *Service) deleteUserSubjects(ctx context.Context, userID int64) error {
+	if err := DeleteSubjectsByUserID(ctx, s.db, userID); err != nil {
 		return fmt.Errorf("delete subjects of user %d: %w", userID, err)
 	}
 
 	return nil
 }
 
-func (s *Service) deleteSubject(userID, id int64) error {
-	if err := DeleteSubjectByID(s.db, userID, id); err != nil {
+func (s *Service) deleteSubject(ctx context.Context, userID, id int64) error {
+	if err := DeleteSubjectByID(ctx, s.db, userID, id); err != nil {
 		return fmt.Errorf("delete subject %d: %w", id, err)
 	}
 
@@ -168,7 +196,7 @@ func (s *Service) deleteSubject(userID, id int64) error {
 
 // uploadThumbnail сохраняет картинку на диск, привязывает её к предмету
 // и удаляет предыдущую. Возвращает публичный URL новой картинки.
-func (s *Service) uploadThumbnail(userID, subjectID int64, body io.Reader) (string, error) {
+func (s *Service) uploadThumbnail(ctx context.Context, userID, subjectID int64, body io.Reader) (string, error) {
 	filename, err := media.SaveImageAsWebp(body, thumbnailConstraints, thumbnailsDir)
 	if err != nil {
 		return "", fmt.Errorf("save thumbnail image: %w", err)
@@ -176,7 +204,7 @@ func (s *Service) uploadThumbnail(userID, subjectID int64, body io.Reader) (stri
 
 	thumbnailURL := thumbnailsPublicDir + filename
 
-	oldURL, err := ReplaceSubjectThumbnail(s.db, subjectID, userID, thumbnailURL)
+	oldURL, err := ReplaceSubjectThumbnail(ctx, s.db, subjectID, userID, thumbnailURL)
 	if err != nil {
 		removeFile(filepath.Join(thumbnailsDir, filename))
 		return "", fmt.Errorf("replace thumbnail of subject %d: %w", subjectID, err)
@@ -185,7 +213,7 @@ func (s *Service) uploadThumbnail(userID, subjectID int64, body io.Reader) (stri
 	if oldURL != nil && *oldURL != "" {
 		path, ok := thumbnailFilePath(*oldURL)
 		if !ok {
-			slog.Error("unexpected thumbnail url",
+			slog.ErrorContext(ctx, "unexpected thumbnail url",
 				util.AttrURL(*oldURL),
 				util.AttrSubjectID(subjectID),
 			)
@@ -199,7 +227,7 @@ func (s *Service) uploadThumbnail(userID, subjectID int64, body io.Reader) (stri
 
 // uploadFile сохраняет файл на диск и записывает его в БД.
 // Возвращает публичный URL файла.
-func (s *Service) uploadFile(userID, subjectID int64, file io.Reader, originalFilename string) (string, error) {
+func (s *Service) uploadFile(ctx context.Context, userID, subjectID int64, file io.Reader, originalFilename string) (string, error) {
 	filename, sizeBytes, contentType, err := media.SaveFile(file, maxFileSize, filesDir)
 	if err != nil {
 		return "", fmt.Errorf("save file: %w", err)
@@ -207,7 +235,7 @@ func (s *Service) uploadFile(userID, subjectID int64, file io.Reader, originalFi
 
 	publicPath := filesPublicDir + filename
 
-	if _, err := InsertSubjectFile(s.db, subjectID, userID, publicPath, originalFilename, contentType, sizeBytes); err != nil {
+	if _, err := InsertSubjectFile(ctx, s.db, subjectID, userID, publicPath, originalFilename, contentType, sizeBytes); err != nil {
 		removeFile(filepath.Join(filesDir, filename))
 		return "", fmt.Errorf("insert file of subject %d: %w", subjectID, err)
 	}
@@ -236,12 +264,13 @@ func removeFile(path string) {
 
 func (r *UpdateSubjectRequest) isEmpty() bool {
 	return r.Name == nil &&
-		r.Note == nil &&
+		!r.NoteSet && r.Note == nil &&
 		r.Type == nil &&
 		r.Scope == nil &&
 		r.ExamType == nil &&
 		r.ThumbnailURL == nil &&
 		!r.ExamDateSet &&
-		r.Course == nil &&
-		r.Term == nil
+		!r.CourseSet && r.Course == nil &&
+		r.Term == nil &&
+		!r.LecturersSet && r.Lecturers == nil
 }

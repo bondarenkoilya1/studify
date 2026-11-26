@@ -2,7 +2,6 @@ package task
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -28,7 +27,7 @@ func respondError(w http.ResponseWriter, r *http.Request, status int, msg string
 
 	//nolint:sloglint // helper function forwards dynamic error message
 	slog.Log(r.Context(), level, msg, args...)
-	http.Error(w, msg, status)
+	httpx.WriteError(w, msg, status)
 }
 
 func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
@@ -44,7 +43,7 @@ func (h *Handler) GetTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task, err := h.Service.getTask(id, userID)
+	task, err := h.Service.getTask(r.Context(), id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, "task was not found", err,
@@ -67,7 +66,7 @@ func (h *Handler) GetUserTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasks, err := h.Service.getUserTasks(userID)
+	tasks, err := h.Service.getUserTasks(r.Context(), userID)
 	if err != nil {
 		respondError(w, r, http.StatusInternalServerError, "failed to get tasks", err,
 			util.AttrUserID(userID))
@@ -90,7 +89,7 @@ func (h *Handler) GetSubjectTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tasks, err := h.Service.getSubjectsTasks(subjectID, userID)
+	tasks, err := h.Service.getSubjectsTasks(r.Context(), subjectID, userID)
 	if err != nil {
 		respondError(w, r, http.StatusInternalServerError, "failed to get tasks by subject", err,
 			util.AttrUserID(userID), util.AttrSubjectID(subjectID))
@@ -108,19 +107,19 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newTask Task
-	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		respondError(w, r, http.StatusBadRequest, "invalid JSON", err, util.AttrUserID(userID))
+	if err := httpx.ReadJSON(r.Body, &newTask); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	if err := validateTask(&newTask); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	task, err := h.Service.addTask(userID, &newTask)
+	task, err := h.Service.addTask(r.Context(), userID, &newTask)
 	if err != nil {
 		if internal.IsInvalidData(err) {
-			http.Error(w, "invalid task values", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid task values", http.StatusBadRequest)
 			return
 		}
 		if errors.Is(err, sql.ErrNoRows) {
@@ -151,20 +150,19 @@ func (h *Handler) ReplaceTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var newTask Task
-	if err := json.NewDecoder(r.Body).Decode(&newTask); err != nil {
-		respondError(w, r, http.StatusBadRequest, "invalid JSON", err,
-			util.AttrUserID(userID), util.AttrTaskID(id))
+	if err := httpx.ReadJSON(r.Body, &newTask); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	if err := validateTask(&newTask); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	task, err := h.Service.replaceTask(userID, id, &newTask)
+	task, err := h.Service.replaceTask(r.Context(), userID, id, &newTask)
 	if err != nil {
 		if internal.IsInvalidData(err) {
-			http.Error(w, "invalid task values", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid task values", http.StatusBadRequest)
 			return
 		}
 		if errors.Is(err, sql.ErrNoRows) {
@@ -195,17 +193,16 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req updateTaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondError(w, r, http.StatusBadRequest, "invalid JSON", err,
-			util.AttrUserID(userID), util.AttrTaskID(id))
+	if err := httpx.ReadJSON(r.Body, &req); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	if err := validateTaskChanges(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	task, err := h.Service.updateTask(userID, id, &req)
+	task, err := h.Service.updateTask(r.Context(), userID, id, &req)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrNoFieldsToUpdate):
@@ -215,7 +212,7 @@ func (h *Handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 			respondError(w, r, http.StatusNotFound, "task not found", err,
 				util.AttrUserID(userID), util.AttrTaskID(id))
 		case internal.IsInvalidData(err):
-			http.Error(w, "invalid task values", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid task values", http.StatusBadRequest)
 		default:
 			respondError(w, r, http.StatusInternalServerError, "failed to update task", err,
 				util.AttrUserID(userID), util.AttrTaskID(id))
@@ -233,7 +230,7 @@ func (h *Handler) DeleteUserTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.deleteUserTasks(userID); err != nil {
+	if err := h.Service.deleteUserTasks(r.Context(), userID); err != nil {
 		respondError(w, r, http.StatusInternalServerError, "failed to delete tasks", err,
 			util.AttrUserID(userID))
 		return
@@ -255,7 +252,7 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Service.deleteTask(userID, id); err != nil {
+	if err := h.Service.deleteTask(r.Context(), userID, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, r, http.StatusNotFound, fmt.Sprintf("no task with ID: %d", id), err,
 				util.AttrUserID(userID))

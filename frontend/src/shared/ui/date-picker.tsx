@@ -1,4 +1,4 @@
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import { ru } from "date-fns/locale";
 import { formatStudyDate } from "@/shared/lib/study-date";
 
@@ -11,6 +11,9 @@ type DatePickerProps = {
   onChange: (date: Date | undefined) => void;
   className?: string;
   disablePast?: boolean;
+  clearable?: boolean;
+  clearLabel?: string;
+  id?: string;
 };
 
 export function DatePicker({
@@ -18,6 +21,9 @@ export function DatePicker({
   onChange,
   className,
   disablePast = true,
+  clearable = false,
+  clearLabel = "Очистить дату",
+  id,
 }: DatePickerProps) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -33,40 +39,53 @@ export function DatePicker({
   })();
 
   return (
-    <Popover>
-      <PopoverTrigger
-        className={cn(
-          "flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-[15px] font-normal transition-all duration-200 outline-none",
-          "bg-neutral-100/80 hover:bg-neutral-100/100 dark:bg-neutral-900/60 dark:hover:bg-neutral-900/80",
-          "border border-transparent focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/10",
-          "text-neutral-900 dark:text-neutral-100",
-          !value && "text-neutral-400 dark:text-neutral-500",
-          className,
-        )}
-      >
-        <span className="truncate">
-          {value ? formatStudyDate(value, "d MMMM yyyy") : "Выберите дату"}
-        </span>
-        <CalendarIcon className="size-4.5 text-neutral-400 dark:text-neutral-500 shrink-0 ml-2" />
-      </PopoverTrigger>
+    <div className={cn("flex items-center gap-1.5", clearable && "w-full")}>
+      <Popover>
+        <PopoverTrigger
+          id={id}
+          className={cn(
+            "flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-[15px] font-normal transition-all duration-200 outline-none",
+            "bg-neutral-100/80 hover:bg-neutral-100/100 dark:bg-neutral-900/60 dark:hover:bg-neutral-900/80",
+            "border border-transparent focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/10",
+            "text-neutral-900 dark:text-neutral-100",
+            !value && "text-neutral-400 dark:text-neutral-500",
+            className,
+          )}
+        >
+          <span className="truncate">
+            {value ? formatStudyDate(value, "d MMMM yyyy") : "Выберите дату"}
+          </span>
+          <CalendarIcon className="size-4.5 text-neutral-400 dark:text-neutral-500 shrink-0 ml-2" />
+        </PopoverTrigger>
 
-      <PopoverContent
-        className={cn(
-          "w-auto p-2 rounded-2xl border border-neutral-200/80 bg-white/90 backdrop-blur-xl shadow-2xl shadow-neutral-200/50",
-          "dark:border-neutral-800/80 dark:bg-neutral-950/90 dark:shadow-none",
-        )}
-        align="start"
-        sideOffset={6}
-      >
-        <Calendar
-          mode="single"
-          selected={value}
-          onSelect={onChange}
-          locale={ru}
-          disabled={disablePast ? { before: today } : undefined}
-          defaultMonth={defaultSessionMonth}
-        />
-      </PopoverContent>
-    </Popover>
+        <PopoverContent
+          className={cn(
+            "w-auto p-2 rounded-2xl border border-neutral-200/80 bg-white/90 backdrop-blur-xl shadow-2xl shadow-neutral-200/50",
+            "dark:border-neutral-800/80 dark:bg-neutral-950/90 dark:shadow-none",
+          )}
+          align="start"
+          sideOffset={6}
+        >
+          <Calendar
+            mode="single"
+            selected={value}
+            onSelect={onChange}
+            locale={ru}
+            disabled={disablePast ? { before: today } : undefined}
+            defaultMonth={value ?? defaultSessionMonth}
+          />
+        </PopoverContent>
+      </Popover>
+      {clearable && value && (
+        <button
+          type="button"
+          aria-label={clearLabel}
+          onClick={() => onChange(undefined)}
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+        >
+          <X className="size-4" />
+        </button>
+      )}
+    </div>
   );
 }

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
+	"strings"
 	"studify/internal"
 	"studify/internal/auth/challenge"
 	"studify/internal/auth/credentials"
@@ -49,6 +51,7 @@ func NewService(
 // Handlers
 
 func (s *Service) register(ctx context.Context, email, password string, client session.Input) (*user.User, token.Pair, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionRegister); err != nil {
 		return nil, token.Pair{}, ErrInvalidRegistration
 	}
@@ -61,18 +64,31 @@ func (s *Service) register(ctx context.Context, email, password string, client s
 		return nil, token.Pair{}, fmt.Errorf("hash password: %w", err)
 	}
 
-	newUser, err := user.InsertUser(s.db, email, passwordHash)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, token.Pair{}, fmt.Errorf("begin registration: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	newUser, err := user.InsertUser(ctx, tx, email, passwordHash)
 	if err != nil {
 		return nil, token.Pair{}, fmt.Errorf("insert user: %w", err)
 	}
 
-	pair, err := s.startSession(ctx, internal.UserID(newUser.ID), client)
+	pair, err := s.newSession(ctx, tx, internal.UserID(newUser.ID), client)
 	if err != nil {
 		return nil, token.Pair{}, fmt.Errorf("create new session: %w", err)
 	}
 
+	if err := tx.Commit(); err != nil {
+		return nil, token.Pair{}, fmt.Errorf("commit registration: %w", err)
+	}
+
 	if err := s.emailConfirmService.SendConfirmationEmail(ctx, internal.UserID(newUser.ID), newUser.Email); err != nil {
-		return nil, token.Pair{}, fmt.Errorf("send confirmation email: %w", err)
+		slog.ErrorContext(ctx, "failed to send registration confirmation",
+			util.AttrUserID(newUser.ID),
+			util.AttrError(err),
+		)
 	}
 
 	return newUser, pair, nil
@@ -80,11 +96,12 @@ func (s *Service) register(ctx context.Context, email, password string, client s
 
 func (s *Service) login(ctx context.Context, email, password string, client session.Input) (*loginResponse, error) {
 	// Validate
+	email = strings.TrimSpace(email)
 	if err := credentials.ValidateCredentials(email, password, credentials.ActionLogin); err != nil {
 		return nil, ErrInvalidCredentials
 	}
 
-	currentUser, err := user.GetUserByEmail(s.db, email)
+	currentUser, err := user.GetUserByEmail(ctx, s.db, email)
 	if errors.Is(err, user.ErrUserNotFound) {
 		// Run the same bcrypt comparison for a valid-looking but unknown login.
 		const dummyPasswordHash = "$2b$10$XBxY6lDPOlgng9x8j4tXse0waWdlpj3/Gq92cRfzvJJkmC2/pgkxe"
@@ -254,23 +271,6 @@ func storedRefreshToken(ctx context.Context, q internal.DBTX, raw token.RefreshT
 		return nil, ErrInvalidToken
 	}
 	return record, nil
-}
-
-func (s *Service) startSession(ctx context.Context, userID internal.UserID, client session.Input) (token.Pair, error) {
-	tx, err := session.BeginForUser(ctx, s.db, int64(userID))
-	if err != nil {
-		return token.Pair{}, err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	pair, err := s.newSession(ctx, tx, userID, client)
-	if err != nil {
-		return token.Pair{}, err
-	}
-	if err := tx.Commit(); err != nil {
-		return token.Pair{}, fmt.Errorf("commit new session: %w", err)
-	}
-	return pair, nil
 }
 
 func (s *Service) newSession(ctx context.Context, q internal.DBTX, userID internal.UserID, client session.Input) (token.Pair, error) {

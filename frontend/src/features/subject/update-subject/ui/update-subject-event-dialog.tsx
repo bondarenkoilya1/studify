@@ -52,7 +52,7 @@ export function UpdateSubjectEventDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} className="max-w-md">
-      <DialogClose onClick={() => onOpenChange(false)} />
+      <DialogClose />
       <DialogHeader className="items-start text-left">
         <div className="flex size-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
           <CalendarDays className="size-5" />

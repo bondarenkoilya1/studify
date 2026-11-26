@@ -1,3 +1,4 @@
+import type { SharedProject } from "@/shared/api";
 import { Controller } from "react-hook-form";
 
 import {
@@ -20,14 +21,19 @@ import { useCreateSharedProjectForm } from "../model/use-create-shared-project-f
 export type CreateSharedProjectDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  project?: SharedProject;
+  onSaved?: () => void;
 };
 
 export function CreateSharedProjectDialog({
   open,
   onOpenChange,
+  project,
+  onSaved,
 }: CreateSharedProjectDialogProps) {
-  const form = useCreateSharedProjectForm(() => {
+  const form = useCreateSharedProjectForm(project, () => {
     onOpenChange(false);
+    onSaved?.();
   });
 
   const useProfileName = form.watch("use_profile_name");
@@ -35,10 +41,12 @@ export function CreateSharedProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogClose onClick={() => onOpenChange(false)} />
+      <DialogClose />
 
       <DialogHeader>
-        <DialogTitle>Создать общий предмет</DialogTitle>
+        <DialogTitle>
+          {project ? "Редактирование общего предмета" : "Создать общий предмет"}
+        </DialogTitle>
         <DialogDescription>
           Поделитесь учебным материалом, конспектами или полезным проектом.
         </DialogDescription>
@@ -47,7 +55,10 @@ export function CreateSharedProjectDialog({
       <DialogBody>
         <form onSubmit={form.submit} className="space-y-4">
           {form.formState.errors.root?.message && (
-            <div className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600">
+            <div
+              role="alert"
+              className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600"
+            >
               {form.formState.errors.root.message}
             </div>
           )}
@@ -232,14 +243,36 @@ export function CreateSharedProjectDialog({
             </div>
           </div>
 
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4">
+            <input
+              type="checkbox"
+              className="mt-1 size-4 accent-primary"
+              {...form.register("is_public")}
+            />
+            <span>
+              <span className="block text-sm font-medium">
+                Опубликовать в каталоге
+              </span>
+              <span className="block text-sm text-muted-foreground">
+                Другие пользователи Studify увидят ссылку и данные автора.
+              </span>
+            </span>
+          </label>
+
           <DialogFooter>
             <Button
               type="submit"
               size="lg"
-              disabled={form.isPending}
+              disabled={
+                form.isPending || (Boolean(project) && !form.formState.isDirty)
+              }
               className="w-full cursor-pointer"
             >
-              {form.isPending ? "Создаём..." : "Создать общий предмет"}
+              {form.isPending
+                ? "Сохраняем…"
+                : project
+                  ? "Сохранить изменения"
+                  : "Создать общий предмет"}
             </Button>
           </DialogFooter>
         </form>

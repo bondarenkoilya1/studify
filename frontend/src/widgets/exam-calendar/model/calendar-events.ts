@@ -1,9 +1,25 @@
 import type { EventInput } from "@fullcalendar/react";
-import { addMinutes, formatISO } from "date-fns";
+import { addMinutes, formatISO, parseISO, startOfMonth } from "date-fns";
 import type { Subject, Task } from "@/shared/api";
 import { getSubjectPresentation } from "@/entities/subject/model/presentation";
 
 export type CalendarView = "dayGridMonth" | "timeGridWeek" | "listMonth";
+
+export function getInitialCalendarMonth(
+  events: EventInput[],
+): Date | undefined {
+  let earliest: Date | undefined;
+
+  for (const { start } of events) {
+    if (typeof start !== "string") continue;
+
+    const date = parseISO(start);
+    if (Number.isNaN(date.getTime())) continue;
+    if (!earliest || date < earliest) earliest = date;
+  }
+
+  return earliest && startOfMonth(earliest);
+}
 
 export function subjectToCalendarEvents(subjects: Subject[]): EventInput[] {
   return subjects

@@ -6,6 +6,7 @@ import {
   useDeleteSubject as useDeleteSubjectMutation,
 } from "@/shared/api";
 import { invalidateSubjectData } from "@/entities/subject/model/invalidation";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import { toast } from "@/shared/ui/sonner";
 
 export function useDeleteSubject() {
@@ -22,7 +23,10 @@ export function useDeleteSubject() {
           invalidateGetUserTasks(queryClient),
         ]);
       },
-      onError: () => toast.error("Не удалось удалить предмет"),
+      onError: (error) =>
+        toast.error(
+          getRequestErrorMessage(error, "Не удалось удалить предмет."),
+        ),
     },
   });
 }

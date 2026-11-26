@@ -40,7 +40,7 @@ export function ForgotPasswordDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogClose onClick={() => onOpenChange(false)} />
+      <DialogClose />
       <DialogHeader>
         <DialogTitle>Восстановление пароля</DialogTitle>
         <DialogDescription>

@@ -13,7 +13,8 @@
  * through the /api/auth/refresh endpoint.
  *
  * Endpoints with a JSON body require `Content-Type: application/json`, otherwise they return
- * 415. Errors are returned as plain text.
+ * 415. Application errors are JSON objects with a stable code and a message.
+ * Unknown JSON fields in request objects are rejected with 400.
  *
  * OpenAPI spec version: 1.0.0
  */
@@ -23,7 +24,7 @@ import type { TaskStatus } from "./taskStatus";
 import type { TaskType } from "./taskType";
 
 /**
- * Send only the fields to change. Null values are ignored. Sending a timestamp without its matching calendar date replaces that date.
+ * Send only the fields to change. Null clears the estimate, schedule, or deadline. Sending only one member of a date and timestamp pair replaces the pair.
  */
 export interface TaskUpdateRequest {
   /**

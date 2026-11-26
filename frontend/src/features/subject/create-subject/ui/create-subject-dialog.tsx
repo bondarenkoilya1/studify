@@ -34,7 +34,7 @@ import {
 } from "@/entities/subject/model/constants";
 
 import { useCreateSubjectForm } from "../model/use-create-subject-form";
-import type { LecturerPosition } from "@/shared/api";
+import type { LecturerPosition, Subject } from "@/shared/api";
 import { EXAM_TYPE_LABELS } from "@/entities/subject/model/presentation";
 
 const initialLecturers = [
@@ -151,13 +151,15 @@ function Collapse({
 type CreateSubjectDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  subject?: Subject;
 };
 
 export function CreateSubjectDialog({
   open,
   onOpenChange,
+  subject,
 }: CreateSubjectDialogProps) {
-  const form = useCreateSubjectForm(() => {
+  const form = useCreateSubjectForm(subject, () => {
     onOpenChange(false);
   });
 
@@ -180,19 +182,26 @@ export function CreateSubjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogClose onClick={() => onOpenChange(false)} />
+      <DialogClose />
 
       <DialogHeader>
-        <DialogTitle>Новый предмет</DialogTitle>
+        <DialogTitle>
+          {subject ? "Редактирование предмета" : "Новый предмет"}
+        </DialogTitle>
         <DialogDescription>
-          Добавьте предмет и основную информацию о нём.
+          {subject
+            ? "Измените информацию о предмете и преподавателях."
+            : "Добавьте предмет и основную информацию о нём."}
         </DialogDescription>
       </DialogHeader>
 
       <DialogBody>
         <form onSubmit={form.submit} className="flex flex-col">
           {form.formState.errors.root?.message && (
-            <div className="mb-4 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600">
+            <div
+              role="alert"
+              className="mb-4 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600"
+            >
               {form.formState.errors.root.message}
             </div>
           )}
@@ -423,7 +432,11 @@ export function CreateSubjectDialog({
                   >
                     <DatePicker
                       value={field.value ?? undefined}
-                      onChange={field.onChange}
+                      id="create-subject-exam-date"
+                      onChange={(date) => field.onChange(date ?? null)}
+                      clearLabel="Очистить дату экзамена"
+                      clearable
+                      disablePast={!subject}
                       className={SELECT_INLINE}
                     />
                   </Row>
@@ -568,10 +581,16 @@ export function CreateSubjectDialog({
             <Button
               type="submit"
               size="lg"
-              disabled={form.isPending}
+              disabled={
+                form.isPending || (Boolean(subject) && !form.formState.isDirty)
+              }
               className="w-full"
             >
-              {form.isPending ? "Создаём..." : "Создать предмет"}
+              {form.isPending
+                ? "Сохраняем…"
+                : subject
+                  ? "Сохранить изменения"
+                  : "Создать предмет"}
             </Button>
           </DialogFooter>
         </form>

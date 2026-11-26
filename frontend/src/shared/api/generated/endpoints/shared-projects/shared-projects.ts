@@ -13,7 +13,8 @@
  * through the /api/auth/refresh endpoint.
  *
  * Endpoints with a JSON body require `Content-Type: application/json`, otherwise they return
- * 415. Errors are returned as plain text.
+ * 415. Application errors are JSON objects with a stable code and a message.
+ * Unknown JSON fields in request objects are rejected with 400.
  *
  * OpenAPI spec version: 1.0.0
  */
@@ -43,10 +44,12 @@ import type {
 
 import type {
   BadRequestResponse,
+  GetSharedProjectCatalogParams,
   InternalErrorResponse,
   NotFoundResponse,
   PayloadTooLargeResponse,
   SharedProject,
+  SharedProjectCatalogPage,
   SharedProjectConflictResponse,
   SharedProjectRequest,
   UnauthorizedResponse,
@@ -524,6 +527,369 @@ export const useCreateSharedProject = <
     queryClient,
   );
 };
+export const getGetSharedProjectCatalogUrl = (
+  params?: GetSharedProjectCatalogParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/shared-projects/catalog?${stringifiedParams}`
+    : `/api/shared-projects/catalog`;
+};
+
+/**
+ * @summary List published shared projects
+ */
+export const getSharedProjectCatalog = async (
+  params?: GetSharedProjectCatalogParams,
+  options?: Parameters<typeof fetcher>[1],
+): Promise<SharedProjectCatalogPage> => {
+  return fetcher<SharedProjectCatalogPage>(
+    getGetSharedProjectCatalogUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetSharedProjectCatalogQueryKey = (
+  params?: GetSharedProjectCatalogParams,
+) => {
+  return [`/api/shared-projects/catalog`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetSharedProjectCatalogQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSharedProjectCatalogQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSharedProjectCatalog>>
+  > = () => getSharedProjectCatalog(params, requestOptions);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetSharedProjectCatalogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSharedProjectCatalog>>
+>;
+export type GetSharedProjectCatalogQueryError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+>;
+
+export function useGetSharedProjectCatalog<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params: undefined | GetSharedProjectCatalogParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+          TError,
+          Awaited<ReturnType<typeof getSharedProjectCatalog>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetSharedProjectCatalog<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+          TError,
+          Awaited<ReturnType<typeof getSharedProjectCatalog>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetSharedProjectCatalog<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary List published shared projects
+ */
+
+export function useGetSharedProjectCatalog<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetSharedProjectCatalogQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+/**
+ * @summary Invalidates the {@link useGetSharedProjectCatalog} query
+ */
+export const invalidateGetSharedProjectCatalog = async (
+  queryClient: QueryClient,
+  params?: GetSharedProjectCatalogParams,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getGetSharedProjectCatalogQueryKey(params) },
+    options,
+  );
+
+  return queryClient;
+};
+
+export const getGetSharedProjectCatalogSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSharedProjectCatalogQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSharedProjectCatalog>>
+  > = () => getSharedProjectCatalog(params, requestOptions);
+
+  return queryOptionsBuilder({
+    queryKey,
+    ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
+};
+
+export type GetSharedProjectCatalogSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSharedProjectCatalog>>
+>;
+export type GetSharedProjectCatalogSuspenseQueryError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+>;
+
+export function useGetSharedProjectCatalogSuspense<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params: undefined | GetSharedProjectCatalogParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetSharedProjectCatalogSuspense<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetSharedProjectCatalogSuspense<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary List published shared projects
+ */
+
+export function useGetSharedProjectCatalogSuspense<
+  TData = Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetSharedProjectCatalogParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getSharedProjectCatalog>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetSharedProjectCatalogSuspenseQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient,
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getGetSharedProjectUrl = (id: number) => {
   return `/api/shared-projects/${id}`;
 };

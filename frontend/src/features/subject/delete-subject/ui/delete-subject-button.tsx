@@ -40,9 +40,9 @@ export function DeleteSubjectButton({
         aria-label="Удалить предмет"
         title="Удалить предмет"
         className="
-          flex h-9 w-9 items-center justify-center rounded-lg
+          flex size-11 items-center justify-center rounded-lg
           bg-red-500/10 text-red-500 transition-colors
-          cursor-pointer hover:bg-red-500/20
+          cursor-pointer hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-ring
           disabled:cursor-not-allowed disabled:opacity-50
         "
       >

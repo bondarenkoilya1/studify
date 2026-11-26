@@ -19,6 +19,7 @@ export const createTaskSchema = z.object({
     .number()
     .int()
     .positive("Время должно быть больше 0")
+    .max(2_147_483_647, "Укажите меньшее время")
     .nullable(),
 
   scheduled_date: z.date().nullable(),

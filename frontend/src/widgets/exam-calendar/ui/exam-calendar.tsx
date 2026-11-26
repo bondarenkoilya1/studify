@@ -16,6 +16,7 @@ import {
   useGetUserTasksSuspense,
 } from "@/shared/api";
 import {
+  getInitialCalendarMonth,
   subjectToCalendarEvents,
   taskToCalendarEvents,
   type CalendarView,
@@ -40,6 +41,8 @@ export function ExamCalendar() {
     ],
     [subjects, tasks],
   );
+
+  const [initialDate] = useState(() => getInitialCalendarMonth(events));
 
   const changeView = (nextView: CalendarView) => {
     setView(nextView);
@@ -79,6 +82,7 @@ export function ExamCalendar() {
           locales={[ruLocale]}
           locale="ru"
           initialView={view}
+          initialDate={initialDate}
           events={events}
           headerToolbar={false}
           height="auto"

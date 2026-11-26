@@ -19,13 +19,13 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 	user, err := h.Service.CurrentUser(r)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
 		slog.ErrorContext(r.Context(), "failed to get current user",
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -39,14 +39,14 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 	body := emailRequest{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &body); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -57,19 +57,21 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, ErrEmailInvalid),
 			errors.Is(err, ErrEmailUnchanged),
 			errors.Is(err, ErrCurrentPasswordRequired):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case errors.Is(err, ErrInvalidCurrentPassword), errors.Is(err, ErrVerifiedEmailRequired):
-			http.Error(w, err.Error(), http.StatusForbidden)
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, ErrInvalidCurrentPassword):
+			httpx.WriteCodedError(w, http.StatusForbidden, "invalid_current_password", err.Error())
+		case errors.Is(err, ErrVerifiedEmailRequired):
+			httpx.WriteCodedError(w, http.StatusForbidden, "verified_email_required", err.Error())
 		case errors.Is(err, ErrUserNotFound):
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 		case errors.Is(err, ErrEmailTaken):
-			http.Error(w, err.Error(), http.StatusConflict)
+			httpx.WriteError(w, err.Error(), http.StatusConflict)
 		default:
 			slog.ErrorContext(r.Context(), "failed to update user email",
 				util.AttrUserID(userID),
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -84,8 +86,8 @@ func (h *Handler) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 	request := passwordRequest{}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &request); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
@@ -94,27 +96,27 @@ func (h *Handler) UpdatePassword(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(r.Context(), "failed to get user id",
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	err = h.Service.UpdateUserPassword(r.Context(), userID, request.CurrentPassword, request.NewPassword)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrCurrentPasswordRequired),
-			errors.Is(err, ErrPasswordUnchanged),
-			errors.Is(err, ErrPasswordInvalid):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, ErrPasswordUnchanged):
+			httpx.WriteCodedError(w, http.StatusBadRequest, "password_unchanged", err.Error())
+		case errors.Is(err, ErrCurrentPasswordRequired), errors.Is(err, ErrPasswordInvalid):
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, ErrInvalidCurrentPassword):
-			http.Error(w, "invalid current password", http.StatusForbidden)
+			httpx.WriteCodedError(w, http.StatusForbidden, "invalid_current_password", "invalid current password")
 		case errors.Is(err, ErrUserNotFound):
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 		default:
 			slog.ErrorContext(r.Context(), "failed to update user password",
 				util.AttrUserID(userID),
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -128,7 +130,7 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -138,23 +140,23 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	url, err := h.Service.UploadAvatar(r.Context(), r.Body, userID)
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
-			http.Error(w, "avatar is too large (max 2MB)", http.StatusRequestEntityTooLarge)
+			httpx.WriteError(w, "avatar is too large (max 2MB)", http.StatusRequestEntityTooLarge)
 			return
 		}
 
 		switch {
 		case errors.Is(err, media.ErrInvalidFormat):
-			http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+			httpx.WriteError(w, err.Error(), http.StatusUnsupportedMediaType)
 		case errors.Is(err, media.ErrDimensionsExceed), errors.Is(err, media.ErrDecodeFailed):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, ErrUserNotFound):
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 		default:
 			slog.ErrorContext(r.Context(), "failed to upload avatar",
 				util.AttrUserID(userID),
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -170,20 +172,20 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	if err := h.Service.DeleteAvatar(r.Context(), userID); err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
 		slog.ErrorContext(r.Context(), "failed to delete avatar",
 			util.AttrUserID(userID),
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

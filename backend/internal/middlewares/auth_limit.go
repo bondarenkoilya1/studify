@@ -101,7 +101,7 @@ func (l *AuthLimiter) middleware(
 				if retry := l.retryAfter(key, limit, period); retry > 0 {
 					seconds := (retry + time.Second - 1) / time.Second
 					w.Header().Set("Retry-After", strconv.FormatInt(int64(seconds), 10))
-					http.Error(w, "too many requests", http.StatusTooManyRequests)
+					httpx.WriteError(w, "too many requests", http.StatusTooManyRequests)
 					return
 				}
 			}

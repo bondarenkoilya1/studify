@@ -1,7 +1,6 @@
 package sharedproject
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -14,23 +13,16 @@ type Handler struct {
 	Service *Service
 }
 
-type createSharedProjectRequest struct {
-	Name            string `json:"name"`
-	URL             string `json:"url"`
-	Author          string `json:"author"`
-	AuthorAvatarURL string `json:"author_avatar_url"`
-}
-
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		writeError(w, r, http.StatusUnauthorized, "unauthorized")
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	var req createSharedProjectRequest
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid json body")
+	var req sharedProjectRequest
+	if err = httpx.ReadJSON(r.Body, &req); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
@@ -40,6 +32,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		URL:             req.URL,
 		Author:          req.Author,
 		AuthorAvatarURL: req.AuthorAvatarURL,
+		IsPublic:        req.IsPublic,
 	})
 	if err != nil {
 		handleServiceError(w, r, err)
@@ -50,13 +43,19 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid id")
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	project, err := h.Service.getSharedProjectByID(id)
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		httpx.WriteError(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	project, err := h.Service.getSharedProjectByID(userID, id)
 	if err != nil {
 		handleServiceError(w, r, err)
 		return
@@ -68,7 +67,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetUserProjects(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		writeError(w, r, http.StatusUnauthorized, "unauthorized")
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -81,16 +80,35 @@ func (h *Handler) GetUserProjects(w http.ResponseWriter, r *http.Request) {
 	util.WriteJSON(w, r, http.StatusOK, projects)
 }
 
+func (h *Handler) GetCatalog(w http.ResponseWriter, r *http.Request) {
+	var before int64
+	if raw := r.URL.Query().Get("before"); raw != "" {
+		var err error
+		before, err = strconv.ParseInt(raw, 10, 64)
+		if err != nil || before <= 0 {
+			httpx.WriteError(w, "invalid before", http.StatusBadRequest)
+			return
+		}
+	}
+
+	page, err := h.Service.getCatalog(r.Context(), before)
+	if err != nil {
+		handleServiceError(w, r, err)
+		return
+	}
+	util.WriteJSON(w, r, http.StatusOK, page)
+}
+
 func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		writeError(w, r, http.StatusUnauthorized, "unauthorized")
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid id")
+		httpx.WriteError(w, "invalid id", http.StatusBadRequest)
 		return
 	}
 
@@ -105,19 +123,19 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		writeError(w, r, http.StatusUnauthorized, "unauthorized")
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid id")
+		httpx.WriteError(w, "invalid id", http.StatusBadRequest)
 		return
 	}
 
 	var req sharedProjectRequest
-	if err = json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid json body")
+	if err = httpx.ReadJSON(r.Body, &req); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
@@ -128,6 +146,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		URL:             req.URL,
 		Author:          req.Author,
 		AuthorAvatarURL: req.AuthorAvatarURL,
+		IsPublic:        req.IsPublic,
 	})
 	if err != nil {
 		handleServiceError(w, r, err)
@@ -140,21 +159,17 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 func handleServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidInput):
-		writeError(w, r, http.StatusBadRequest, err.Error())
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 	case errors.Is(err, ErrSharedProjectNotFound):
-		writeError(w, r, http.StatusNotFound, "shared project not found")
+		httpx.WriteError(w, "shared project not found", http.StatusNotFound)
 	case errors.Is(err, ErrSharedProjectAlreadyExists):
-		writeError(w, r, http.StatusConflict, "shared project already exists")
+		httpx.WriteError(w, "shared project already exists", http.StatusConflict)
 	default:
 		slog.ErrorContext(r.Context(), "shared project handler failed",
 			util.AttrMethod(r.Method),
 			util.AttrPath(r.URL.Path),
 			util.AttrAnyError(err),
 		)
-		writeError(w, r, http.StatusInternalServerError, "internal server error")
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 	}
-}
-
-func writeError(w http.ResponseWriter, r *http.Request, status int, message string) {
-	util.WriteJSON(w, r, status, map[string]string{"error": message})
 }

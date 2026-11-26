@@ -24,7 +24,7 @@ export function RecoveryCodesDialog({
 }: RecoveryCodesDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogClose onClick={() => onOpenChange(false)} />
+      <DialogClose />
 
       <DialogHeader>
         <div className="flex size-14 items-center justify-center rounded-full bg-emerald-500/10">

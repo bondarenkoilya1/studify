@@ -13,7 +13,8 @@
  * through the /api/auth/refresh endpoint.
  *
  * Endpoints with a JSON body require `Content-Type: application/json`, otherwise they return
- * 415. Errors are returned as plain text.
+ * 415. Application errors are JSON objects with a stable code and a message.
+ * Unknown JSON fields in request objects are rejected with 400.
  *
  * OpenAPI spec version: 1.0.0
  */
@@ -24,5 +25,7 @@ export interface SharedProjectRequest {
   url: string;
   /** @minLength 1 */
   author: string;
+  /** Defaults to false on create and preserves visibility if omitted on update. */
+  is_public?: boolean;
   author_avatar_url?: string;
 }

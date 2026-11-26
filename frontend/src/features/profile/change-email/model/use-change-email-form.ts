@@ -29,7 +29,10 @@ export function useChangeEmailForm() {
       },
       onError: (error) => {
         if (error.status === 403) {
-          if (error.message === "verified email required") {
+          if (
+            error.code === "verified_email_required" ||
+            error.message === "verified email required"
+          ) {
             toast.error("Сначала подтвердите текущий адрес почты.");
           } else {
             form.setError("currentPassword", {

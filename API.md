@@ -1,7 +1,7 @@
 # API reference
 
 The default base URL is `http://localhost:8080`. API routes use the `/api`
-prefix. Request and response bodies are JSON unless stated otherwise.
+prefix. Successful responses with a body are JSON unless stated otherwise.
 
 The full contract is `backend/docs/openapi.yaml`. Swagger UI serves it at
 `http://localhost:8081` when the Docker stack is running.
@@ -11,7 +11,11 @@ The full contract is `backend/docs/openapi.yaml`. Swagger UI serves it at
 - Routes with a JSON body require `Content-Type: application/json`, otherwise
   they return `415 Unsupported Media Type`.
 - JSON request bodies are limited to 1 MiB. Larger bodies return `413`.
-- Errors are returned as plain text, for example `invalid email or password`.
+- Application errors include a stable `code` and a human-readable `message`,
+  for example `{"code":"invalid_credentials","message":"invalid email or password"}`.
+  Branch on the code or HTTP status in clients.
+- Unknown fields in JSON request objects return `400` with `unknown_field`.
+  Invalid JSON or a body other than an object returns `400` with `invalid_json`.
 - Timestamps are RFC3339 strings, for example `2026-07-20T09:00:00Z`.
 - `{id}` path parameters must be integers, otherwise `400 Bad Request`.
 - Users only see and change their own subjects and tasks. Another user's
@@ -98,9 +102,15 @@ Success: `201 Created`, auth cookies, and the user:
 }
 ```
 
-An existing email returns `409 Conflict`. The confirmation email contains the
-link `{APP_URL}/confirm/{token}`, and the token is valid for 4 hours. In Docker
-the email is caught by Mailpit at `http://localhost:8025`.
+New email addresses are stored in lowercase. An existing email returns `409`
+regardless of letter case. Sign-in and password reset look up a unique address
+without regard to case. If legacy accounts share the same normalized address,
+use the exact address stored for the account.
+
+Confirmation links use `{APP_URL}/confirm?token=...` and are valid for four
+hours. If mail delivery fails, registration still returns `201` and sets the
+auth cookies. Request a new confirmation link from the profile. Docker
+captures mail in Mailpit at `http://localhost:8025`.
 
 ### Login
 
@@ -162,7 +172,8 @@ authenticated user, clears both cookies, and returns `204 No Content`.
 token returns `400`.
 
 `POST /api/auth/confirm/resend` sends a new link and returns `204 No Content`.
-Requests made less than a minute apart return `429`.
+An already verified address returns `409`. Requests within the cooldown
+return `429` with `Retry-After`.
 
 Changing the email through `PATCH /api/users/me/email` resets
 `is_email_verified` to `false` and sends a new link.
@@ -404,7 +415,7 @@ GET /api/dashboard
 
 | Method | Path | Description |
 | --- | --- | --- |
-| `GET` | `/api/subjects` | List subjects, ordered by ID |
+| `GET` | `/api/subjects` | List subjects by course and semester in descending order, missing values last |
 | `POST` | `/api/subjects` | Create one subject |
 | `DELETE` | `/api/subjects` | Delete all subjects with their tasks |
 | `GET` | `/api/subjects/{id}` | Get one subject, including files |
@@ -414,6 +425,9 @@ GET /api/dashboard
 | `GET` | `/api/subjects/{id}/tasks` | List the subject's tasks |
 | `POST` | `/api/subjects/{id}/thumbnail` | Upload a thumbnail image |
 | `POST` | `/api/subjects/{id}/file` | Attach a PDF or text file |
+
+Deleting a subject queues its attachments and thumbnail for removal after the
+database transaction commits. Thumbnails still used by another subject are kept.
 
 Subject response:
 
@@ -444,7 +458,7 @@ Subject response:
 
 | Field | Values |
 | --- | --- |
-| `name` | Required, unique per user (`409 Conflict` on a duplicate) |
+| `name` | Required, up to 100 characters, unique per user (`409 Conflict` on a duplicate) |
 | `note` | Up to 200 characters, or `null` |
 | `type` | `university` (default), `personal` |
 | `scope` | `technology`, `healthcare`, `humanities`, `business`, `social`, `science`, `other` (default) |
@@ -480,9 +494,9 @@ valid `position`. Invalid values return `400` and duplicate names return `409`.
 `PUT /api/subjects/{id}` takes the same body and clears omitted optional fields.
 
 `PATCH /api/subjects/{id}` changes only the fields it receives. Pass `null`
-as `exam_date` to clear it.
-
-Lecturers can only be set on create. `PUT` and `PATCH` ignore `lecturers`.
+to clear `exam_date`, `note`, `course`, or `term`. Supplying `lecturers`
+replaces the full ordered list. An empty array or `null` clears the list.
+`PUT` retains the current lecturers.
 
 ### Thumbnail
 
@@ -564,7 +578,11 @@ a timestamp on its own replaces its matching calendar date.
 `400`. Task names have a limit of 200 characters and descriptions have a limit
 of 2000. A subject that does not belong to the user returns `404`.
 
-`PATCH /api/tasks/{id}` changes only the fields it receives. Invalid fields return `400`.
+`PATCH /api/tasks/{id}` changes only the fields it receives. An explicit
+`null` clears the estimate, schedule, or deadline. When the request contains
+either member of a calendar date and timestamp pair, it replaces both. An
+update to another field, such as status, preserves both date pairs. Invalid
+fields return `400`.
 
 ## Shared projects
 
@@ -574,7 +592,8 @@ All shared projects routes require authentication via `access_token` cookie.
 | --- | --- | --- | --- |
 | `GET` | `/api/shared-projects` | ✓ | List shared projects of the authenticated user, newest first |
 | `POST` | `/api/shared-projects` | ✓ | Create a new shared project |
-| `GET` | `/api/shared-projects/{id}` | ✓ | Get a shared project by ID |
+| `GET` | `/api/shared-projects/catalog` | ✓ | Browse published projects from newest to oldest |
+| `GET` | `/api/shared-projects/{id}` | ✓ | Get an owned or published project by ID |
 | `PUT` | `/api/shared-projects/{id}` | ✓ | Update an existing shared project owned by the user |
 | `DELETE` | `/api/shared-projects/{id}` | ✓ | Delete a shared project owned by the user |
 
@@ -587,7 +606,8 @@ Shared project response:
   "name": "Distributed Systems Notes",
   "url": "https://github.com/studify-community/distributed-systems",
   "author": "Alex River",
-  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567"
+  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567",
+  "is_public": false
 }
 ```
 
@@ -599,6 +619,7 @@ Shared project response:
 | `url` | Required, valid HTTP/HTTPS URL, unique across all shared projects (`409 Conflict` on duplicate) |
 | `author` | Required, non-empty string |
 | `author_avatar_url` | String (can be empty) |
+| `is_public` | Boolean. Defaults to false on create. Omit in an update to preserve existing visibility. |
 
 ### Create and update
 
@@ -609,7 +630,8 @@ Shared project response:
   "name": "Distributed Systems Notes",
   "url": "https://github.com/studify-community/distributed-systems",
   "author": "Alex River",
-  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567"
+  "author_avatar_url": "https://avatars.githubusercontent.com/u/1234567",
+  "is_public": false
 }
 ```
 
@@ -619,10 +641,15 @@ Shared project response:
 `PUT /api/shared-projects/{id}` updates an existing shared project owned by the authenticated user and returns `200 OK`. The request body has the same shape as create.
 - Modifying another user's project returns `404 Not Found`.
 
-### Get and delete
+### Catalog, get, and delete
+
+- `GET /api/shared-projects/catalog` returns `items` and `next_before`.
+  Pages have up to 24 entries. Use `?before=<next_before>` for the next page
+  when `next_before` is present. The catalog contains only projects whose owner
+  opted to publish them.
 
 - `GET /api/shared-projects` returns `200 OK` with an array of all shared projects owned by the authenticated user, ordered by ID descending.
-- `GET /api/shared-projects/{id}` returns `200 OK` with the shared project by its ID. An unknown ID returns `404 Not Found`.
+- `GET /api/shared-projects/{id}` returns `200 OK` with the shared project by its ID. An unknown or private project owned by another user returns `404 Not Found`.
 - `DELETE /api/shared-projects/{id}` deletes the project owned by the authenticated user and returns `204 No Content`. Deleting a non-existent or another user's project returns `404 Not Found`.
 
 ## Files and monitoring
@@ -637,4 +664,5 @@ Compose. In standalone development, the default is the API listener.
 
 ## Request examples
 
-Runnable JetBrains HTTP Client requests are in `backend/postman/`.
+Runnable JetBrains HTTP Client requests are in `backend/postman/`. Known
+limitations are tracked in [ISSUES.md](ISSUES.md).

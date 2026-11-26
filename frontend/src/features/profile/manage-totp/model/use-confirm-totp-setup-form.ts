@@ -1,3 +1,4 @@
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,8 +24,17 @@ export function useConfirmTOTPSetupForm() {
   const confirmMutation = useConfirmTOTPSetup({
     mutation: {
       onSuccess: () => setIsDialogOpen(true),
-      onError: () =>
-        setError("passcode", { message: "Неверный код аутентификатора" }),
+      onError: (error) =>
+        setError("passcode", {
+          message: getRequestErrorMessage(
+            error,
+            "Не удалось подтвердить настройку 2FA.",
+            {
+              invalid: "Неверный код аутентификатора.",
+              conflict: "Двухфакторная аутентификация уже включена.",
+            },
+          ),
+        }),
     },
   });
 

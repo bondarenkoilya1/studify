@@ -95,7 +95,7 @@ func ConsumeAuthChallenge(ctx context.Context, db internal.DBTX, id int64) error
 		DELETE FROM auth_tokens
 		WHERE id = $1
 		  AND type = $2
-		  AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC');
+		  AND expires_at > clock_timestamp();
 	`
 
 	result, err := db.ExecContext(ctx, query, id, authChallengeTokenType)

@@ -38,13 +38,14 @@ services:
 
       # Database
       DATABASE_URL: postgres://${POSTGRES_USER:-studify}:${POSTGRES_PASSWORD:-studify}@postgres:5432/${POSTGRES_DB:-studify}?sslmode=disable
+      DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS:-}
+      DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS:-}
 
       # CORS
       CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_HOST_PORT:-5173},http://localhost:${SWAGGER_HOST_PORT:-8081},http://localhost:3000
       TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
 
       # Mail
-      MAIL_PROVIDER: ${MAIL_PROVIDER:-smtp}
       MAIL_FROM: ${MAIL_FROM:-noreply@studify.dev}
       SMTP_HOST: ${SMTP_HOST:-mailpit}
       SMTP_PORT: ${SMTP_PORT:-1025}

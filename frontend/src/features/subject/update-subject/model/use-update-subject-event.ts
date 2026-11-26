@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useUpdateSubject } from "@/shared/api";
 import { invalidateSubjectData } from "@/entities/subject/model/invalidation";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import { toast } from "@/shared/ui/sonner";
 
 export function useUpdateSubjectEvent(
@@ -17,7 +18,13 @@ export function useUpdateSubjectEvent(
         onSuccess?.();
       },
       onError: (error) => {
-        toast.error(error.message || "Не удалось обновить событие предмета");
+        toast.error(
+          getRequestErrorMessage(
+            error,
+            "Не удалось обновить событие предмета.",
+            { invalid: "Проверьте тип события и дату." },
+          ),
+        );
       },
     },
   });

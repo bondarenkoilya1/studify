@@ -13,12 +13,15 @@
  * through the /api/auth/refresh endpoint.
  *
  * Endpoints with a JSON body require `Content-Type: application/json`, otherwise they return
- * 415. Errors are returned as plain text.
+ * 415. Application errors are JSON objects with a stable code and a message.
+ * Unknown JSON fields in request objects are rejected with 400.
  *
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * Plain-text error message.
- */
-export type Error = string;
+export interface Error {
+  /** Stable machine-readable application error code. */
+  code: string;
+  /** Human-readable explanation. */
+  message: string;
+}

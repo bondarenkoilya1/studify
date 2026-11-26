@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"studify/internal/httpx"
 
 	"github.com/chai2010/webp"
 	"github.com/google/uuid"
@@ -19,27 +20,27 @@ import (
 
 func ServeStoredFile(w http.ResponseWriter, r *http.Request, dir, filename string) {
 	if !filepath.IsLocal(filename) || filepath.Base(filename) != filename || filename == "." {
-		http.NotFound(w, r)
+		httpx.WriteError(w, "file not found", http.StatusNotFound)
 		return
 	}
 
 	root, err := os.OpenRoot(dir)
 	if err != nil {
-		http.NotFound(w, r)
+		httpx.WriteError(w, "file not found", http.StatusNotFound)
 		return
 	}
 	defer root.Close()
 
 	file, err := root.Open(filename)
 	if err != nil {
-		http.NotFound(w, r)
+		httpx.WriteError(w, "file not found", http.StatusNotFound)
 		return
 	}
 	defer file.Close()
 
 	info, err := file.Stat()
 	if err != nil || !info.Mode().IsRegular() {
-		http.NotFound(w, r)
+		httpx.WriteError(w, "file not found", http.StatusNotFound)
 		return
 	}
 

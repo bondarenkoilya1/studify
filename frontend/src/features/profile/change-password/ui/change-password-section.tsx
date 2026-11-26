@@ -4,8 +4,7 @@ import { Input } from "@/shared/ui/input";
 import { useChangePasswordForm } from "../model/use-change-password-form";
 
 export function ChangePasswordSection() {
-  const { register, errors, handleSubmit, isPending, error } =
-    useChangePasswordForm();
+  const { register, errors, handleSubmit, isPending } = useChangePasswordForm();
 
   return (
     <Card className="rounded-xl p-5">
@@ -56,9 +55,9 @@ export function ChangePasswordSection() {
           )}
         </div>
 
-        {error && (
-          <p className="text-sm text-destructive">
-            Не удалось изменить пароль.
+        {errors.root?.message && (
+          <p role="alert" className="text-sm text-destructive">
+            {errors.root.message}
           </p>
         )}
 

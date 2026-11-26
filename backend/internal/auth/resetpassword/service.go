@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"studify/internal/auth/credentials"
 	"studify/internal/auth/session"
 	"studify/internal/auth/token"
@@ -26,11 +27,12 @@ func NewService(db *sql.DB, mailService *mail.Service) *Service {
 }
 
 func (s *Service) requestPasswordReset(ctx context.Context, email string) error {
+	email = strings.TrimSpace(email)
 	if email == "" {
 		return ErrEmailRequired
 	}
 
-	currentUser, err := user.GetUserByEmail(s.db, email)
+	currentUser, err := user.GetUserByEmail(ctx, s.db, email)
 	if err != nil {
 		return fmt.Errorf("get user by email: %w", err)
 	}
@@ -40,8 +42,11 @@ func (s *Service) requestPasswordReset(ctx context.Context, email string) error 
 		return fmt.Errorf("create password reset token: %w", err)
 	}
 
-	if err = s.mailService.SendPasswordResetEmail(currentUser.Email, string(t)); err != nil {
-		return fmt.Errorf("send password reset email: %w", err)
+	if err = s.mailService.SendPasswordResetEmail(ctx, currentUser.Email, string(t)); err != nil {
+		slog.ErrorContext(ctx, "failed to send password reset email",
+			util.AttrUserID(currentUser.ID),
+			util.AttrError(err),
+		)
 	}
 
 	return nil
@@ -109,7 +114,7 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 		return nil
 	}
 
-	if err = s.mailService.SendNewPasswordEmail(currentUser.Email); err != nil {
+	if err = s.mailService.SendNewPasswordEmail(ctx, currentUser.Email); err != nil {
 		slog.ErrorContext(ctx, "failed to send new password email",
 			util.AttrUserID(tokenRecord.UserID),
 			util.AttrError(err),

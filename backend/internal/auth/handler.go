@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"studify/internal/auth/challenge"
@@ -16,8 +15,8 @@ import (
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	body := credentialsRequest{}
 
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &body); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
@@ -25,14 +24,14 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, user.ErrUserAlreadyExists):
-			http.Error(w, "user with such email already exists", http.StatusConflict)
+			httpx.WriteCodedError(w, http.StatusConflict, "email_taken", "user with such email already exists")
 		case errors.Is(err, ErrInvalidRegistration):
-			http.Error(w, "invalid registration details", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid registration details", http.StatusBadRequest)
 		default:
 			slog.ErrorContext(r.Context(), "failed to register user",
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -52,8 +51,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	body := credentialsRequest{}
 
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, fmt.Sprintf("failed to read data: %v", err), http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &body); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
@@ -61,12 +60,12 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidCredentials), errors.Is(err, user.ErrUserNotFound):
-			http.Error(w, "invalid email or password", http.StatusUnauthorized)
+			httpx.WriteCodedError(w, http.StatusUnauthorized, "invalid_credentials", "invalid email or password")
 		default:
 			slog.ErrorContext(r.Context(), "failed to login user",
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -99,8 +98,8 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 	var body totpReq
 
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &body); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
@@ -115,20 +114,20 @@ func (h *Handler) LoginTOTP(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, user.ErrUserNotFound),
 			errors.Is(err, challenge.ErrChallengeTokenNotFound),
 			errors.Is(err, ErrChallengeExpired):
-			http.Error(w, "invalid or expired challenge", http.StatusUnauthorized)
+			httpx.WriteCodedError(w, http.StatusUnauthorized, "invalid_mfa_challenge", "invalid or expired challenge")
 
 		case errors.Is(err, ErrInvalidMFACode):
-			http.Error(w, "invalid authentication code", http.StatusUnauthorized)
+			httpx.WriteCodedError(w, http.StatusUnauthorized, "invalid_mfa_code", "invalid authentication code")
 
 		case errors.Is(err, ErrRequiredChallengeToken),
 			errors.Is(err, ErrRequiredMFACode):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 
 		default:
 			slog.ErrorContext(r.Context(), "failed to complete MFA login",
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -158,7 +157,7 @@ func (h *Handler) LogoutUser(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(r.Context(), "logout failed",
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -170,7 +169,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := h.Cookies.RefreshToken(r)
 	if err != nil {
 		h.Cookies.Clear(w)
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -179,13 +178,13 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, errRefreshReplaced):
 			// Another request may already have installed the replacement cookies.
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		case errors.Is(err, ErrInvalidToken), errors.Is(err, ErrTokenNotFound):
 			h.Cookies.Clear(w)
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		default:
 			slog.ErrorContext(r.Context(), "failed to refresh session", util.AttrError(err))
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -198,7 +197,7 @@ func (h *Handler) RefreshTokens(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -206,7 +205,7 @@ func (h *Handler) LogoutAllSessions(w http.ResponseWriter, r *http.Request) {
 		slog.ErrorContext(r.Context(), "failed to logout all sessions",
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

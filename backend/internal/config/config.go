@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/mail"
 	"net/netip"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -65,6 +67,18 @@ func Load() (*Config, error) {
 		return nil, errors.New("DATABASE_URL is empty")
 	}
 
+	cfg.DBMaxOpenConns, err = readDBPoolSize("DB_MAX_OPEN_CONNS", 20, 1)
+	if err != nil {
+		return nil, err
+	}
+	cfg.DBMaxIdleConns, err = readDBPoolSize("DB_MAX_IDLE_CONNS", min(5, cfg.DBMaxOpenConns), 0)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.DBMaxIdleConns > cfg.DBMaxOpenConns {
+		return nil, errors.New("DB_MAX_IDLE_CONNS cannot exceed DB_MAX_OPEN_CONNS")
+	}
+
 	if cfg.AppURL == "" {
 		return nil, errors.New("APP_URL is empty")
 	}
@@ -91,6 +105,20 @@ func Load() (*Config, error) {
 	}
 
 	cfg.SMTPAddr = net.JoinHostPort(smtpHost, smtpPort)
+	cfg.MailFrom = os.Getenv("MAIL_FROM")
+	if cfg.MailFrom == "" {
+		cfg.MailFrom = "noreply@studify.com"
+	}
+	sender, err := mail.ParseAddress(cfg.MailFrom)
+	if err != nil {
+		return nil, fmt.Errorf("invalid MAIL_FROM: %w", err)
+	}
+	cfg.MailFrom = sender.Address
+	cfg.SMTPUsername = os.Getenv("SMTP_USERNAME")
+	cfg.SMTPPassword = os.Getenv("SMTP_PASSWORD")
+	if (cfg.SMTPUsername == "") != (cfg.SMTPPassword == "") {
+		return nil, errors.New("SMTP_USERNAME and SMTP_PASSWORD must be set together")
+	}
 
 	if len(cfg.CORSOrigins) == 0 {
 		cfg.CORSOrigins = []string{
@@ -131,4 +159,16 @@ func splitEnvList(value string) []string {
 	}
 
 	return items
+}
+
+func readDBPoolSize(name string, fallback, minimum int) (int, error) {
+	raw := os.Getenv(name)
+	if raw == "" {
+		return fallback, nil
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < minimum {
+		return 0, fmt.Errorf("%s must be an integer greater than or equal to %d", name, minimum)
+	}
+	return value, nil
 }

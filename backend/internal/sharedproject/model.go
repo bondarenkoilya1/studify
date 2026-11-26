@@ -15,6 +15,12 @@ type SharedProject struct {
 	URL             string `json:"url"`
 	Author          string `json:"author"`
 	AuthorAvatarURL string `json:"author_avatar_url"`
+	IsPublic        bool   `json:"is_public"`
+}
+
+type CatalogPage struct {
+	Items      []SharedProject `json:"items"`
+	NextBefore *int64          `json:"next_before"`
 }
 
 type createSharedProjectInput struct {
@@ -23,6 +29,7 @@ type createSharedProjectInput struct {
 	URL             string
 	Author          string
 	AuthorAvatarURL string
+	IsPublic        *bool
 }
 
 type updateSharedProjectInput struct {
@@ -32,6 +39,7 @@ type updateSharedProjectInput struct {
 	URL             string
 	Author          string
 	AuthorAvatarURL string
+	IsPublic        *bool
 }
 
 type sharedProjectRequest struct {
@@ -39,4 +47,5 @@ type sharedProjectRequest struct {
 	URL             string `json:"url"`
 	Author          string `json:"author"`
 	AuthorAvatarURL string `json:"author_avatar_url"`
+	IsPublic        *bool  `json:"is_public"`
 }

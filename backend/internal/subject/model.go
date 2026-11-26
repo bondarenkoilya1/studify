@@ -1,7 +1,10 @@
 package subject
 
 import (
+	"bytes"
 	"encoding/json"
+	"strings"
+	"studify/internal/httpx"
 	"time"
 )
 
@@ -62,13 +65,17 @@ type UpdateSubjectRequest struct {
 	Course       *int        `json:"course"`
 	Term         *int        `json:"term"`
 	ExamDateSet  bool        `json:"-"`
+	NoteSet      bool        `json:"-"`
+	CourseSet    bool        `json:"-"`
+	TermSet      bool        `json:"-"`
+	LecturersSet bool        `json:"-"`
 }
 
 func (r *UpdateSubjectRequest) UnmarshalJSON(data []byte) error {
 	type updateSubjectRequestAlias UpdateSubjectRequest
 
 	var decoded updateSubjectRequestAlias
-	if err := json.Unmarshal(data, &decoded); err != nil {
+	if err := httpx.ReadJSON(bytes.NewReader(data), &decoded); err != nil {
 		return err
 	}
 
@@ -79,13 +86,18 @@ func (r *UpdateSubjectRequest) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if raw, exists := fields["exam_date"]; exists {
-		r.ExamDateSet = true
-		r.ExamDate = nil
-		if string(raw) != "null" {
-			if err := json.Unmarshal(raw, &r.ExamDate); err != nil {
-				return err
-			}
+	for field := range fields {
+		switch strings.ToLower(field) {
+		case "exam_date":
+			r.ExamDateSet = true
+		case "note":
+			r.NoteSet = true
+		case "course":
+			r.CourseSet = true
+		case "term":
+			r.TermSet = true
+		case "lecturers":
+			r.LecturersSet = true
 		}
 	}
 

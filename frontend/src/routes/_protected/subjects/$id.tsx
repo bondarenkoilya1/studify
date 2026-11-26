@@ -6,6 +6,7 @@ import {
   File as FileIcon,
   Search,
   ArrowLeft,
+  Pencil,
 } from "lucide-react";
 
 import { TaskList } from "@/widgets/task-list";
@@ -18,6 +19,8 @@ import {
   type TaskTypeFilter,
 } from "@/entities/task/model/filters";
 import { getTaskTypeCounts } from "@/entities/task/model/task-type-counts";
+import { UploadSubjectFile } from "@/features/subject/upload-file/upload-subject-file";
+import { CreateSubjectDialog } from "@/features/subject/create-subject/ui/create-subject-dialog";
 import { CreateTaskButton } from "@/features/task/create-task";
 import { UpdateSubjectEventDialog } from "@/features/subject/update-subject";
 import { Button } from "@/shared/ui/button";
@@ -61,17 +64,25 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
   component: SubjectPage,
 });
 
-function SubjectFilesSidebar({ files }: { files: SubjectFile[] }) {
-  if (!files || files.length === 0) {
-    return null;
-  }
-
+function SubjectFilesSidebar({
+  files,
+  subjectId,
+}: {
+  files: SubjectFile[];
+  subjectId: number;
+}) {
   return (
     <aside className="w-full shrink-0 lg:w-72">
       <div className="rounded-[20px] border border-gray-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
         <h2 className="text-[17px] font-semibold tracking-tight text-gray-900">
           Материалы курса
         </h2>
+        <UploadSubjectFile subjectId={subjectId} />
+        {files.length === 0 && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Файлов пока нет. Можно добавить PDF или TXT.
+          </p>
+        )}
 
         <div className="mt-4 flex flex-col gap-2">
           {files.map((file) => {
@@ -139,6 +150,7 @@ function SubjectPage() {
 
   const [selectedType, setSelectedType] = useState<TaskTypeFilter>("all");
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [editingSubject, setEditingSubject] = useState(false);
 
   const types = getTaskTypeCounts(tasks);
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
@@ -168,7 +180,7 @@ function SubjectPage() {
           </Link>
 
           <header>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-gray-900">
                   {subject.name}
@@ -180,7 +192,16 @@ function SubjectPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingSubject(true)}
+                >
+                  <Pencil />
+                  Редактировать
+                </Button>
                 {subject.type === "university" && (
                   <Button
                     type="button"
@@ -245,9 +266,16 @@ function SubjectPage() {
           </div>
         </main>
 
-        <SubjectFilesSidebar files={subject.files ?? []} />
+        <SubjectFilesSidebar files={subject.files ?? []} subjectId={id} />
       </div>
 
+      {editingSubject && (
+        <CreateSubjectDialog
+          open
+          subject={subject}
+          onOpenChange={setEditingSubject}
+        />
+      )}
       {subject.type === "university" && (
         <UpdateSubjectEventDialog
           subject={subject}

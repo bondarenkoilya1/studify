@@ -1,13 +1,15 @@
 package task
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"studify/internal"
 	"studify/internal/util"
 )
 
-func ScanTasks(db *sql.DB, query string, args ...any) ([]Task, error) {
-	rows, err := db.Query(query, args...)
+func ScanTasks(ctx context.Context, db *sql.DB, query string, args ...any) ([]Task, error) {
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query tasks: %w", err)
 	}
@@ -30,28 +32,32 @@ func ScanTasks(db *sql.DB, query string, args ...any) ([]Task, error) {
 	return tasks, nil
 }
 
-func GetTaskByID(db *sql.DB, id, userID int64) (*Task, error) {
+func GetTaskByID(ctx context.Context, db *sql.DB, id, userID int64) (*Task, error) {
+	return getTaskByID(ctx, db, id, userID, false)
+}
+
+func getTaskByID(ctx context.Context, db internal.DBTX, id, userID int64, lock bool) (*Task, error) {
 	query := `
 		SELECT t.id, t.subject_id, t.name, t.type, t.description, t.estimated_time,
 			t.scheduled_at, t.deadline, t.scheduled_date, t.deadline_date,
 			t.status, t.difficulty, t.priority, t.created_at, t.updated_at
 		FROM tasks t
-		JOIN subjects s ON s.id = t.subject_id
-		WHERE t.id = $1 AND s.user_id = $2;
-	`
+		WHERE t.id = $1 AND EXISTS (
+			SELECT 1 FROM subjects s WHERE s.id = t.subject_id AND s.user_id = $2
+		)`
+	if lock {
+		query += " FOR UPDATE OF t"
+	}
 
-	tasks, err := ScanTasks(db, query, id, userID)
+	task, err := scanTask(db.QueryRowContext(ctx, query, id, userID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task by id: %w", err)
 	}
-	if len(tasks) == 0 {
-		return nil, sql.ErrNoRows
-	}
 
-	return &tasks[0], nil
+	return task, nil
 }
 
-func GetTasksByUserID(db *sql.DB, userID int64) ([]Task, error) {
+func GetTasksByUserID(ctx context.Context, db *sql.DB, userID int64) ([]Task, error) {
 	query := `
 		SELECT t.id, t.subject_id, t.name, t.type, t.description, t.estimated_time,
 			t.scheduled_at, t.deadline, t.scheduled_date, t.deadline_date,
@@ -62,7 +68,7 @@ func GetTasksByUserID(db *sql.DB, userID int64) ([]Task, error) {
 		ORDER BY t.created_at DESC;
 	`
 
-	tasks, err := ScanTasks(db, query, userID)
+	tasks, err := ScanTasks(ctx, db, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks: %w", err)
 	}
@@ -70,7 +76,7 @@ func GetTasksByUserID(db *sql.DB, userID int64) ([]Task, error) {
 	return tasks, nil
 }
 
-func GetTasksBySubjectID(db *sql.DB, userID, subjectID int64) ([]Task, error) {
+func GetTasksBySubjectID(ctx context.Context, db *sql.DB, userID, subjectID int64) ([]Task, error) {
 	query := `
 		SELECT t.id, t.subject_id, t.name, t.type, t.description, t.estimated_time,
 			t.scheduled_at, t.deadline, t.scheduled_date, t.deadline_date,
@@ -81,7 +87,7 @@ func GetTasksBySubjectID(db *sql.DB, userID, subjectID int64) ([]Task, error) {
 		ORDER BY t.created_at DESC;
 	`
 
-	tasks, err := ScanTasks(db, query, subjectID, userID)
+	tasks, err := ScanTasks(ctx, db, query, subjectID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks by subject id: %w", err)
 	}
@@ -105,7 +111,7 @@ func scanTask(row interface{ Scan(...any) error }) (*Task, error) {
 	return task, nil
 }
 
-func InsertTask(db *sql.DB, userID int64, task *Task) (*Task, error) {
+func InsertTask(ctx context.Context, db *sql.DB, userID int64, task *Task) (*Task, error) {
 	query := `
 		INSERT INTO tasks (
 			subject_id, name, type, description, estimated_time,
@@ -119,7 +125,7 @@ func InsertTask(db *sql.DB, userID int64, task *Task) (*Task, error) {
 			status, difficulty, priority, created_at, updated_at;
 	`
 
-	saved, err := scanTask(db.QueryRow(query,
+	saved, err := scanTask(db.QueryRowContext(ctx, query,
 		task.SubjectID, task.Name, task.Type, task.Description, task.EstimatedTime,
 		task.ScheduledAt, task.Deadline, task.ScheduledDate, task.DeadlineDate,
 		task.Status, task.Difficulty, task.Priority, userID,
@@ -130,7 +136,7 @@ func InsertTask(db *sql.DB, userID int64, task *Task) (*Task, error) {
 	return saved, nil
 }
 
-func UpdateTask(db *sql.DB, userID, id int64, task *Task) (*Task, error) {
+func UpdateTask(ctx context.Context, db internal.DBTX, userID, id int64, task *Task) (*Task, error) {
 	query := `
 		UPDATE tasks t
 		SET subject_id = $1, name = $2, type = $3, description = $4, estimated_time = $5,
@@ -145,7 +151,7 @@ func UpdateTask(db *sql.DB, userID, id int64, task *Task) (*Task, error) {
 			t.status, t.difficulty, t.priority, t.created_at, t.updated_at;
 	`
 
-	saved, err := scanTask(db.QueryRow(query,
+	saved, err := scanTask(db.QueryRowContext(ctx, query,
 		task.SubjectID, task.Name, task.Type, task.Description, task.EstimatedTime,
 		task.ScheduledAt, task.Deadline, task.ScheduledDate, task.DeadlineDate,
 		task.Status, task.Difficulty, task.Priority, id, userID,
@@ -156,28 +162,28 @@ func UpdateTask(db *sql.DB, userID, id int64, task *Task) (*Task, error) {
 	return saved, nil
 }
 
-func DeleteTasksByUserID(db *sql.DB, userID int64) error {
+func DeleteTasksByUserID(ctx context.Context, db *sql.DB, userID int64) error {
 	query := `
 		DELETE FROM tasks t
 		USING subjects s
 		WHERE t.subject_id = s.id AND s.user_id = $1;
 	`
 
-	if _, err := db.Exec(query, userID); err != nil {
+	if _, err := db.ExecContext(ctx, query, userID); err != nil {
 		return fmt.Errorf("failed to delete tasks: %w", err)
 	}
 
 	return nil
 }
 
-func DeleteTaskByID(db *sql.DB, userID, id int64) error {
+func DeleteTaskByID(ctx context.Context, db *sql.DB, userID, id int64) error {
 	query := `
 		DELETE FROM tasks t
 		USING subjects s
 		WHERE t.id = $1 AND t.subject_id = s.id AND s.user_id = $2;
 	`
 
-	result, err := db.Exec(query, id, userID)
+	result, err := db.ExecContext(ctx, query, id, userID)
 	if err != nil {
 		return fmt.Errorf("failed to delete task: %w", err)
 	}

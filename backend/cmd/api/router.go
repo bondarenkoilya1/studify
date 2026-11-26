@@ -2,12 +2,14 @@ package main
 
 import (
 	"net/http"
+	"strings"
 	"studify/internal/auth"
 	"studify/internal/auth/emailconfirm"
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/resetpassword"
 	"studify/internal/auth/session"
 	"studify/internal/dashboard"
+	"studify/internal/httpx"
 	"studify/internal/media"
 	"studify/internal/middlewares"
 	"studify/internal/sharedproject"
@@ -25,6 +27,21 @@ import (
 
 func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Metrics) http.Handler {
 	r := chi.NewRouter()
+
+	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+		httpx.WriteError(w, "route not found", http.StatusNotFound)
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, req *http.Request) {
+		var allowed []string
+		for _, method := range []string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
+			http.MethodPatch, http.MethodDelete, http.MethodOptions} {
+			if r.Match(chi.NewRouteContext(), method, req.URL.EscapedPath()) {
+				allowed = append(allowed, method)
+			}
+		}
+		w.Header().Set("Allow", strings.Join(allowed, ", "))
+		httpx.WriteError(w, "method not allowed", http.StatusMethodNotAllowed)
+	})
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   corsOrigins,
@@ -209,6 +226,7 @@ func registerStaticRoutes(r chi.Router, h *subject.Handler) {
 func registerSharedProjectRoutes(r chi.Router, h *sharedproject.Handler) {
 	r.Route("/shared-projects", func(r chi.Router) {
 		r.Get("/", h.GetUserProjects)
+		r.Get("/catalog", h.GetCatalog)
 		r.With(middlewares.RequireJSON).Post("/", h.Create)
 
 		r.Route("/{id}", func(r chi.Router) {

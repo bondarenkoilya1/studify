@@ -7,10 +7,10 @@ import (
 
 func TestUpdateSubjectRequestUnmarshalExamDate(t *testing.T) {
 	tests := []struct {
-		name       string
-		body       string
-		wantSet    bool
-		wantDate   bool
+		name     string
+		body     string
+		wantSet  bool
+		wantDate bool
 	}{
 		{
 			name:    "field omitted",
@@ -56,5 +56,18 @@ func TestUpdateSubjectRequestIsEmpty(t *testing.T) {
 	req.ExamDateSet = true
 	if req.isEmpty() {
 		t.Fatal("exam_date: null should make the request non-empty")
+	}
+}
+
+func TestUpdateSubjectRequestKeepsExplicitNulls(t *testing.T) {
+	var request UpdateSubjectRequest
+	if err := json.Unmarshal([]byte(`{"NOTE":null,"course":null,"term":null,"lecturers":[]}`), &request); err != nil {
+		t.Fatal(err)
+	}
+	if request.isEmpty() || !request.NoteSet || !request.CourseSet || !request.TermSet || !request.LecturersSet {
+		t.Fatalf("explicit clears must count as changes: %+v", request)
+	}
+	if request.Note != nil || request.Course != nil || request.Term != nil || request.Lecturers == nil || len(*request.Lecturers) != 0 {
+		t.Fatalf("unexpected cleared values: %+v", request)
 	}
 }
