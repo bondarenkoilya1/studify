@@ -6,6 +6,7 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
   test: {
+    include: ["src/**/*.test.{ts,tsx}"],
     env: {
       VITE_API_URL: "http://127.0.0.1:8080",
     },

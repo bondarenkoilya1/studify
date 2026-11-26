@@ -1,5 +1,5 @@
 import { Button } from "@/shared/ui/button";
-import { FormField } from "@/shared/ui/form-field";
+import { FormError, FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { useRegisterForm } from "../model/use-register-form";
 import { Link } from "@tanstack/react-router";
@@ -8,26 +8,22 @@ export function RegisterForm() {
   const { registerField, errors, isSubmitting, onSubmit } = useRegisterForm();
 
   return (
-    <div className="w-full max-w-md text-studify-text">
+    <div className="w-full max-w-md text-foreground">
       <div className="mb-7 flex flex-col items-center sm:mb-9">
         <h1 className="text-center text-3xl font-light tracking-[-0.03em] sm:text-4xl">
           Создать аккаунт
         </h1>
 
-        <p className="mt-3 text-center text-base text-studify-muted sm:text-lg">
+        <p className="mt-3 text-center text-base text-muted-foreground sm:text-lg">
           Присоединяйтесь к Studify и начните учиться.
         </p>
       </div>
 
-      <form
-        className="rounded-2xl border border-studify-border bg-studify-surface p-5 shadow-xl shadow-studify-shadow/10 sm:p-8"
-        onSubmit={onSubmit}
-        noValidate
-      >
+      <form className="form-surface" onSubmit={onSubmit} noValidate>
         {errors.root?.message && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+          <FormError variant="summary" className="mb-4">
             {errors.root.message}
-          </div>
+          </FormError>
         )}
 
         <div className="space-y-5 sm:space-y-6">
@@ -35,7 +31,7 @@ export function RegisterForm() {
             <Input
               id="email"
               type="email"
-              placeholder="octocat@gmail.com"
+              placeholder="student@example.com"
               autoComplete="email"
               size="lg"
               aria-describedby={errors.email ? "email-error" : undefined}
@@ -44,9 +40,7 @@ export function RegisterForm() {
             />
 
             {errors.email?.message && (
-              <p className="mt-2 text-sm text-red-500" id="email-error">
-                {errors.email.message}
-              </p>
+              <FormError id="email-error">{errors.email.message}</FormError>
             )}
           </FormField>
 
@@ -63,14 +57,14 @@ export function RegisterForm() {
             />
 
             {errors.password?.message && (
-              <p className="mt-2 text-sm text-red-500" id="password-error">
+              <FormError id="password-error">
                 {errors.password.message}
-              </p>
+              </FormError>
             )}
           </FormField>
 
           <Button
-            className="w-full bg-studify-primary text-white hover:bg-studify-hover active:bg-studify-active transition-colors duration-200"
+            className="w-full"
             size="lg"
             disabled={isSubmitting}
             type="submit"
@@ -78,7 +72,7 @@ export function RegisterForm() {
             {isSubmitting ? "Создаём..." : "Создать аккаунт"}
           </Button>
 
-          <p className="text-center text-sm text-studify-muted">
+          <p className="text-center text-sm text-muted-foreground">
             Уже есть аккаунт?{" "}
             <Link
               to="/login"

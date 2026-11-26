@@ -63,6 +63,31 @@ make migrate-down
 `docker-down` preserves the named volumes. To remove stored data, run
 `docker compose down -v`.
 
+## Production backend image
+
+Build the standalone backend image from the repository root.
+
+```bash
+docker build -f backend/Dockerfile -t studify-api backend
+```
+
+The runtime image contains the compiled API and runs as UID and GID 10001.
+Apply the SQL migrations to the target PostgreSQL database before starting
+the new image. Configure the environment with strong secrets, the database and
+SMTP connections, the public HTTPS frontend URL in `APP_URL` and the frontend
+origin in `CORS_ALLOWED_ORIGINS`.
+
+```bash
+docker run --name studify-api --stop-timeout 35 \
+  --env-file /path/to/studify-production.env -e ENV=production \
+  --mount type=volume,src=studify-data,dst=/app/data \
+  -p 127.0.0.1:8080:8080 studify-api
+```
+
+Expose the API through your HTTPS reverse proxy. For a host bind mount in
+place of the named volume, make the directory writable by UID and GID 10001.
+The development Compose stack continues to use the Air image.
+
 ## Backend outside Docker
 
 Create `backend/.env` from `backend/.env.example` and fill every required value:
@@ -76,6 +101,20 @@ cp backend/.env.example backend/.env
 to `:8080`, `ENV` defaults to `dev`, `SMTP_HOST` / `SMTP_PORT` default to
 `localhost` / `1025`, and `CORS_ALLOWED_ORIGINS` defaults to
 `http://localhost:5173,http://localhost:3000`.
+
+The mail transport uses SMTP and supports Mailpit. Set `MAIL_FROM` to choose
+the sender. Standalone development defaults to `noreply@studify.com` and Docker
+Compose defaults to `noreply@studify.dev`. Set both `SMTP_USERNAME` and
+`SMTP_PASSWORD` for authenticated delivery. SMTP operations have a five-second
+timeout and use STARTTLS when the server offers it. Go's SMTP client requires
+TLS for plain authentication to a remote host.
+
+The PostgreSQL pool defaults to 20 open connections and up to 5 idle
+connections per process. Tune `DB_MAX_OPEN_CONNS` and `DB_MAX_IDLE_CONNS`
+for your database. Idle connections are closed after 5 minutes and all
+connections are recycled after 30 minutes. Statements have a default
+10-second timeout. Set `statement_timeout` in the database connection
+string to override it.
 
 The authentication rate limiter uses the request's peer address by default.
 If you run the API behind a reverse proxy, set `TRUSTED_PROXY_CIDRS` to the
@@ -127,6 +166,26 @@ Commit the generated files together with the spec change. Do not edit them by
 hand: every request goes through `frontend/src/shared/api/fetcher.ts`, which
 sends cookies, refreshes the session on 401, and throws `ApiError`.
 
+## Browser tests
+
+Use a dedicated development database and Mailpit inbox. Start the API and
+Mailpit and apply the migrations before running the suite. Playwright can
+start Vite if the frontend is down.
+
+```bash
+cd frontend
+bun install --frozen-lockfile
+bunx playwright install chromium
+bun run test:e2e
+```
+
+The default addresses are `http://localhost:5173`, `http://localhost:8080`
+and `http://localhost:8025` for the frontend, API and Mailpit. Override them
+with `E2E_WEB_URL`, `E2E_API_URL` and `E2E_MAILPIT_URL`. Match the frontend
+origin in the API's `APP_URL` and `CORS_ALLOWED_ORIGINS`. Local HTTP test runs
+use `ENV=dev` for cookies. The GitHub Actions browser job uses an isolated
+database and runs against the production image.
+
 ## Migrations
 
 The root migration commands connect through the PostgreSQL host port and run
@@ -150,10 +209,29 @@ port:     4444
 The migration commands are not a migration-state manager: rerunning `migrate-up`
 against an already migrated database can fail because objects already exist.
 
-For an existing database at migration 000011, apply up migrations 000012
-through 000014 in order before starting the updated API. If 000013 is already
-applied, run only 000014. Recovery codes from before 000012 can be replaced in
-Security settings. Existing task timestamps keep their original values.
+Apply the missing migrations through 000019 in order before starting the API.
+A database already at 000014 needs these commands:
+
+```bash
+psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000015_normalize_email_lookup.up.sql
+psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000016_queue_deleted_subject_files.up.sql
+psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000017_shared_project_visibility.up.sql
+psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000018_auth_token_timestamps.up.sql
+psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000019_query_indexes.up.sql
+```
+
+Migration 000015 preserves existing accounts whose addresses differ only by
+case. Users with those addresses continue to sign in with their exact spelling.
+Migration 000016 creates the file cleanup queue. The API processes the queue in
+the background and retries failed deletions. Files orphaned before the migration
+are outside the queue. Migration 000017 keeps existing shared projects private.
+Owners can publish them in the catalog from the project editor.
+
+Migration 000018 preserves existing token expiry instants and reconstructs
+creation times from their configured lifetime at issuance. Migration 000019
+adds lookup and cleanup indexes. The API sweeps expired records at startup
+and hourly. Revoked refresh tokens are removed after seven days, or earlier
+if expired. Apply both migrations before starting the new API.
 
 After 000014, the first authenticated request with old cookies triggers a token
 refresh in the web app. A valid refresh cookie creates a tracked session, so

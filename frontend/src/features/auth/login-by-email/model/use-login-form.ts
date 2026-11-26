@@ -24,7 +24,10 @@ import {
 
 function getMfaErrorMessage(error: ApiError, method: LoginMfaMethod) {
   if (error.status === 401) {
-    if (error.message === "invalid or expired challenge") {
+    if (
+      error.code === "invalid_mfa_challenge" ||
+      error.message === "invalid or expired challenge"
+    ) {
       return "Время для подтверждения входа истекло. Вернитесь к вводу пароля.";
     }
     return method === "totp"

@@ -68,12 +68,12 @@ function SubjectsPage() {
           onClick={() => setSelectedType("all")}
           className={`
             cursor-pointer rounded-full px-3.5 py-1.5
-            text-[12.5px] font-medium
+            text-xs font-medium
             transition-all duration-200
             ${
               selectedType === "all"
-                ? "bg-gray-900 text-white shadow-sm"
-                : "bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-gray-50 hover:text-gray-700"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-card text-muted-foreground shadow-xs hover:bg-muted hover:text-foreground"
             }
           `}
         >
@@ -88,12 +88,12 @@ function SubjectsPage() {
             onClick={() => setSelectedType(type)}
             className={`
               cursor-pointer rounded-full px-3.5 py-1.5
-              text-[12.5px] font-medium
+              text-xs font-medium
               transition-all duration-200
               ${
                 selectedType === type
-                  ? "bg-gray-900 text-white shadow-sm"
-                  : "bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-gray-50 hover:text-gray-700"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-card text-muted-foreground shadow-xs hover:bg-muted hover:text-foreground"
               }
             `}
           >

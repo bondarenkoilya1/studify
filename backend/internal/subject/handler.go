@@ -2,7 +2,6 @@ package subject
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -28,27 +27,27 @@ const (
 func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	subject, err := h.Service.getSubject(id, userID)
+	subject, err := h.Service.getSubject(r.Context(), id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "Subject was not found", http.StatusNotFound)
+			httpx.WriteError(w, "Subject was not found", http.StatusNotFound)
 			return
 		}
 
 		slog.ErrorContext(r.Context(), "failed to get subject",
 			util.AttrError(err),
 		)
-		http.Error(w, "Failed to get subject", http.StatusInternalServerError)
+		httpx.WriteError(w, "Failed to get subject", http.StatusInternalServerError)
 		return
 	}
 
@@ -58,16 +57,16 @@ func (h *Handler) GetSubject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	subjects, err := h.Service.getUserSubjects(userID)
+	subjects, err := h.Service.getUserSubjects(r.Context(), userID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "failed to get subjects",
 			util.AttrError(err),
 		)
-		http.Error(w, "Failed to get subjects", http.StatusInternalServerError)
+		httpx.WriteError(w, "Failed to get subjects", http.StatusInternalServerError)
 		return
 	}
 
@@ -77,34 +76,34 @@ func (h *Handler) GetUserSubjects(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var req CreateSubjectRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &req); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	if err := validateCreateSubjectRequest(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if err := validateLecturers(req.Lecturers); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	createdSubject, err := h.Service.addSubject(userID, &req)
+	createdSubject, err := h.Service.addSubject(r.Context(), userID, &req)
 	if err != nil {
 		if errors.Is(err, ErrSubjectAlreadyExists) {
-			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+			httpx.WriteError(w, "Предмет с таким названием уже существует", http.StatusConflict)
 			return
 		}
 		if internal.IsInvalidData(err) {
-			http.Error(w, "invalid subject values", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid subject values", http.StatusBadRequest)
 			return
 		}
 
@@ -112,7 +111,7 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 			util.AttrUserID(userID),
 			util.AttrError(err),
 		)
-		http.Error(w, "failed to insert subject", http.StatusInternalServerError)
+		httpx.WriteError(w, "failed to insert subject", http.StatusInternalServerError)
 		return
 	}
 
@@ -122,44 +121,44 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	var req CreateSubjectRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &req); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	if err := validateCreateSubjectRequest(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	subject, err := h.Service.replaceSubject(userID, id, &req)
+	subject, err := h.Service.replaceSubject(r.Context(), userID, id, &req)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			http.Error(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
+			httpx.WriteError(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 		case errors.Is(err, ErrSubjectAlreadyExists):
-			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+			httpx.WriteError(w, "Предмет с таким названием уже существует", http.StatusConflict)
 		case internal.IsInvalidData(err):
-			http.Error(w, "invalid subject values", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid subject values", http.StatusBadRequest)
 		default:
 			slog.ErrorContext(r.Context(), "failed to replace subject",
 				util.AttrUserID(userID),
 				util.AttrSubjectID(id),
 				util.AttrError(err),
 			)
-			http.Error(w, "Failed to replace subject", http.StatusInternalServerError)
+			httpx.WriteError(w, "Failed to replace subject", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -170,46 +169,46 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	var req UpdateSubjectRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &req); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
-	subject, err := h.Service.updateSubject(userID, id, &req)
+	subject, err := h.Service.updateSubject(r.Context(), userID, id, &req)
 	if err != nil {
 		if vErr, ok := errors.AsType[*ValidationError](err); ok {
-			http.Error(w, vErr.Error(), http.StatusBadRequest)
+			httpx.WriteError(w, vErr.Error(), http.StatusBadRequest)
 			return
 		}
 
 		switch {
 		case errors.Is(err, ErrNoFieldsToUpdate):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, sql.ErrNoRows):
-			http.Error(w, "Subject not found", http.StatusNotFound)
+			httpx.WriteError(w, "Subject not found", http.StatusNotFound)
 		case errors.Is(err, ErrSubjectAlreadyExists):
-			http.Error(w, "Предмет с таким названием уже существует", http.StatusConflict)
+			httpx.WriteError(w, "Предмет с таким названием уже существует", http.StatusConflict)
 		case internal.IsInvalidData(err):
-			http.Error(w, "invalid subject values", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid subject values", http.StatusBadRequest)
 		default:
 			slog.ErrorContext(r.Context(), "failed to update subject",
 				util.AttrUserID(userID),
 				util.AttrSubjectID(id),
 				util.AttrError(err),
 			)
-			http.Error(w, "Failed to update subject", http.StatusInternalServerError)
+			httpx.WriteError(w, "Failed to update subject", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -220,15 +219,15 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	if err := h.Service.deleteUserSubjects(userID); err != nil {
+	if err := h.Service.deleteUserSubjects(r.Context(), userID); err != nil {
 		slog.ErrorContext(r.Context(), "failed to delete subjects",
 			util.AttrError(err),
 		)
-		http.Error(w, "Failed to delete subjects", http.StatusInternalServerError)
+		httpx.WriteError(w, "Failed to delete subjects", http.StatusInternalServerError)
 		return
 	}
 
@@ -238,26 +237,26 @@ func (h *Handler) DeleteUserSubjects(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteSubject(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := h.Service.deleteSubject(userID, id); err != nil {
+	if err := h.Service.deleteSubject(r.Context(), userID, id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "No such element with this ID", http.StatusNotFound)
+			httpx.WriteError(w, "No such element with this ID", http.StatusNotFound)
 			return
 		}
 
 		slog.ErrorContext(r.Context(), "failed to delete subject",
 			util.AttrError(err),
 		)
-		http.Error(w, "Failed to delete subject", http.StatusInternalServerError)
+		httpx.WriteError(w, "Failed to delete subject", http.StatusInternalServerError)
 		return
 	}
 
@@ -269,40 +268,40 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	subjectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil || subjectID <= 0 {
-		http.Error(w, "invalid subject id", http.StatusBadRequest)
+		httpx.WriteError(w, "invalid subject id", http.StatusBadRequest)
 		return
 	}
 
 	const maxThumbnailBytes = 2 << 20 // 2 MB
 	r.Body = http.MaxBytesReader(w, r.Body, maxThumbnailBytes)
 
-	thumbnailURL, err := h.Service.uploadThumbnail(userID, subjectID, r.Body)
+	thumbnailURL, err := h.Service.uploadThumbnail(r.Context(), userID, subjectID, r.Body)
 	if err != nil {
 		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
-			http.Error(w, "thumbnail is too large (max 2MB)", http.StatusRequestEntityTooLarge)
+			httpx.WriteError(w, "thumbnail is too large (max 2MB)", http.StatusRequestEntityTooLarge)
 			return
 		}
 
 		switch {
 		case errors.Is(err, media.ErrInvalidFormat):
-			http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+			httpx.WriteError(w, err.Error(), http.StatusUnsupportedMediaType)
 		case errors.Is(err, media.ErrDimensionsExceed), errors.Is(err, media.ErrDecodeFailed):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, user.ErrUserNotFound):
-			http.Error(w, "subject not found", http.StatusNotFound)
+			httpx.WriteError(w, "subject not found", http.StatusNotFound)
 		default:
 			slog.ErrorContext(r.Context(), "failed to upload thumbnail",
 				util.AttrUserID(userID),
 				util.AttrSubjectID(subjectID),
 				util.AttrError(err),
 			)
-			http.Error(w, "failed to save thumbnail", http.StatusInternalServerError)
+			httpx.WriteError(w, "failed to save thumbnail", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -313,59 +312,59 @@ func (h *Handler) UploadThumbnail(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	subjectID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil || subjectID <= 0 {
-		http.Error(w, "invalid subject id", http.StatusBadRequest)
+		httpx.WriteError(w, "invalid subject id", http.StatusBadRequest)
 		return
 	}
 
 	const maxUploadBytes = maxFileSize + 1<<20 // Allow 1 MiB for multipart framing.
 	if r.ContentLength > maxUploadBytes {
-		http.Error(w, "upload exceeds the maximum size", http.StatusRequestEntityTooLarge)
+		httpx.WriteError(w, "upload exceeds the maximum size", http.StatusRequestEntityTooLarge)
 		return
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		var tooLarge *http.MaxBytesError
 		if errors.As(err, &tooLarge) || errors.Is(err, multipart.ErrMessageTooLarge) {
-			http.Error(w, "upload exceeds the maximum size", http.StatusRequestEntityTooLarge)
+			httpx.WriteError(w, "upload exceeds the maximum size", http.StatusRequestEntityTooLarge)
 			return
 		}
-		http.Error(w, "invalid multipart data", http.StatusBadRequest)
+		httpx.WriteError(w, "invalid multipart data", http.StatusBadRequest)
 		return
 	}
 	defer func() { _ = r.MultipartForm.RemoveAll() }()
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "invalid file field", http.StatusBadRequest)
+		httpx.WriteError(w, "invalid file field", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	if header.Size > maxFileSize {
-		http.Error(w, media.ErrFileTooLarge.Error(), http.StatusRequestEntityTooLarge)
+		httpx.WriteError(w, media.ErrFileTooLarge.Error(), http.StatusRequestEntityTooLarge)
 		return
 	}
 
-	path, err := h.Service.uploadFile(userID, subjectID, file, header.Filename)
+	path, err := h.Service.uploadFile(r.Context(), userID, subjectID, file, header.Filename)
 	if err != nil {
 		switch {
 		case errors.Is(err, media.ErrFileTooLarge):
-			http.Error(w, err.Error(), http.StatusRequestEntityTooLarge)
+			httpx.WriteError(w, err.Error(), http.StatusRequestEntityTooLarge)
 			return
 		case errors.Is(err, media.ErrInvalidFileFormat):
-			http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+			httpx.WriteError(w, err.Error(), http.StatusUnsupportedMediaType)
 			return
 		case errors.Is(err, media.ErrFileEmpty):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 			return
 		case errors.Is(err, sql.ErrNoRows):
-			http.Error(w, "subject not found", http.StatusNotFound)
+			httpx.WriteError(w, "subject not found", http.StatusNotFound)
 			return
 		}
 		slog.ErrorContext(r.Context(), "failed to upload file",
@@ -373,7 +372,7 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 			util.AttrSubjectID(subjectID),
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -384,7 +383,7 @@ func (h *Handler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "private, no-store")
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -392,11 +391,11 @@ func (h *Handler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	belongs, err := subjectFileBelongsToUser(r.Context(), h.Service.db, filesPublicDir+filename, userID)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "failed to check file ownership", util.AttrError(err))
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	if !belongs {
-		http.NotFound(w, r)
+		httpx.WriteError(w, "file not found", http.StatusNotFound)
 		return
 	}
 

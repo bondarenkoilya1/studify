@@ -1,11 +1,5 @@
-import {
-  type HTMLAttributes,
-  type ReactNode,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import type { HTMLAttributes, ReactNode } from "react";
+import { Dialog as BaseDialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 
@@ -22,64 +16,22 @@ export function Dialog({
   children,
   className,
 }: DialogProps) {
-  const [mounted, setMounted] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onOpenChange(false);
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    requestAnimationFrame(() => {
-      contentRef.current?.focus();
-    });
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onOpenChange]);
-
-  if (!open || !mounted) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
-        type="button"
-        aria-label="Закрыть"
-        className="fixed inset-0 cursor-default bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
-        onClick={() => onOpenChange(false)}
-      />
-
-      <div
-        ref={contentRef}
-        role="dialog"
-        aria-modal="true"
-        tabIndex={-1}
-        className={cn(
-          "relative z-10 w-full max-w-2xl rounded-[28px] border border-black/5 bg-background p-6 shadow-2xl outline-none animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out",
-          className,
-        )}
-      >
-        {children}
-      </div>
-    </div>,
-    document.body,
+  return (
+    <BaseDialog.Root open={open} onOpenChange={onOpenChange}>
+      <BaseDialog.Portal>
+        <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in duration-200" />
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
+          <BaseDialog.Popup
+            className={cn(
+              "pointer-events-auto relative max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border bg-popover p-5 text-popover-foreground shadow-lg outline-none motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200 sm:p-6",
+              className,
+            )}
+          >
+            {children}
+          </BaseDialog.Popup>
+        </div>
+      </BaseDialog.Portal>
+    </BaseDialog.Root>
   );
 }
 
@@ -97,7 +49,10 @@ type DialogHeaderProps = HTMLAttributes<HTMLDivElement>;
 export function DialogHeader({ className = "", ...props }: DialogHeaderProps) {
   return (
     <div
-      className={`flex flex-col items-center space-y-3 text-center ${className}`}
+      className={cn(
+        "flex flex-col items-center gap-2 px-8 text-center",
+        className,
+      )}
       {...props}
     />
   );
@@ -107,8 +62,11 @@ type DialogTitleProps = HTMLAttributes<HTMLHeadingElement>;
 
 export function DialogTitle({ className = "", ...props }: DialogTitleProps) {
   return (
-    <h2
-      className={`text-[1.375rem] font-semibold leading-tight tracking-tight text-foreground ${className}`}
+    <BaseDialog.Title
+      className={cn(
+        "text-xl font-semibold leading-tight tracking-tight sm:text-2xl",
+        className,
+      )}
       {...props}
     />
   );
@@ -121,8 +79,8 @@ export function DialogDescription({
   ...props
 }: DialogDescriptionProps) {
   return (
-    <p
-      className={`text-[15px] leading-snug text-muted-foreground ${className}`}
+    <BaseDialog.Description
+      className={cn("text-sm leading-snug text-muted-foreground", className)}
       {...props}
     />
   );
@@ -131,29 +89,32 @@ export function DialogDescription({
 type DialogBodyProps = HTMLAttributes<HTMLDivElement>;
 
 export function DialogBody({ className = "", ...props }: DialogBodyProps) {
-  return <div className={`mt-5 ${className}`} {...props} />;
+  return <div className={cn("mt-5", className)} {...props} />;
 }
 
 type DialogFooterProps = HTMLAttributes<HTMLDivElement>;
 
 export function DialogFooter({ className = "", ...props }: DialogFooterProps) {
-  return <div className={`mt-6 flex flex-col gap-2 ${className}`} {...props} />;
+  return (
+    <div className={cn("mt-6 flex flex-col gap-2", className)} {...props} />
+  );
 }
 
 type DialogCloseProps = {
-  onClick: () => void;
   className?: string;
 };
 
-export function DialogClose({ onClick, className = "" }: DialogCloseProps) {
+export function DialogClose({ className = "" }: DialogCloseProps) {
   return (
-    <button
+    <BaseDialog.Close
       type="button"
-      onClick={onClick}
       aria-label="Закрыть"
-      className={`absolute right-4 top-4 flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground ${className}`}
+      className={cn(
+        "absolute right-3 top-3 inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+        className,
+      )}
     >
       <X className="size-4" />
-    </button>
+    </BaseDialog.Close>
   );
 }

@@ -1,7 +1,6 @@
 package mfa
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -15,7 +14,7 @@ import (
 func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -23,17 +22,17 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrAlreadyEnabled):
-			http.Error(w, "TOTP already enabled", http.StatusConflict)
+			httpx.WriteError(w, "TOTP already enabled", http.StatusConflict)
 		case errors.Is(err, user.ErrVerifiedEmailRequired):
-			http.Error(w, err.Error(), http.StatusForbidden)
+			httpx.WriteError(w, err.Error(), http.StatusForbidden)
 		case errors.Is(err, user.ErrUserNotFound):
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 		default:
 			slog.ErrorContext(r.Context(), "failed to generate totp",
 				util.AttrUserID(userID),
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -46,42 +45,42 @@ func (h *Handler) GenerateTOTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	body := Passcode{}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if err := httpx.ReadJSON(r.Body, &body); err != nil {
 		slog.ErrorContext(r.Context(), "failed to decode request body",
 			util.AttrError(err),
 		)
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	recoveryCodes, err := h.Service.confirmTOTPSetup(r.Context(), internal.UserID(userID), body.Passcode)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCode) {
-			http.Error(w, "invalid code", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid code", http.StatusBadRequest)
 			return
 		}
 		if errors.Is(err, ErrAlreadyEnabled) {
-			http.Error(w, "TOTP already enabled", http.StatusConflict)
+			httpx.WriteError(w, "TOTP already enabled", http.StatusConflict)
 			return
 		}
 		if errors.Is(err, user.ErrVerifiedEmailRequired) {
-			http.Error(w, err.Error(), http.StatusForbidden)
+			httpx.WriteError(w, err.Error(), http.StatusForbidden)
 			return
 		}
 		if errors.Is(err, user.ErrUserNotFound) {
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 			return
 		}
 		slog.ErrorContext(r.Context(), "failed to confirm totp setup",
 			util.AttrUserID(userID),
 			util.AttrAnyError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -92,13 +91,13 @@ func (h *Handler) ConfirmTOTPSetup(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RegenerateRecoveryCodes(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	var body Passcode
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &body); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
@@ -106,17 +105,17 @@ func (h *Handler) RegenerateRecoveryCodes(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidCode):
-			http.Error(w, "invalid code", http.StatusBadRequest)
+			httpx.WriteError(w, "invalid code", http.StatusBadRequest)
 		case errors.Is(err, ErrTOTPDisabled):
-			http.Error(w, "TOTP is disabled", http.StatusConflict)
+			httpx.WriteError(w, "TOTP is disabled", http.StatusConflict)
 		case errors.Is(err, user.ErrUserNotFound):
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 		default:
 			slog.ErrorContext(r.Context(), "failed to regenerate recovery codes",
 				util.AttrUserID(userID),
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}
@@ -129,31 +128,31 @@ func (h *Handler) RegenerateRecoveryCodes(w http.ResponseWriter, r *http.Request
 func (h *Handler) DisableTOTP(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 	var request struct {
 		CurrentPassword string `json:"current_password"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+	if err := httpx.ReadJSON(r.Body, &request); err != nil {
+		httpx.WriteDecodeError(w, err)
 		return
 	}
 
 	if err := h.Service.disableTOTP(r.Context(), userID, request.CurrentPassword); err != nil {
 		switch {
 		case errors.Is(err, user.ErrCurrentPasswordRequired):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		case errors.Is(err, user.ErrInvalidCurrentPassword):
-			http.Error(w, err.Error(), http.StatusForbidden)
+			httpx.WriteError(w, err.Error(), http.StatusForbidden)
 		case errors.Is(err, user.ErrUserNotFound):
-			http.Error(w, "user not found", http.StatusNotFound)
+			httpx.WriteError(w, "user not found", http.StatusNotFound)
 		default:
 			slog.ErrorContext(r.Context(), "failed to disable totp",
 				util.AttrUserID(userID),
 				util.AttrError(err),
 			)
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		}
 		return
 	}

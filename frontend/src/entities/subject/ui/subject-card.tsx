@@ -219,9 +219,7 @@ export function SubjectCard({
       </Link>
 
       {children && (
-        <div className="absolute right-4 top-4 z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-          {children}
-        </div>
+        <div className="absolute right-4 top-4 z-10">{children}</div>
       )}
     </Card>
   );

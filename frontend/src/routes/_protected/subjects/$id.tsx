@@ -6,6 +6,7 @@ import {
   File as FileIcon,
   Search,
   ArrowLeft,
+  Pencil,
 } from "lucide-react";
 
 import { TaskList } from "@/widgets/task-list";
@@ -18,6 +19,8 @@ import {
   type TaskTypeFilter,
 } from "@/entities/task/model/filters";
 import { getTaskTypeCounts } from "@/entities/task/model/task-type-counts";
+import { UploadSubjectFile } from "@/features/subject/upload-file/upload-subject-file";
+import { CreateSubjectDialog } from "@/features/subject/create-subject/ui/create-subject-dialog";
 import { CreateTaskButton } from "@/features/task/create-task";
 import { UpdateSubjectEventDialog } from "@/features/subject/update-subject";
 import { Button } from "@/shared/ui/button";
@@ -61,17 +64,25 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
   component: SubjectPage,
 });
 
-function SubjectFilesSidebar({ files }: { files: SubjectFile[] }) {
-  if (!files || files.length === 0) {
-    return null;
-  }
-
+function SubjectFilesSidebar({
+  files,
+  subjectId,
+}: {
+  files: SubjectFile[];
+  subjectId: number;
+}) {
   return (
     <aside className="w-full shrink-0 lg:w-72">
-      <div className="rounded-[20px] border border-gray-100 bg-white p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-        <h2 className="text-[17px] font-semibold tracking-tight text-gray-900">
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">
           Материалы курса
         </h2>
+        <UploadSubjectFile subjectId={subjectId} />
+        {files.length === 0 && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Файлов пока нет. Можно добавить PDF или TXT.
+          </p>
+        )}
 
         <div className="mt-4 flex flex-col gap-2">
           {files.map((file) => {
@@ -95,7 +106,7 @@ function SubjectFilesSidebar({ files }: { files: SubjectFile[] }) {
                 href={url}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-transparent p-3 transition-all duration-200 hover:border-gray-100 hover:bg-gray-50"
+                className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-transparent p-3 transition-all duration-200 hover:border-border hover:bg-muted"
               >
                 <div
                   className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${iconWrapperClass}`}
@@ -104,22 +115,22 @@ function SubjectFilesSidebar({ files }: { files: SubjectFile[] }) {
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col justify-center">
-                  <p className="truncate text-[14px] font-medium leading-tight text-gray-900">
+                  <p className="truncate text-sm font-medium leading-tight text-foreground">
                     {file.name}
                   </p>
 
                   <div className="mt-1 flex items-center gap-1.5">
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                       {label}
                     </span>
 
-                    <span className="text-[12px] text-gray-400">
+                    <span className="text-[12px] text-muted-foreground">
                       {formattedSize}
                     </span>
                   </div>
                 </div>
 
-                <div className="text-gray-300 opacity-0 transition-all duration-200 group-hover:text-gray-500 group-hover:opacity-100">
+                <div className="text-muted-foreground/60 opacity-0 transition-all duration-200 group-hover:text-muted-foreground group-hover:opacity-100">
                   <Search size={18} strokeWidth={2} />
                 </div>
               </a>
@@ -139,24 +150,25 @@ function SubjectPage() {
 
   const [selectedType, setSelectedType] = useState<TaskTypeFilter>("all");
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [editingSubject, setEditingSubject] = useState(false);
 
   const types = getTaskTypeCounts(tasks);
   const filteredTasksByType = filterTasksByType(tasks, selectedType);
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7]">
+    <div className="min-h-screen bg-muted/40">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row">
         <main className="min-w-0 flex-1">
           <Link
             to="/subjects"
             className="
               group mb-6 inline-flex items-center gap-1.5
-              rounded-full bg-white py-1.5 pl-2.5 pr-3.5
-              text-[13px] font-medium text-gray-500
-              shadow-[0_1px_2px_rgba(0,0,0,0.04)]
+              rounded-full bg-card py-1.5 pl-2.5 pr-3.5
+              text-sm font-medium text-muted-foreground
+              shadow-xs
               transition-all duration-200
-              hover:bg-gray-50 hover:text-gray-900
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20
+              hover:bg-muted hover:text-foreground
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40
             "
           >
             <ArrowLeft
@@ -168,19 +180,28 @@ function SubjectPage() {
           </Link>
 
           <header>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h1 className="text-[30px] font-semibold tracking-[-0.02em] text-gray-900">
+                <h1 className="text-3xl font-semibold tracking-[-0.02em] text-foreground">
                   {subject.name}
                 </h1>
 
-                <p className="mt-1 text-[14px] text-gray-400">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {filteredTasksByType.length}{" "}
                   {getTaskCountLabel(filteredTasksByType.length)}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingSubject(true)}
+                >
+                  <Pencil />
+                  Редактировать
+                </Button>
                 {subject.type === "university" && (
                   <Button
                     type="button"
@@ -203,12 +224,12 @@ function SubjectPage() {
                   onClick={() => setSelectedType("all")}
                   className={`
                     rounded-full px-3.5 py-1.5
-                    text-[12.5px] font-medium
+                    text-xs font-medium
                     transition-all duration-200
                     ${
                       selectedType === "all"
-                        ? "bg-gray-900 text-white shadow-sm"
-                        : "bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-gray-50 hover:text-gray-700"
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-card text-muted-foreground shadow-xs hover:bg-muted hover:text-foreground"
                     }
                   `}
                 >
@@ -222,12 +243,12 @@ function SubjectPage() {
                     onClick={() => setSelectedType(type)}
                     className={`
                       rounded-full px-3.5 py-1.5
-                      text-[12.5px] font-medium
+                      text-xs font-medium
                       transition-all duration-200
                       ${
                         selectedType === type
-                          ? "bg-gray-900 text-white shadow-sm"
-                          : "bg-white text-gray-500 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-gray-50 hover:text-gray-700"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-card text-muted-foreground shadow-xs hover:bg-muted hover:text-foreground"
                       }
                     `}
                   >
@@ -245,9 +266,16 @@ function SubjectPage() {
           </div>
         </main>
 
-        <SubjectFilesSidebar files={subject.files ?? []} />
+        <SubjectFilesSidebar files={subject.files ?? []} subjectId={id} />
       </div>
 
+      {editingSubject && (
+        <CreateSubjectDialog
+          open
+          subject={subject}
+          onOpenChange={setEditingSubject}
+        />
+      )}
       {subject.type === "university" && (
         <UpdateSubjectEventDialog
           subject={subject}

@@ -20,14 +20,14 @@ statistics. PostgreSQL stores application data. The React frontend lives in
 ├── backend/
 │   ├── cmd/api/            # application entrypoint and HTTP router
 │   ├── internal/config/    # environment configuration
-│   ├── internal/database/  # database queries
-│   ├── internal/handlers/  # HTTP handlers
-│   ├── internal/models/    # request and response models
-│   ├── internal/utils/     # auth, validation, and helpers
+│   ├── internal/auth/      # authentication, two-factor setup, and sessions
+│   ├── internal/subject/   # subject handlers, services, and queries
+│   ├── internal/task/      # task handlers, services, and queries
 │   ├── migrations/         # PostgreSQL migrations
 │   └── postman/            # runnable HTTP request examples
 ├── frontend/               # React + Vite client
 ├── API.md                  # API contract
+├── ISSUES.md               # open issues and audit status
 ├── SETUP.md                # local setup and commands
 └── docker-compose.yaml
 ```
@@ -70,6 +70,10 @@ Default addresses:
 
 See [SETUP.md](./SETUP.md) for configuration and operational commands. See
 [API.md](./API.md) for routes, authentication, payloads, and responses.
+The consolidated project audit is in [ISSUES.md](./ISSUES.md).
+
+The calendar opens on the earliest month with an exam or visible task. It
+opens the current month when there are no events.
 
 ## Checks
 
@@ -77,4 +81,14 @@ See [SETUP.md](./SETUP.md) for configuration and operational commands. See
 make backend-test
 make -C backend fmt-check
 make -C backend vet
+make -C backend lint
+cd frontend
+bun install --frozen-lockfile
+bun run lint
+bun run test
+VITE_API_URL=http://localhost:8080 bun run build
 ```
+
+
+For the production API image and Chromium end-to-end tests, see
+[SETUP.md](./SETUP.md).

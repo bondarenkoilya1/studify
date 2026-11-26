@@ -50,3 +50,38 @@ it("preserves Retry-After on authentication quotas", async () => {
   });
   expect(fetch).toHaveBeenCalledTimes(1);
 });
+
+it("decodes stable error codes and preserves the status and retry window", async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValue(
+      Response.json(
+        { code: "rate_limited", message: "try later" },
+        { status: 429, headers: { "Retry-After": "45" } },
+      ),
+    );
+  vi.stubGlobal("fetch", fetch);
+  await expect(fetcher("/api/auth/login")).rejects.toMatchObject({
+    status: 429,
+    code: "rate_limited",
+    message: "try later",
+    retryAfter: 45,
+  });
+});
+
+it("keeps public credential errors distinct from an expired session", async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValue(
+      Response.json(
+        { code: "invalid_credentials", message: "invalid email or password" },
+        { status: 401 },
+      ),
+    );
+  vi.stubGlobal("fetch", fetch);
+  await expect(fetcher("/api/auth/login")).rejects.toMatchObject({
+    status: 401,
+    code: "invalid_credentials",
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+});

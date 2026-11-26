@@ -72,7 +72,7 @@ export const createSubjectSchema = z.discriminatedUnion("type", [
 
     type: z.literal("personal"),
 
-    lecturers: z.array(lecturerSchema),
+    lecturers: z.array(lecturerSchema.extend({ name: z.string() })),
   }),
 ]);
 

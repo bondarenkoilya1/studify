@@ -90,7 +90,7 @@ func (s *Service) SendConfirmationEmail(ctx context.Context, userID internal.Use
 	if err != nil {
 		return fmt.Errorf("create confirmation token: %w", err)
 	}
-	if err := s.mailService.SendConfirmationEmail(email, t); err != nil {
+	if err := s.mailService.SendConfirmationEmail(ctx, email, t); err != nil {
 		return fmt.Errorf("send confirmation email: %w", err)
 	}
 	return nil

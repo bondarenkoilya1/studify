@@ -13,7 +13,8 @@
  * through the /api/auth/refresh endpoint.
  *
  * Endpoints with a JSON body require `Content-Type: application/json`, otherwise they return
- * 415. Errors are returned as plain text.
+ * 415. Application errors are JSON objects with a stable code and a message.
+ * Unknown JSON fields in request objects are rejected with 400.
  *
  * OpenAPI spec version: 1.0.0
  */
@@ -381,8 +382,7 @@ export const getRegisterUserUrl = () => {
 };
 
 /**
- * Creates the user, issues auth cookies, and sends an email confirmation link
- * (`{APP_URL}/confirm/`). The confirmation token is valid for 4 hours.
+ * Creates the user, issues auth cookies, and attempts to send a confirmation link. New email addresses are stored in lowercase. An existing address is rejected regardless of case. Mail delivery failure does not roll back registration or prevent session cookies from being set.
  * @summary Register a new user
  */
 export const registerUser = async (

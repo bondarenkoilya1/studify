@@ -2,10 +2,8 @@ import { cn } from "@/shared/lib/cn";
 import { forwardRef, type ComponentProps } from "react";
 
 const variants = {
-  default:
-    "border-studify-border bg-studify-field focus:border-studify-primary focus:bg-studify-surface",
-  surface:
-    "border-studify-border bg-studify-surface focus:border-studify-primary",
+  default: "bg-background focus-visible:bg-background",
+  surface: "bg-card",
 } as const;
 
 const sizes = {
@@ -22,10 +20,7 @@ type InputProps = Omit<ComponentProps<"input">, "size"> & {
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  (
-    { className, variant = "default", size, controlSize, ...props },
-    ref,
-  ) => {
+  ({ className, variant = "default", size, controlSize, ...props }, ref) => {
     const normalizedSize = (controlSize ?? size ?? "medium") as InputSize;
     const resolvedSize: keyof typeof sizes =
       normalizedSize === "lg" ? "large" : normalizedSize;
@@ -34,7 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         className={cn(
-          "text-studify-text placeholder:text-studify-muted focus:ring-studify-focus/40 block w-full border shadow-sm outline-none transition-colors focus:ring-[3px] disabled:cursor-not-allowed disabled:opacity-60",
+          "form-control block",
           variants[variant],
           sizes[resolvedSize],
           className,

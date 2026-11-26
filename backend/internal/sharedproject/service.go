@@ -1,6 +1,7 @@
 package sharedproject
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -26,7 +27,7 @@ func (s *Service) createSharedProject(in createSharedProjectInput) (*SharedProje
 	}
 
 	project, err := InsertSharedProject(
-		s.db, in.UserID, in.Name, in.URL, in.Author, in.AuthorAvatarURL,
+		s.db, in.UserID, in.Name, in.URL, in.Author, in.AuthorAvatarURL, in.IsPublic,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create shared project: %w", err)
@@ -35,12 +36,12 @@ func (s *Service) createSharedProject(in createSharedProjectInput) (*SharedProje
 	return project, nil
 }
 
-func (s *Service) getSharedProjectByID(id int64) (*SharedProject, error) {
+func (s *Service) getSharedProjectByID(userID, id int64) (*SharedProject, error) {
 	if id <= 0 {
 		return nil, fmt.Errorf("%w: id must be positive", ErrInvalidInput)
 	}
 
-	project, err := GetSharedProjectByID(s.db, id)
+	project, err := GetSharedProjectByID(s.db, id, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrSharedProjectNotFound
@@ -58,6 +59,20 @@ func (s *Service) getSharedProjectsByUserID(userID int64) ([]SharedProject, erro
 	}
 
 	return projects, nil
+}
+
+func (s *Service) getCatalog(ctx context.Context, before int64) (*CatalogPage, error) {
+	const pageSize = 24
+	projects, err := GetPublicSharedProjects(ctx, s.db, before, pageSize+1)
+	if err != nil {
+		return nil, err
+	}
+	page := &CatalogPage{Items: projects}
+	if len(projects) > pageSize {
+		page.Items = projects[:pageSize]
+		page.NextBefore = &projects[pageSize-1].ID
+	}
+	return page, nil
 }
 
 func (s *Service) deleteSharedProject(userID, id int64) error {
@@ -89,18 +104,12 @@ func (s *Service) updateSharedProject(in updateSharedProjectInput) (*SharedProje
 		return nil, err
 	}
 
-	if err := UpdateSharedProject(
-		s.db, in.UserID, in.ID, in.Name, in.URL, in.Author, in.AuthorAvatarURL,
-	); err != nil {
+	project, err := UpdateSharedProject(s.db, in.UserID, in.ID, in.Name, in.URL, in.Author, in.AuthorAvatarURL, in.IsPublic)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrSharedProjectNotFound
 		}
 		return nil, fmt.Errorf("update shared project: %w", err)
-	}
-
-	project, err := GetSharedProjectByID(s.db, in.ID)
-	if err != nil {
-		return nil, fmt.Errorf("get updated shared project: %w", err)
 	}
 
 	return project, nil
@@ -121,8 +130,8 @@ func validateURL(raw string) error {
 	if err != nil {
 		return err
 	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return errors.New("scheme must be http or https")
+	if u.Hostname() == "" || (u.Scheme != "http" && u.Scheme != "https") {
+		return errors.New("must be an absolute http or https URL")
 	}
 	return nil
 }

@@ -10,7 +10,7 @@ export function LoginFormHeader({ title, description }: LoginFormHeaderProps) {
         {title}
       </h1>
 
-      <p className="mt-3 max-w-sm text-center text-base leading-relaxed text-studify-muted sm:text-lg">
+      <p className="mt-3 max-w-sm text-center text-base leading-relaxed text-muted-foreground sm:text-lg">
         {description}
       </p>
     </div>

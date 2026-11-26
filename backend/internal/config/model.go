@@ -9,6 +9,8 @@ type Config struct {
 	JWTRefreshSecret  string
 	TOTPEncryptionKey []byte
 	DatabaseURL       string
+	DBMaxOpenConns    int
+	DBMaxIdleConns    int
 	ServerAddr        string
 	MetricsAddr       string
 	AppURL            string
@@ -16,6 +18,9 @@ type Config struct {
 	CORSOrigins       []string
 	TrustedProxyCIDRs []string
 	SMTPAddr          string
+	MailFrom          string
+	SMTPUsername      string
+	SMTPPassword      string
 }
 
 const (

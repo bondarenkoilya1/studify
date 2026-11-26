@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { endSession } from "@/entities/user";
 import { type ChangePasswordFormData, ChangePasswordSchema } from "./schema";
 import { useUpdateUserPassword } from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import { toast } from "@/shared/ui/sonner";
 
 export function useChangePasswordForm() {
@@ -25,7 +26,28 @@ export function useChangePasswordForm() {
         toast.success("Пароль изменён. Войдите с новым паролем.");
         await navigate({ to: "/login", replace: true });
       },
-      onError: () => toast.error("Не удалось изменить пароль."),
+      onError: (error) => {
+        if (error.status === 403) {
+          form.setError("currentPassword", {
+            message: "Неверный текущий пароль.",
+          });
+        } else if (error.status === 400) {
+          form.setError("newPassword", {
+            message:
+              error.code === "password_unchanged" ||
+              error.message === "new password must differ from current"
+                ? "Новый пароль должен отличаться от текущего."
+                : "Проверьте требования к новому паролю.",
+          });
+        } else {
+          form.setError("root", {
+            message: getRequestErrorMessage(
+              error,
+              "Не удалось изменить пароль.",
+            ),
+          });
+        }
+      },
     },
   });
 
@@ -43,6 +65,5 @@ export function useChangePasswordForm() {
     errors: form.formState.errors,
     handleSubmit: form.handleSubmit(onSubmit),
     isPending: changePasswordMutation.isPending,
-    error: changePasswordMutation.error,
   };
 }

@@ -1,5 +1,6 @@
 import type { Task } from "@/shared/api";
 import { TaskCard } from "@/entities/task/ui/task-card";
+import { TaskActions } from "./task-actions";
 
 interface TaskListProps {
   tasks?: Task[];
@@ -48,7 +49,9 @@ export function TaskList({ tasks }: TaskListProps) {
   return (
     <section className="mt-8 flex flex-col gap-3">
       {tasks.map((task) => (
-        <TaskCard key={task.id} task={task} />
+        <TaskCard key={task.id} task={task}>
+          <TaskActions task={task} />
+        </TaskCard>
       ))}
     </section>
   );

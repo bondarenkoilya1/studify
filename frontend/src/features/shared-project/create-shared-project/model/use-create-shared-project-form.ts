@@ -1,14 +1,16 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type DefaultValues, useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 
 import {
-  type ApiError,
+  createSharedProject,
+  getGetSharedProjectCatalogQueryKey,
+  getGetSharedProjectQueryKey,
   invalidateGetUserSharedProjects,
-  NetworkError,
-  useCreateSharedProject,
+  type SharedProject,
+  updateSharedProject,
 } from "@/shared/api";
+import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import { useCurrentUser } from "@/entities/user";
 import { toast } from "@/shared/ui/sonner";
 import { toAbsoluteUrl } from "@/shared/utils";
@@ -17,92 +19,78 @@ import {
   type CreateSharedProjectFormValues,
 } from "./schema";
 
-function getSharedProjectErrorMessage(error: ApiError): string {
-  if (error instanceof NetworkError) {
-    return "Не удалось создать общий предмет. Проверьте подключение к сети.";
-  }
-  if (error.status === 409) {
-    return "Общий предмет с такой ссылкой уже существует.";
-  }
-  return error.message || "Не удалось создать общий предмет.";
-}
-
-export function useCreateSharedProjectForm(onSuccess?: () => void) {
+export function useCreateSharedProjectForm(
+  project?: SharedProject,
+  onSuccess?: () => void,
+) {
   const queryClient = useQueryClient();
   const { data: user } = useCurrentUser();
-
-  const profileName = user?.email ? (user.email.split("@")[0] ?? "") : "";
+  const profileName = user?.email.split("@")[0] ?? "";
   const hasProfileAvatar = Boolean(user?.avatar_url);
-
-  const defaultValues: DefaultValues<CreateSharedProjectFormValues> = {
-    name: "",
-    url: "",
-    use_profile_name: true,
-    custom_author: "",
-    use_profile_avatar: hasProfileAvatar,
-    custom_avatar_url: "",
-  };
 
   const form = useForm<CreateSharedProjectFormValues>({
     resolver: zodResolver(createSharedProjectSchema),
-    defaultValues,
-  });
-
-  // Sync avatar checkbox state if user data loads after initial mount
-  useEffect(() => {
-    if (user?.avatar_url && !form.formState.isDirty) {
-      form.setValue("use_profile_avatar", true);
-    }
-  }, [user?.avatar_url, form]);
-
-  const mutation = useCreateSharedProject({
-    mutation: {
-      onError: (error) => {
-        const message = getSharedProjectErrorMessage(error);
-        form.setError("root", { message });
-        toast.error(message);
-      },
-      onSuccess: async () => {
-        await invalidateGetUserSharedProjects(queryClient);
-        toast.success("Общий предмет успешно создан!");
-        form.reset({
-          name: "",
-          url: "",
-          use_profile_name: true,
-          custom_author: "",
-          use_profile_avatar: Boolean(user?.avatar_url),
-          custom_avatar_url: "",
-        });
-        form.clearErrors("root");
-        onSuccess?.();
-      },
+    defaultValues: {
+      name: project?.name ?? "",
+      url: project?.url ?? "",
+      is_public: project?.is_public ?? false,
+      use_profile_name: !project,
+      custom_author: project?.author ?? "",
+      use_profile_avatar: !project && hasProfileAvatar,
+      custom_avatar_url: project?.author_avatar_url ?? "",
     },
   });
 
-  const submit = form.handleSubmit((values) => {
-    const author = values.use_profile_name
-      ? (profileName || "Студент")
-      : (values.custom_author?.trim() || "Студент");
-
-    const author_avatar_url = values.use_profile_avatar
-      ? (user?.avatar_url ? toAbsoluteUrl(user.avatar_url) : "")
-      : (values.custom_avatar_url?.trim() || "");
-
-    mutation.mutate({
-      data: {
-        name: values.name.trim(),
-        url: values.url.trim(),
-        author,
-        author_avatar_url,
-      },
-    });
+  const mutation = useMutation({
+    mutationFn: async (values: CreateSharedProjectFormValues) => {
+      const data = {
+        name: values.name,
+        url: values.url,
+        is_public: values.is_public,
+        author: values.use_profile_name
+          ? profileName || "Студент"
+          : (values.custom_author ?? ""),
+        author_avatar_url: values.use_profile_avatar
+          ? user?.avatar_url
+            ? toAbsoluteUrl(user.avatar_url)
+            : ""
+          : (values.custom_avatar_url ?? ""),
+      };
+      return project
+        ? updateSharedProject(project.id, data)
+        : createSharedProject(data);
+    },
+    onError: (error) => {
+      form.setError("root", {
+        message: getRequestErrorMessage(
+          error,
+          project
+            ? "Не удалось сохранить общий предмет."
+            : "Не удалось создать общий предмет.",
+          {
+            invalid: "Проверьте ссылку и данные автора.",
+            conflict: "Общий предмет с такой ссылкой уже существует.",
+          },
+        ),
+      });
+    },
+    onSuccess: async (saved) => {
+      queryClient.setQueryData(getGetSharedProjectQueryKey(saved.id), saved);
+      await Promise.all([
+        invalidateGetUserSharedProjects(queryClient),
+        queryClient.invalidateQueries({
+          queryKey: getGetSharedProjectCatalogQueryKey(),
+        }),
+      ]);
+      toast.success(project ? "Изменения сохранены" : "Общий предмет создан");
+      onSuccess?.();
+    },
   });
 
   return {
     ...form,
-    submit,
+    submit: form.handleSubmit((values) => mutation.mutate(values)),
     isPending: mutation.isPending,
-    error: mutation.error,
     user,
     profileName,
     hasProfileAvatar,

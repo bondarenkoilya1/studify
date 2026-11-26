@@ -13,16 +13,18 @@
  * through the /api/auth/refresh endpoint.
  *
  * Endpoints with a JSON body require `Content-Type: application/json`, otherwise they return
- * 415. Errors are returned as plain text.
+ * 415. Application errors are JSON objects with a stable code and a message.
+ * Unknown JSON fields in request objects are rejected with 400.
  *
  * OpenAPI spec version: 1.0.0
  */
 import type { ExamType } from "./examType";
+import type { Lecturer } from "./lecturer";
 import type { SubjectScope } from "./subjectScope";
 import type { SubjectType } from "./subjectType";
 
 /**
- * Send only the fields to change. Pass `null` for `exam_date` to clear it.
+ * Send only the fields to change. Pass null for note, course, term, or exam_date to clear the field.
  */
 export interface SubjectUpdateRequest {
   /**
@@ -52,6 +54,11 @@ export interface SubjectUpdateRequest {
    * @nullable
    */
   term?: number | null;
+  /**
+   * Replaces the complete list. An empty array or null clears it.
+   * @nullable
+   */
+  lecturers?: Lecturer[] | null;
   /** @nullable */
   thumbnail_url?: string | null;
 }

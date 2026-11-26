@@ -38,7 +38,7 @@ export function DeleteSharedProjectButton({
         onClick={handleOpenConfirm}
         aria-label="Удалить общий предмет"
         title="Удалить общий предмет"
-        className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 text-destructive transition-all hover:bg-destructive/20 hover:border-destructive/40 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-destructive/20 bg-destructive/10 text-destructive transition-all hover:bg-destructive/20 hover:border-destructive/40 focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isPending ? (
           <Loader2 className="size-4 animate-spin" />

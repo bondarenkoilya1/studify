@@ -8,9 +8,10 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
-import { FormField } from "@/shared/ui/form-field";
+import { FormError, FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { Controller } from "react-hook-form";
+import type { Task } from "@/shared/api";
 import { DatePicker } from "@/shared/ui/date-picker";
 
 import { useCreateTaskForm } from "../model/use-create-task-form";
@@ -19,14 +20,18 @@ type CreateTaskDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subjectId: number;
+  task?: Task;
 };
 
 export function CreateTaskDialog({
   open,
   onOpenChange,
   subjectId,
+  task,
 }: CreateTaskDialogProps) {
-  const form = useCreateTaskForm(subjectId, () => handleOpenChange(false));
+  const form = useCreateTaskForm(subjectId, task, () =>
+    handleOpenChange(false),
+  );
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
@@ -41,22 +46,22 @@ export function CreateTaskDialog({
       onOpenChange={handleOpenChange}
       className="max-h-[calc(100dvh-2rem)] overflow-y-auto"
     >
-      <DialogClose onClick={() => handleOpenChange(false)} />
+      <DialogClose />
 
       <DialogHeader>
-        <DialogTitle>Новая задача</DialogTitle>
+        <DialogTitle>
+          {task ? "Редактирование задачи" : "Новая задача"}
+        </DialogTitle>
         <DialogDescription>
-          Добавьте задачу, чтобы отслеживать её выполнение и сроки.
+          {task
+            ? "Измените параметры или сроки задачи."
+            : "Добавьте задачу, чтобы отслеживать её выполнение и сроки."}
         </DialogDescription>
       </DialogHeader>
 
       <DialogBody>
         <form className="space-y-5" onSubmit={form.onSubmit}>
-          {form.error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-[13px] text-red-600">
-              Не удалось создать задачу. Попробуйте ещё раз.
-            </p>
-          )}
+          {form.error && <FormError variant="summary">{form.error}</FormError>}
 
           <FormField htmlFor="create-task-name" label="Название">
             <Input
@@ -68,16 +73,14 @@ export function CreateTaskDialog({
             />
 
             {form.formState.errors.name?.message && (
-              <p className="mt-1.5 text-[13px] text-red-500">
-                {form.formState.errors.name.message}
-              </p>
+              <FormError>{form.formState.errors.name.message}</FormError>
             )}
           </FormField>
 
           <FormField htmlFor="create-task-type" label="Тип">
             <select
               id="create-task-type"
-              className="h-12 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              className="form-control min-h-11"
               aria-invalid={Boolean(form.formState.errors.type)}
               {...form.register("type")}
             >
@@ -89,9 +92,7 @@ export function CreateTaskDialog({
             </select>
 
             {form.formState.errors.type?.message && (
-              <p className="mt-1.5 text-[13px] text-red-500">
-                {form.formState.errors.type.message}
-              </p>
+              <FormError>{form.formState.errors.type.message}</FormError>
             )}
           </FormField>
 
@@ -100,15 +101,13 @@ export function CreateTaskDialog({
               id="create-task-description"
               placeholder="Что нужно сделать?"
               rows={4}
-              className="w-full resize-none rounded-xl border border-border bg-background px-3 py-3 text-sm outline-none transition focus:ring-2 focus:ring-ring"
+              className="form-control resize-y"
               aria-invalid={Boolean(form.formState.errors.description)}
               {...form.register("description")}
             />
 
             {form.formState.errors.description?.message && (
-              <p className="mt-1.5 text-[13px] text-red-500">
-                {form.formState.errors.description.message}
-              </p>
+              <FormError>{form.formState.errors.description.message}</FormError>
             )}
           </FormField>
 
@@ -130,9 +129,9 @@ export function CreateTaskDialog({
             />
 
             {form.formState.errors.estimated_time?.message && (
-              <p className="mt-1.5 text-[13px] text-red-500">
+              <FormError>
                 {form.formState.errors.estimated_time.message}
-              </p>
+              </FormError>
             )}
           </FormField>
 
@@ -146,14 +145,16 @@ export function CreateTaskDialog({
               render={({ field, fieldState }) => (
                 <>
                   <DatePicker
+                    id="create-task-scheduled-at"
                     value={field.value ?? undefined}
+                    clearable
+                    clearLabel="Очистить дату выполнения"
+                    disablePast={!task}
                     onChange={(date) => field.onChange(date ?? null)}
                   />
 
                   {fieldState.error?.message && (
-                    <p className="mt-1.5 text-[13px] leading-snug text-red-500">
-                      {fieldState.error.message}
-                    </p>
+                    <FormError>{fieldState.error.message}</FormError>
                   )}
                 </>
               )}
@@ -167,24 +168,27 @@ export function CreateTaskDialog({
               render={({ field, fieldState }) => (
                 <>
                   <DatePicker
+                    id="create-task-deadline"
                     value={field.value ?? undefined}
+                    clearable
+                    clearLabel="Очистить дедлайн"
+                    disablePast={!task}
                     onChange={(date) => field.onChange(date ?? null)}
                   />
 
                   {fieldState.error?.message && (
-                    <p className="mt-1.5 text-[13px] leading-snug text-red-500">
-                      {fieldState.error.message}
-                    </p>
+                    <FormError>{fieldState.error.message}</FormError>
                   )}
                 </>
               )}
             />
           </FormField>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             <FormField label="Статус" htmlFor="create-task-status">
               <select
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                id="create-task-status"
+                className="form-control min-h-11"
                 {...form.register("status")}
               >
                 <option value="not_completed">Не выполнено</option>
@@ -195,7 +199,8 @@ export function CreateTaskDialog({
 
             <FormField htmlFor="create-task-difficulty" label="Сложность">
               <select
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                id="create-task-difficulty"
+                className="form-control min-h-11"
                 {...form.register("difficulty")}
               >
                 <option value="low">Низкая</option>
@@ -206,7 +211,8 @@ export function CreateTaskDialog({
 
             <FormField htmlFor="create-task-priority" label="Приоритет">
               <select
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                id="create-task-priority"
+                className="form-control min-h-11"
                 {...form.register("priority")}
               >
                 <option value="low">Низкий</option>
@@ -220,10 +226,16 @@ export function CreateTaskDialog({
             <Button
               type="submit"
               size="lg"
-              disabled={form.isPending}
+              disabled={
+                form.isPending || (Boolean(task) && !form.formState.isDirty)
+              }
               className="w-full"
             >
-              {form.isPending ? "Создаём..." : "Создать задачу"}
+              {form.isPending
+                ? "Сохраняем…"
+                : task
+                  ? "Сохранить изменения"
+                  : "Создать задачу"}
             </Button>
           </DialogFooter>
         </form>

@@ -18,6 +18,8 @@ export const createSharedProjectSchema = z
         "Ссылка должна начинаться с http:// или https://",
       ),
 
+    is_public: z.boolean(),
+
     use_profile_name: z.boolean(),
 
     custom_author: z

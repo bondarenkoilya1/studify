@@ -13,6 +13,7 @@ import {
 
 interface TaskCardProps {
   task: Task;
+  children?: React.ReactNode;
 }
 
 function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
@@ -38,7 +39,7 @@ function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
   );
 }
 
-export function TaskCard({ task }: TaskCardProps) {
+export function TaskCard({ task, children }: TaskCardProps) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   const status = STATUS_CONFIG[task.status];
@@ -65,7 +66,6 @@ export function TaskCard({ task }: TaskCardProps) {
         hover:border-ring/30
         hover:shadow-md
         sm:p-6
-        ${isDone ? "opacity-[0.55]" : ""}
       `}
     >
       {priorityChip && (
@@ -153,7 +153,7 @@ export function TaskCard({ task }: TaskCardProps) {
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3.5 text-[12.5px] text-muted-foreground">
-        {task.status !== "not_completed" && (
+        {!children && task.status !== "not_completed" && (
           <span className={`flex items-center gap-1.5 ${status.text}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
             {status.label}
@@ -201,6 +201,7 @@ export function TaskCard({ task }: TaskCardProps) {
           </span>
         )}
       </div>
+      {children}
     </article>
   );
 }

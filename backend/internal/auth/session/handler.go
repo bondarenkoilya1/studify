@@ -12,7 +12,7 @@ import (
 func (h *Handler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -22,7 +22,7 @@ func (h *Handler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 			util.AttrUserID(userID),
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -38,20 +38,20 @@ func (h *Handler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	sess, err := h.Service.GetSession(r.Context(), userID, id)
 	if err != nil {
 		if errors.Is(err, ErrNotFoundSession) {
-			http.Error(w, "session not found", http.StatusNotFound)
+			httpx.WriteError(w, "session not found", http.StatusNotFound)
 			return
 		}
 
@@ -60,7 +60,7 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 			util.AttrSessionID(id),
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -73,19 +73,19 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
 	id, err := httpx.GetID(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if err := h.Service.RevokeSession(r.Context(), userID, id); err != nil {
 		if errors.Is(err, ErrNotFoundSession) {
-			http.Error(w, "session not found", http.StatusNotFound)
+			httpx.WriteError(w, "session not found", http.StatusNotFound)
 			return
 		}
 
@@ -94,7 +94,7 @@ func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 			util.AttrSessionID(id),
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *Handler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 	userID, err := httpx.GetUserID(r)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *Handler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) {
 			util.AttrUserID(userID),
 			util.AttrError(err),
 		)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 

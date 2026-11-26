@@ -79,7 +79,7 @@ func consumeResetPasswordToken(ctx context.Context, tx *sql.Tx, userID int64, to
 	const query = `
 		DELETE FROM auth_tokens
 		WHERE user_id = $1 AND token_hash = $2 AND type = $3
-		  AND expires_at > (clock_timestamp() AT TIME ZONE 'UTC')
+		  AND expires_at > clock_timestamp()
 		RETURNING user_id;
 	`
 	var consumedUserID int64

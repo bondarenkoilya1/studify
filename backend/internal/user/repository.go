@@ -14,17 +14,21 @@ import (
 
 const uniqueViolation = "23505" // SQLSTATE для нарушения UNIQUE
 
-func GetUserByEmail(db *sql.DB, email string) (*User, error) {
+func GetUserByEmail(ctx context.Context, db internal.DBTX, email string) (*User, error) {
 	query := `
 		SELECT id, email, password_hash, is_email_verified, is_totp_enabled, avatar_url
 		FROM users
-		WHERE email = $1;
+		WHERE id = (
+			SELECT CASE WHEN count(*) = 1 THEN min(id)
+			            ELSE max(id) FILTER (WHERE email = $1) END
+			FROM users WHERE lower(email) = lower($1)
+		);
 	`
 
 	var user User
 	var avatarURL sql.NullString
 
-	err := db.QueryRow(query, email).Scan(
+	err := db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID, &user.Email, &user.PasswordHash,
 		&user.IsEmailVerified, &user.IsTOTPEnabled, &avatarURL,
 	)
@@ -82,7 +86,7 @@ func getUserByID(ctx context.Context, db internal.DBTX, id int64, lock bool) (*U
 	return &user, nil
 }
 
-func InsertUser(db *sql.DB, email, passwordHash string) (*User, error) {
+func InsertUser(ctx context.Context, db internal.DBTX, email, passwordHash string) (*User, error) {
 	query := `
 		INSERT INTO users (email, password_hash)
 		VALUES ($1, $2)
@@ -91,7 +95,7 @@ func InsertUser(db *sql.DB, email, passwordHash string) (*User, error) {
 
 	var user User
 
-	err := db.QueryRow(query, email, passwordHash).Scan(&user.ID, &user.Email, &user.IsEmailVerified)
+	err := db.QueryRowContext(ctx, query, email, passwordHash).Scan(&user.ID, &user.Email, &user.IsEmailVerified)
 	if err != nil {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23505" {
 			return nil, ErrUserAlreadyExists
@@ -142,7 +146,7 @@ func updateEmail(ctx context.Context, db internal.DBTX, id int64, newEmail strin
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) &&
 			pgErr.Code == uniqueViolation &&
-			pgErr.ConstraintName == "users_email_key" {
+			(pgErr.ConstraintName == "users_email_key" || pgErr.ConstraintName == "users_email_normalized_key") {
 			return nil, ErrEmailTaken
 		}
 

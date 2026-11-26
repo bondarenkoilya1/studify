@@ -3,12 +3,19 @@ import { publicEnv } from "@/shared/config";
 export class ApiError extends Error {
   readonly status: number;
   readonly retryAfter?: number;
+  readonly code?: string;
 
-  constructor(status: number, message: string, retryAfter?: number) {
+  constructor(
+    status: number,
+    message: string,
+    retryAfter?: number,
+    code?: string,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.retryAfter = retryAfter;
+    this.code = code;
   }
 }
 
@@ -21,8 +28,8 @@ export class NetworkError extends ApiError {
 }
 
 export class UnauthorizedError extends ApiError {
-  constructor(message = "Unauthorized") {
-    super(401, message);
+  constructor(message = "Unauthorized", code?: string) {
+    super(401, message, undefined, code);
     this.name = "UnauthorizedError";
   }
 }
@@ -72,17 +79,33 @@ async function readBody(response: Response): Promise<unknown> {
 
 async function toError(response: Response): Promise<ApiError> {
   const text = (await response.text()).trim();
-  const message = text || `Request failed with status ${response.status}`;
+  let message = text || `Request failed with status ${response.status}`;
+  let code: string | undefined;
+  if (response.headers.get("Content-Type")?.includes("application/json")) {
+    try {
+      const body = JSON.parse(text);
+      code = typeof body?.code === "string" ? body.code : undefined;
+      message =
+        typeof body?.message === "string"
+          ? body.message
+          : typeof body?.error === "string"
+            ? body.error
+            : message;
+    } catch {
+      // A broken error response still retains its HTTP status.
+    }
+  }
   const waitSeconds = Number(response.headers.get("Retry-After"));
 
   return response.status === 401
-    ? new UnauthorizedError(message)
+    ? new UnauthorizedError(message, code)
     : new ApiError(
         response.status,
         message,
         waitSeconds > 0 && Number.isFinite(waitSeconds)
           ? waitSeconds
           : undefined,
+        code,
       );
 }
 
