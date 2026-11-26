@@ -5,7 +5,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { z } from "zod";
 
 import { verifyResetPasswordToken } from "@/shared/api";
-import { FormField } from "@/shared/ui/form-field";
+import { FormError, FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
 import { useResetPassword } from "@/features/auth/login-by-email/model/reset-password/use-reset-password";
@@ -64,7 +64,7 @@ function ResetPasswordPage() {
   if (isValidating) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-studify-muted">Проверка ссылки...</p>
+        <p className="text-muted-foreground">Проверка ссылки...</p>
       </div>
     );
   }
@@ -72,10 +72,10 @@ function ResetPasswordPage() {
   if (!isValid || !token) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <XCircle className="mx-auto h-12 w-12 text-red-500" />
+        <div className="form-surface max-w-md w-full text-center space-y-4">
+          <XCircle className="mx-auto h-12 w-12 text-destructive" />
           <h1 className="text-xl font-semibold">Ссылка недействительна</h1>
-          <p className="text-sm text-studify-muted">
+          <p className="text-sm text-muted-foreground">
             Срок действия ссылки истёк или она уже была использована.
           </p>
           <Link
@@ -92,10 +92,10 @@ function ResetPasswordPage() {
   if (isSuccess) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="max-w-md w-full text-center space-y-4">
+        <div className="form-surface max-w-md w-full text-center space-y-4">
           <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
           <h1 className="text-xl font-semibold">Пароль изменён</h1>
-          <p className="text-sm text-studify-muted">
+          <p className="text-sm text-muted-foreground">
             Сессии на всех устройствах завершены.
           </p>
           <Link
@@ -111,29 +111,44 @@ function ResetPasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <form onSubmit={submit} className="max-w-md w-full space-y-4">
+      <form
+        onSubmit={submit}
+        className="form-surface max-w-md w-full space-y-4"
+      >
         <FormField htmlFor="new_password" label="Новый пароль">
           <Input
             id="new_password"
             type="password"
+            autoComplete="new-password"
+            aria-invalid={Boolean(errors.new_password)}
+            aria-describedby={
+              errors.new_password ? "new_password-error" : undefined
+            }
             {...register("new_password")}
           />
           {errors.new_password?.message && (
-            <p className="text-xs text-red-500">
+            <FormError id="new_password-error">
               {errors.new_password.message}
-            </p>
+            </FormError>
           )}
         </FormField>
         <FormField htmlFor="new_password_confirmed" label="Повторите пароль">
           <Input
             id="new_password_confirmed"
             type="password"
+            autoComplete="new-password"
+            aria-invalid={Boolean(errors.new_password_confirmed)}
+            aria-describedby={
+              errors.new_password_confirmed
+                ? "new_password_confirmed-error"
+                : undefined
+            }
             {...register("new_password_confirmed")}
           />
           {errors.new_password_confirmed?.message && (
-            <p className="text-xs text-red-500">
+            <FormError id="new_password_confirmed-error">
               {errors.new_password_confirmed.message}
-            </p>
+            </FormError>
           )}
         </FormField>
         <Button type="submit" disabled={isSubmitting} className="w-full">

@@ -63,6 +63,31 @@ make migrate-down
 `docker-down` preserves the named volumes. To remove stored data, run
 `docker compose down -v`.
 
+## Production backend image
+
+Build the standalone backend image from the repository root.
+
+```bash
+docker build -f backend/Dockerfile -t studify-api backend
+```
+
+The runtime image contains the compiled API and runs as UID and GID 10001.
+Apply the SQL migrations to the target PostgreSQL database before starting
+the new image. Configure the environment with strong secrets, the database and
+SMTP connections, the public HTTPS frontend URL in `APP_URL` and the frontend
+origin in `CORS_ALLOWED_ORIGINS`.
+
+```bash
+docker run --name studify-api --stop-timeout 35 \
+  --env-file /path/to/studify-production.env -e ENV=production \
+  --mount type=volume,src=studify-data,dst=/app/data \
+  -p 127.0.0.1:8080:8080 studify-api
+```
+
+Expose the API through your HTTPS reverse proxy. For a host bind mount in
+place of the named volume, make the directory writable by UID and GID 10001.
+The development Compose stack continues to use the Air image.
+
 ## Backend outside Docker
 
 Create `backend/.env` from `backend/.env.example` and fill every required value:
@@ -140,6 +165,26 @@ cd frontend && bun run gen:api
 Commit the generated files together with the spec change. Do not edit them by
 hand: every request goes through `frontend/src/shared/api/fetcher.ts`, which
 sends cookies, refreshes the session on 401, and throws `ApiError`.
+
+## Browser tests
+
+Use a dedicated development database and Mailpit inbox. Start the API and
+Mailpit and apply the migrations before running the suite. Playwright can
+start Vite if the frontend is down.
+
+```bash
+cd frontend
+bun install --frozen-lockfile
+bunx playwright install chromium
+bun run test:e2e
+```
+
+The default addresses are `http://localhost:5173`, `http://localhost:8080`
+and `http://localhost:8025` for the frontend, API and Mailpit. Override them
+with `E2E_WEB_URL`, `E2E_API_URL` and `E2E_MAILPIT_URL`. Match the frontend
+origin in the API's `APP_URL` and `CORS_ALLOWED_ORIGINS`. Local HTTP test runs
+use `ENV=dev` for cookies. The GitHub Actions browser job uses an isolated
+database and runs against the production image.
 
 ## Migrations
 

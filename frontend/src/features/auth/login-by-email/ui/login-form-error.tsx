@@ -1,15 +1,9 @@
-type LoginFormErrorProps = {
-  message?: string;
-};
+import { FormError } from "@/shared/ui/form-field";
 
-export function LoginFormError({ message }: LoginFormErrorProps) {
-  if (!message) {
-    return null;
-  }
-
+export function LoginFormError({ message }: { message?: string }) {
   return (
-    <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+    <FormError variant="summary" className="mb-5">
       {message}
-    </div>
+    </FormError>
   );
 }

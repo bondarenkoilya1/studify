@@ -44,25 +44,19 @@ export function DatePicker({
         <PopoverTrigger
           id={id}
           className={cn(
-            "flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-left text-[15px] font-normal transition-all duration-200 outline-none",
-            "bg-neutral-100/80 hover:bg-neutral-100/100 dark:bg-neutral-900/60 dark:hover:bg-neutral-900/80",
-            "border border-transparent focus:border-blue-500 focus:ring-[3px] focus:ring-blue-500/10",
-            "text-neutral-900 dark:text-neutral-100",
-            !value && "text-neutral-400 dark:text-neutral-500",
+            "form-control flex min-h-11 items-center justify-between gap-2 text-left font-normal hover:bg-muted",
+            !value && "text-muted-foreground",
             className,
           )}
         >
           <span className="truncate">
             {value ? formatStudyDate(value, "d MMMM yyyy") : "Выберите дату"}
           </span>
-          <CalendarIcon className="size-4.5 text-neutral-400 dark:text-neutral-500 shrink-0 ml-2" />
+          <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
         </PopoverTrigger>
 
         <PopoverContent
-          className={cn(
-            "w-auto p-2 rounded-2xl border border-neutral-200/80 bg-white/90 backdrop-blur-xl shadow-2xl shadow-neutral-200/50",
-            "dark:border-neutral-800/80 dark:bg-neutral-950/90 dark:shadow-none",
-          )}
+          className="w-auto rounded-2xl border border-border p-2 shadow-lg"
           align="start"
           sideOffset={6}
         >

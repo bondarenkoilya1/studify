@@ -12,17 +12,15 @@ export function LogoutButton() {
       disabled={isPending}
       className={cn(
         "flex w-full items-center gap-2 rounded-lg px-4 py-2",
-        "text-left text-sm font-medium text-red-500",
+        "text-left text-sm font-medium text-destructive",
         "transition-colors",
-        "hover:bg-red-50 hover:text-red-600",
-        "dark:hover:bg-red-950/30",
-        "focus-visible:bg-red-50 focus-visible:text-red-600",
-        "focus-visible:outline-none",
+        "hover:bg-destructive/10 focus-visible:bg-destructive/10",
+        "focus-visible:ring-2 focus-visible:ring-ring",
         "disabled:cursor-not-allowed disabled:opacity-50",
       )}
     >
       <LogOut className="h-4 w-4 shrink-0" />
-      {isPending ? "Logging out..." : "Log out"}
+      {isPending ? "Выходим…" : "Выйти"}
     </button>
   );
 }

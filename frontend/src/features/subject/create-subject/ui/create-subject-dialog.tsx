@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { DatePicker } from "@/shared/ui/date-picker";
+import { FormError } from "@/shared/ui/form-field";
 import { cn } from "@/shared/lib/cn";
 
 import {
@@ -48,21 +49,20 @@ const TYPE_OPTIONS = [
 ] as const;
 
 const FOCUS_RING =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20";
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40";
 
 /* Селект и инпут внутри строки: без рамки и фона, значение прижато вправо */
 const SELECT_INLINE = cn(
   "h-11 w-auto min-w-0 justify-end gap-1.5 border-0 bg-transparent px-0",
-  "text-[15px] text-gray-500 shadow-none hover:bg-transparent",
+  "text-sm text-muted-foreground shadow-none hover:bg-transparent",
   FOCUS_RING,
 );
 
 const INPUT_INLINE =
-  "h-11 border-0 bg-transparent px-0 text-[15px] shadow-none focus:ring-0 focus-visible:ring-0";
+  "h-11 border-0 bg-transparent px-0 text-sm shadow-none focus:ring-0 focus-visible:ring-0";
 
 function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return <p className="text-[13px] text-red-500">{message}</p>;
+  return <FormError className="mt-0">{message}</FormError>;
 }
 
 /* Группа строк: одна серая «плашка», строки разделены тонкой линией */
@@ -76,13 +76,13 @@ function Group({
   return (
     <section className="mt-4">
       {title && (
-        <h3 className="mb-1.5 px-4 text-[13px] text-gray-500">{title}</h3>
+        <h3 className="mb-1.5 px-4 text-sm text-muted-foreground">{title}</h3>
       )}
       <div
         className={cn(
-          "overflow-hidden rounded-xl bg-black/[0.04]",
+          "overflow-hidden rounded-xl bg-muted/55",
           // линия у каждой строки, кроме первой; начинается с отступа слева
-          "[&>*+*>div:first-child]:border-t [&>*+*>div:first-child]:border-black/[0.07]",
+          "[&>*+*>div:first-child]:border-t [&>*+*>div:first-child]:border-border",
         )}
       >
         {children}
@@ -106,7 +106,7 @@ function Row({
   return (
     <div className="pl-4">
       <div className="flex min-h-11 items-center justify-between gap-4 pr-4">
-        <label htmlFor={htmlFor} className="shrink-0 text-[15px] text-gray-900">
+        <label htmlFor={htmlFor} className="shrink-0 text-sm text-foreground">
           {label}
         </label>
         <div className="flex min-w-0 flex-1 justify-end">{children}</div>
@@ -134,7 +134,7 @@ function Collapse({
         open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
       )}
     >
-      <div className="overflow-hidden">
+      <div className="overflow-hidden" inert={!open}>
         <div
           className={cn(
             "transition-opacity duration-200",
@@ -197,14 +197,9 @@ export function CreateSubjectDialog({
 
       <DialogBody>
         <form onSubmit={form.submit} className="flex flex-col">
-          {form.formState.errors.root?.message && (
-            <div
-              role="alert"
-              className="mb-4 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600"
-            >
-              {form.formState.errors.root.message}
-            </div>
-          )}
+          <FormError variant="summary" className="mb-4">
+            {form.formState.errors.root?.message}
+          </FormError>
 
           {/* ТИП — сегментированный переключатель */}
           <Controller
@@ -214,7 +209,7 @@ export function CreateSubjectDialog({
               <div
                 role="radiogroup"
                 aria-label="Тип предмета"
-                className="grid grid-cols-2 gap-0.5 rounded-[10px] bg-black/[0.06] p-0.5"
+                className="grid grid-cols-2 gap-0.5 rounded-lg bg-muted p-0.5"
               >
                 {TYPE_OPTIONS.map((option) => {
                   const active = field.value === option.value;
@@ -226,12 +221,12 @@ export function CreateSubjectDialog({
                       aria-checked={active}
                       onClick={() => field.onChange(option.value)}
                       className={cn(
-                        "h-8 rounded-lg px-3 text-[13px] font-medium",
+                        "h-8 rounded-lg px-3 text-sm font-medium",
                         "transition-all duration-150",
                         FOCUS_RING,
                         active
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700",
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
                       )}
                     >
                       {option.label}
@@ -244,7 +239,7 @@ export function CreateSubjectDialog({
 
           {/* НАЗВАНИЕ — отдельная плашка без подписи, подпись в placeholder */}
           <section className="mt-4">
-            <div className="rounded-xl bg-black/[0.04] px-4">
+            <div className="rounded-xl bg-muted/55 px-4">
               <Input
                 id="create-subject-name"
                 aria-label="Название"
@@ -253,7 +248,7 @@ export function CreateSubjectDialog({
                     ? "Название, например «Экономика»"
                     : "Название, например «Изучение английского»"
                 }
-                className={cn(INPUT_INLINE, "h-12 text-[17px]")}
+                className={cn(INPUT_INLINE, "h-12 text-base")}
                 aria-invalid={Boolean(form.formState.errors.name)}
                 {...form.register("name")}
               />
@@ -457,11 +452,11 @@ export function CreateSubjectDialog({
                 aria-invalid={Boolean(form.formState.errors.note)}
                 {...form.register("note")}
                 className={cn(
-                  "w-full resize-none bg-transparent pr-12 text-[15px]",
-                  "text-gray-900 placeholder:text-gray-400 outline-none",
+                  "w-full resize-none bg-transparent pr-12 text-sm",
+                  "text-foreground placeholder:text-muted-foreground outline-none",
                 )}
               />
-              <span className="absolute bottom-3 right-4 text-[11px] text-gray-400">
+              <span className="absolute bottom-3 right-4 text-xs text-muted-foreground">
                 {note?.length ?? 0}/200
               </span>
             </div>
@@ -530,9 +525,9 @@ export function CreateSubjectDialog({
                         aria-label="Удалить преподавателя"
                         className={cn(
                           "flex size-7 shrink-0 items-center justify-center",
-                          "rounded-full text-gray-400 transition-colors",
+                          "rounded-full text-muted-foreground transition-colors",
                           FOCUS_RING,
-                          "hover:bg-red-500/10 hover:text-red-500",
+                          "hover:bg-destructive/10 hover:text-destructive",
                         )}
                       >
                         <X className="size-3.5" />
@@ -557,9 +552,9 @@ export function CreateSubjectDialog({
                   onClick={addLecturer}
                   className={cn(
                     "flex min-h-11 w-full items-center gap-2 pr-4 text-left",
-                    "text-[15px] text-indigo-600 transition-colors",
+                    "text-sm text-primary transition-colors",
                     FOCUS_RING,
-                    "hover:text-indigo-700",
+                    "hover:text-primary/80",
                   )}
                 >
                   <Plus className="size-4" />

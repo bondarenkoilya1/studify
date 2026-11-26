@@ -1,6 +1,6 @@
 import { Controller } from "react-hook-form";
 import { Button } from "@/shared/ui/button";
-import { FormField } from "@/shared/ui/form-field";
+import { FormError, FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/shared/ui/input-otp";
 import type { useLoginForm } from "../model/use-login-form";
@@ -21,7 +21,7 @@ export function LoginMfaForm({ mfa, onBack }: LoginMfaFormProps) {
   const label = usesRecoveryCode ? "Резервный код" : "Код аутентификатора";
 
   return (
-    <div className="w-full max-w-md text-studify-text">
+    <div className="w-full max-w-md text-foreground">
       <LoginFormHeader
         title="Подтвердите вход"
         description={
@@ -31,10 +31,7 @@ export function LoginMfaForm({ mfa, onBack }: LoginMfaFormProps) {
         }
       />
 
-      <form
-        className="space-y-5 rounded-2xl border border-studify-border bg-studify-surface p-5 shadow-xl shadow-studify-shadow/10 sm:p-8"
-        onSubmit={onSubmit}
-      >
+      <form className="space-y-5 form-surface" onSubmit={onSubmit}>
         <LoginFormError message={errors.root?.message} />
 
         <FormField htmlFor="mfa-code" label={label}>
@@ -70,7 +67,7 @@ export function LoginMfaForm({ mfa, onBack }: LoginMfaFormProps) {
                       <InputOTPSlot
                         key={index}
                         index={index}
-                        className="h-14 w-12 rounded-lg border-studify-border bg-studify-background text-xl font-semibold sm:h-16 sm:w-14"
+                        className="h-14 w-12 rounded-lg border-border bg-background text-xl font-semibold sm:h-16 sm:w-14"
                       />
                     ))}
                   </InputOTPGroup>
@@ -79,9 +76,7 @@ export function LoginMfaForm({ mfa, onBack }: LoginMfaFormProps) {
             }
           />
           {errors.code?.message && (
-            <p id="mfa-code-error" className="mt-2 text-sm text-red-500">
-              {errors.code.message}
-            </p>
+            <FormError id="mfa-code-error">{errors.code.message}</FormError>
           )}
         </FormField>
 

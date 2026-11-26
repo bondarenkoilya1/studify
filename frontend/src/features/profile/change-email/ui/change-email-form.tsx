@@ -1,6 +1,6 @@
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { FormField } from "@/shared/ui/form-field";
+import { FormError, FormField } from "@/shared/ui/form-field";
 import { useChangeEmailForm } from "../model/use-change-email-form";
 
 export function ChangeEmailForm() {
@@ -16,10 +16,15 @@ export function ChangeEmailForm() {
           autoComplete="email"
           disabled={isDisabled}
           aria-invalid={Boolean(errors.newEmail)}
+          aria-describedby={
+            errors.newEmail ? "change-email-address-error" : undefined
+          }
           {...register("newEmail")}
         />
         {errors.newEmail && (
-          <p className="text-sm text-destructive">{errors.newEmail.message}</p>
+          <FormError id="change-email-address-error">
+            {errors.newEmail.message}
+          </FormError>
         )}
       </FormField>
       <FormField htmlFor="change-email-password" label="Текущий пароль">
@@ -29,12 +34,15 @@ export function ChangeEmailForm() {
           autoComplete="current-password"
           disabled={isDisabled}
           aria-invalid={Boolean(errors.currentPassword)}
+          aria-describedby={
+            errors.currentPassword ? "change-email-password-error" : undefined
+          }
           {...register("currentPassword")}
         />
         {errors.currentPassword && (
-          <p className="text-sm text-destructive">
+          <FormError id="change-email-password-error">
             {errors.currentPassword.message}
-          </p>
+          </FormError>
         )}
       </FormField>
       <Button type="submit" disabled={isDisabled || isPending}>

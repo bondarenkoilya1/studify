@@ -41,8 +41,8 @@ export function DeleteSubjectButton({
         title="Удалить предмет"
         className="
           flex size-11 items-center justify-center rounded-lg
-          bg-red-500/10 text-red-500 transition-colors
-          cursor-pointer hover:bg-red-500/20 focus-visible:outline-2 focus-visible:outline-ring
+          bg-destructive/10 text-destructive transition-colors
+          cursor-pointer hover:bg-destructive/20 focus-visible:outline-2 focus-visible:outline-ring
           disabled:cursor-not-allowed disabled:opacity-50
         "
       >

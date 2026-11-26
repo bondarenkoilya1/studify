@@ -88,3 +88,7 @@ bun run lint
 bun run test
 VITE_API_URL=http://localhost:8080 bun run build
 ```
+
+
+For the production API image and Chromium end-to-end tests, see
+[SETUP.md](./SETUP.md).

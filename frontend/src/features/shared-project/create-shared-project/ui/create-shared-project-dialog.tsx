@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
-import { FormField } from "@/shared/ui/form-field";
+import { FormError, FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Avatar } from "@/widgets/avatar";
@@ -55,12 +55,9 @@ export function CreateSharedProjectDialog({
       <DialogBody>
         <form onSubmit={form.submit} className="space-y-4">
           {form.formState.errors.root?.message && (
-            <div
-              role="alert"
-              className="rounded-xl bg-red-500/10 px-3.5 py-2.5 text-[13px] text-red-600"
-            >
+            <FormError variant="summary">
               {form.formState.errors.root.message}
-            </div>
+            </FormError>
           )}
 
           <FormField htmlFor="shared-project-name" label="Название">
@@ -72,9 +69,7 @@ export function CreateSharedProjectDialog({
               {...form.register("name")}
             />
             {form.formState.errors.name?.message && (
-              <p className="mt-1 text-[13px] text-red-500">
-                {form.formState.errors.name.message}
-              </p>
+              <FormError>{form.formState.errors.name.message}</FormError>
             )}
           </FormField>
 
@@ -91,9 +86,7 @@ export function CreateSharedProjectDialog({
               {...form.register("url")}
             />
             {form.formState.errors.url?.message && (
-              <p className="mt-1 text-[13px] text-red-500">
-                {form.formState.errors.url.message}
-              </p>
+              <FormError>{form.formState.errors.url.message}</FormError>
             )}
           </FormField>
 
@@ -158,9 +151,9 @@ export function CreateSharedProjectDialog({
                       {...form.register("custom_author")}
                     />
                     {form.formState.errors.custom_author?.message && (
-                      <p className="mt-1 text-[13px] text-red-500">
+                      <FormError>
                         {form.formState.errors.custom_author.message}
-                      </p>
+                      </FormError>
                     )}
                   </FormField>
                 </div>
@@ -230,9 +223,9 @@ export function CreateSharedProjectDialog({
                       {...form.register("custom_avatar_url")}
                     />
                     {form.formState.errors.custom_avatar_url?.message && (
-                      <p className="mt-1 text-[13px] text-red-500">
+                      <FormError>
                         {form.formState.errors.custom_avatar_url.message}
-                      </p>
+                      </FormError>
                     )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       Оставьте пустым, если не хотите прикреплять изображение

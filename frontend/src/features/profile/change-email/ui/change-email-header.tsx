@@ -11,7 +11,7 @@ export function ChangeEmailHeader() {
         <h3 className="text-sm font-medium">Адрес почты</h3>
 
         {isDisabled && (
-          <span className="rounded-full border border-studify-border bg-studify-surface px-2.5 py-1 text-xs font-medium text-studify-muted">
+          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
             Сначала подтвердите текущий адрес
           </span>
         )}

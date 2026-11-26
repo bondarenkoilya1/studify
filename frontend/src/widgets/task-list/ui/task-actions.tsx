@@ -63,7 +63,7 @@ export function TaskActions({ task }: { task: Task }) {
             data: { status: event.target.value as TaskStatus },
           })
         }
-        className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm"
+        className="form-control w-auto"
       >
         {Object.entries(STATUS_CONFIG).map(([value, { label }]) => (
           <option key={value} value={value}>

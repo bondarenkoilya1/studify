@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import { Button } from "@/shared/ui/button";
-import { FormField } from "@/shared/ui/form-field";
+import { FormError, FormField } from "@/shared/ui/form-field";
 import { Input } from "@/shared/ui/input";
 import { useForgotPassword } from "../model/reset-password/use-forgot-password";
 
@@ -61,9 +61,7 @@ export function ForgotPasswordDialog({
               {...emailField}
             />
             {errors.email?.message && (
-              <p className="mt-1.5 text-[13px] text-red-500">
-                {errors.email.message}
-              </p>
+              <FormError>{errors.email.message}</FormError>
             )}
           </FormField>
           <Button type="submit" disabled={isSubmitting} className="w-full">

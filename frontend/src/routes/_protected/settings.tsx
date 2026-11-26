@@ -21,10 +21,7 @@ function RouteComponent() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
-      <SettingsHeader
-        email={data.email}
-        avatarUrl={data.avatar_url}
-      />
+      <SettingsHeader email={data.email} avatarUrl={data.avatar_url} />
 
       <div className="flex flex-col gap-4 md:flex-row md:gap-6">
         <SettingsSidebar />
@@ -64,9 +61,7 @@ function SettingsHeader({
             Управляйте аккаунтом и настройками.
           </p>
 
-          <p className="truncate pt-1 text-sm font-medium">
-            {email}
-          </p>
+          <p className="truncate pt-1 text-sm font-medium">{email}</p>
         </div>
       </div>
     </div>
@@ -77,11 +72,10 @@ function SettingsSidebar() {
   const linkClass =
     "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors";
 
-  const activeClass =
-    "bg-zinc-100 text-foreground border border-zinc-200 shadow-sm";
+  const activeClass = "bg-muted text-foreground border border-border shadow-sm";
 
   const inactiveClass =
-    "text-muted-foreground border border-transparent hover:bg-zinc-50 hover:text-foreground";
+    "text-muted-foreground border border-transparent hover:bg-muted/50 hover:text-foreground";
 
   return (
     <nav className="flex w-full shrink-0 flex-row gap-1 md:w-52 md:flex-col">

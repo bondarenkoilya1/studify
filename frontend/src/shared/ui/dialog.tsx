@@ -19,11 +19,11 @@ export function Dialog({
   return (
     <BaseDialog.Root open={open} onOpenChange={onOpenChange}>
       <BaseDialog.Portal>
-        <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-md animate-in fade-in duration-300" />
+        <BaseDialog.Backdrop className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in duration-200" />
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4">
           <BaseDialog.Popup
             className={cn(
-              "pointer-events-auto relative max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-[28px] border border-black/5 bg-background p-6 shadow-2xl outline-none animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 ease-out",
+              "pointer-events-auto relative max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-border bg-popover p-5 text-popover-foreground shadow-lg outline-none motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200 sm:p-6",
               className,
             )}
           >
@@ -49,7 +49,10 @@ type DialogHeaderProps = HTMLAttributes<HTMLDivElement>;
 export function DialogHeader({ className = "", ...props }: DialogHeaderProps) {
   return (
     <div
-      className={`flex flex-col items-center space-y-3 text-center ${className}`}
+      className={cn(
+        "flex flex-col items-center gap-2 px-8 text-center",
+        className,
+      )}
       {...props}
     />
   );
@@ -60,7 +63,10 @@ type DialogTitleProps = HTMLAttributes<HTMLHeadingElement>;
 export function DialogTitle({ className = "", ...props }: DialogTitleProps) {
   return (
     <BaseDialog.Title
-      className={`text-[1.375rem] font-semibold leading-tight tracking-tight text-foreground ${className}`}
+      className={cn(
+        "text-xl font-semibold leading-tight tracking-tight sm:text-2xl",
+        className,
+      )}
       {...props}
     />
   );
@@ -74,7 +80,7 @@ export function DialogDescription({
 }: DialogDescriptionProps) {
   return (
     <BaseDialog.Description
-      className={`text-[15px] leading-snug text-muted-foreground ${className}`}
+      className={cn("text-sm leading-snug text-muted-foreground", className)}
       {...props}
     />
   );
@@ -83,13 +89,15 @@ export function DialogDescription({
 type DialogBodyProps = HTMLAttributes<HTMLDivElement>;
 
 export function DialogBody({ className = "", ...props }: DialogBodyProps) {
-  return <div className={`mt-5 ${className}`} {...props} />;
+  return <div className={cn("mt-5", className)} {...props} />;
 }
 
 type DialogFooterProps = HTMLAttributes<HTMLDivElement>;
 
 export function DialogFooter({ className = "", ...props }: DialogFooterProps) {
-  return <div className={`mt-6 flex flex-col gap-2 ${className}`} {...props} />;
+  return (
+    <div className={cn("mt-6 flex flex-col gap-2", className)} {...props} />
+  );
 }
 
 type DialogCloseProps = {
@@ -101,7 +109,10 @@ export function DialogClose({ className = "" }: DialogCloseProps) {
     <BaseDialog.Close
       type="button"
       aria-label="Закрыть"
-      className={`absolute right-4 top-4 flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground ${className}`}
+      className={cn(
+        "absolute right-3 top-3 inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+        className,
+      )}
     >
       <X className="size-4" />
     </BaseDialog.Close>
