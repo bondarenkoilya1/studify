@@ -27,7 +27,7 @@ statistics. PostgreSQL stores application data. The React frontend lives in
 │   └── postman/            # runnable HTTP request examples
 ├── frontend/               # React + Vite client
 ├── API.md                  # API contract
-├── ISSUES.md               # open issues and audit status
+├── AUDIT.md                # project audit and roadmap
 ├── SETUP.md                # local setup and commands
 └── docker-compose.yaml
 ```
@@ -72,7 +72,7 @@ Default addresses:
 
 See [SETUP.md](./SETUP.md) for configuration and operational commands. See
 [API.md](./API.md) for routes, authentication, payloads, and responses.
-The consolidated project audit is in [ISSUES.md](./ISSUES.md).
+The consolidated project audit is in [AUDIT.md](./AUDIT.md).
 
 The calendar opens on the current month and displays task plans and deadlines.
 
