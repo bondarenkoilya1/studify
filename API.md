@@ -127,7 +127,7 @@ The body has the same shape as registration. Wrong credentials return
 
 ```json
 {
-  "challenge_token": "Xk3pN8vQ2mR7tY1wZ5cB9dF4gH6jL0sA2eU8iO3qT7y"
+  "challenge_token": "<challenge_token>"
 }
 ```
 
@@ -139,7 +139,7 @@ POST /api/auth/login/totp
 
 ```json
 {
-  "challenge_token": "Xk3pN8vQ2mR7tY1wZ5cB9dF4gH6jL0sA2eU8iO3qT7y",
+  "challenge_token": "<challenge_token>",
   "code": "123456"
 }
 ```
@@ -256,7 +256,7 @@ These routes do not require authentication.
    invalid or expired token returns `422`.
 
    ```json
-   { "password_reset_token": "q8Zr3k1V0p9xWm2Lc7NfYt4Hb6Ds5Ja0Ue8Gi1Ko3Rw" }
+   { "password_reset_token": "<password_reset_token>" }
    ```
 
 3. Set the new password. Success: `204 No Content`. This uses up the reset
@@ -266,7 +266,7 @@ These routes do not require authentication.
 
    ```json
    {
-     "password_reset_token": "q8Zr3k1V0p9xWm2Lc7NfYt4Hb6Ds5Ja0Ue8Gi1Ko3Rw",
+     "password_reset_token": "<password_reset_token>",
      "new_password": "newStrongPassword123",
      "new_password_confirmed": "newStrongPassword123"
    }
@@ -378,7 +378,7 @@ Session response:
 ## Dashboard
 
 ```http
-GET /api/dashboard
+GET /api/dashboard?time_zone=Europe%2FMoscow
 ```
 
 ```json
@@ -402,6 +402,10 @@ GET /api/dashboard
 ```
 
 - `completion_percent` is rounded to two decimals, and is `0` with no tasks.
+The optional `time_zone` query parameter accepts an IANA time zone and defaults
+to UTC. A date-only deadline becomes overdue when that calendar day has ended in
+the selected zone. A timestamp-only deadline becomes overdue after its instant.
+
 - `nearest_deadline_task` is the unfinished task with the closest future
   deadline, or `null`.
 - `overdue_tasks` holds unfinished tasks whose deadline has passed, latest
@@ -566,10 +570,13 @@ Task response:
 | `scheduled_at`, `deadline` | Timestamp or `null` |
 | `scheduled_date`, `deadline_date` | Calendar date (`YYYY-MM-DD`) or `null` |
 
-`scheduled_date` takes precedence over `scheduled_at`. For a date-only
-deadline, send `deadline_date` with an optional `deadline` cutoff timestamp.
-Without a cutoff, the API uses the end of that day in UTC. On PATCH, sending
-a timestamp on its own replaces its matching calendar date.
+Use `scheduled_date` for the day to work on a task and `deadline_date` for
+the day it is due. These calendar dates are independent of each other.
+A calendar date takes precedence over the matching timestamp in Studify.
+Send just a timestamp for a task with a specific time. Existing timestamp-only
+records retain their instant. The API still supplies an end-of-day UTC
+`deadline` for compatibility when only `deadline_date` is sent. On PATCH,
+sending a timestamp on its own replaces its matching calendar date.
 
 `POST /api/tasks` returns `201 Created`, and `PUT /api/tasks/{id}` returns
 `200 OK`. Both take the task fields without `id`, `created_at`, and

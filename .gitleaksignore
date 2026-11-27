@@ -1,0 +1,21 @@
+# Credentials removed from tracking in 8b8257c. Match only these historical lines.
+5a04c740d6607faca5a7134de722b44f55b8d04e:.env:studify-local-secret:12
+5a04c740d6607faca5a7134de722b44f55b8d04e:.env:studify-local-secret:13
+5a04c740d6607faca5a7134de722b44f55b8d04e:backend/.env:studify-local-secret:1
+5a04c740d6607faca5a7134de722b44f55b8d04e:backend/.env:studify-local-secret:2
+f28f1b02386820ad4dca5d7fcecf6a86ddd24737:.env:studify-local-secret:14
+f28f1b02386820ad4dca5d7fcecf6a86ddd24737:backend/.env:studify-local-secret:3
+
+# Placeholder tokens in older versions of the API documentation.
+10627ea2a545b5201f14ecc8bc26e9a36dffafe8:API.md:generic-api-key:107
+10627ea2a545b5201f14ecc8bc26e9a36dffafe8:API.md:generic-api-key:198
+10627ea2a545b5201f14ecc8bc26e9a36dffafe8:API.md:generic-api-key:206
+10627ea2a545b5201f14ecc8bc26e9a36dffafe8:API.md:generic-api-key:95
+2d63cfbf2da997be68d7befef4e49d7f30e43207:API.md:generic-api-key:107
+2d63cfbf2da997be68d7befef4e49d7f30e43207:API.md:generic-api-key:198
+2d63cfbf2da997be68d7befef4e49d7f30e43207:API.md:generic-api-key:206
+2d63cfbf2da997be68d7befef4e49d7f30e43207:API.md:generic-api-key:95
+8156431a21527dca4cc5a3dac523bb2857d253e5:API.md:generic-api-key:107
+8156431a21527dca4cc5a3dac523bb2857d253e5:API.md:generic-api-key:198
+8156431a21527dca4cc5a3dac523bb2857d253e5:API.md:generic-api-key:206
+8156431a21527dca4cc5a3dac523bb2857d253e5:API.md:generic-api-key:95

@@ -26,9 +26,9 @@ function RouteComponent() {
       <div className="flex flex-col gap-4 md:flex-row md:gap-6">
         <SettingsSidebar />
 
-        <main className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
           <Outlet />
-        </main>
+        </div>
       </div>
     </div>
   );
@@ -78,7 +78,7 @@ function SettingsSidebar() {
     "text-muted-foreground border border-transparent hover:bg-muted/50 hover:text-foreground";
 
   return (
-    <nav className="flex w-full shrink-0 flex-row gap-1 md:w-52 md:flex-col">
+    <nav className="flex w-full shrink-0 flex-row flex-wrap gap-1 md:w-52 md:flex-col md:flex-nowrap">
       <Link
         to="/settings/profile"
         activeOptions={{ exact: true }}

@@ -128,7 +128,7 @@ export function SubjectCard({
 
           <h3
             title={subject.name}
-            className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] text-foreground"
+            className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] wrap-anywhere text-foreground"
           >
             {subject.name}
           </h3>

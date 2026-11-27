@@ -36,6 +36,7 @@ export * from "./error";
 export * from "./examType";
 export * from "./fileUploadResponse";
 export * from "./forbiddenResponse";
+export * from "./getDashboardStatusParams";
 export * from "./getSharedProjectCatalogParams";
 export * from "./imageTooLargeResponse";
 export * from "./internalErrorResponse";

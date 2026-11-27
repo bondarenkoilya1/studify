@@ -27,7 +27,7 @@ statistics. PostgreSQL stores application data. The React frontend lives in
 │   └── postman/            # runnable HTTP request examples
 ├── frontend/               # React + Vite client
 ├── API.md                  # API contract
-├── ISSUES.md               # open issues and audit status
+├── AUDIT.md                # project audit and roadmap
 ├── SETUP.md                # local setup and commands
 └── docker-compose.yaml
 ```
@@ -43,12 +43,14 @@ make env
 Fill the required secrets in `.env`:
 
 ```env
+POSTGRES_PASSWORD=replace-with-local-password
 JWT_ACCESS_SECRET=replace-with-a-random-secret
 JWT_REFRESH_SECRET=replace-with-a-different-random-secret
 TOTP_ENCRYPTION_KEY=output-of-openssl-rand-base64-32
 ```
 
-Generate each JWT secret separately with `openssl rand -hex 32`.
+Generate the PostgreSQL password and each JWT secret separately with
+`openssl rand -hex 32`.
 
 Start the stack and apply the migrations:
 
@@ -70,10 +72,9 @@ Default addresses:
 
 See [SETUP.md](./SETUP.md) for configuration and operational commands. See
 [API.md](./API.md) for routes, authentication, payloads, and responses.
-The consolidated project audit is in [ISSUES.md](./ISSUES.md).
+The consolidated project audit is in [AUDIT.md](./AUDIT.md).
 
-The calendar opens on the earliest month with an exam or visible task. It
-opens the current month when there are no events.
+The calendar opens on the current month and displays task plans and deadlines.
 
 ## Checks
 

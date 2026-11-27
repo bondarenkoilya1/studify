@@ -1,43 +1,103 @@
 import { describe, expect, it } from "vitest";
-import type { Subject, Task } from "@/shared/api";
-import {
-  getInitialCalendarMonth,
-  subjectToCalendarEvents,
-  taskToCalendarEvents,
-} from "./calendar-events";
+import type { Task } from "@/shared/api";
+import { taskToCalendarEvents } from "./calendar-events";
 
-describe("getInitialCalendarMonth", () => {
-  it("opens the earliest month across exams and visible tasks", () => {
-    const subjects = [
-      { id: 1, exam_date: "2027-02-13", scope: "science" } as Subject,
-    ];
-    const tasks = [
-      { id: 1, subject_id: 1, scheduled_date: "2026-12-01" },
-      {
-        id: 2,
-        subject_id: 1,
-        scheduled_date: "2026-04-20",
-        status: "completed",
-      },
-      { id: 3, subject_id: 1 },
-    ] as Task[];
+const fixture = {
+  id: 1,
+  subject_id: 2,
+  name: "Подготовить отчёт",
+  estimated_time: 45,
+  status: "not_completed",
+} as Task;
 
-    const events = [
-      ...subjectToCalendarEvents(subjects),
-      ...taskToCalendarEvents(tasks, subjects),
-    ];
-
-    expect(getInitialCalendarMonth(events)).toEqual(new Date(2026, 11, 1));
-  });
-
-  it("can open an exam-only month before the current month", () => {
-    expect(getInitialCalendarMonth([{ start: "2025-05-17" }])).toEqual(
-      new Date(2025, 4, 1),
+describe("taskToCalendarEvents", () => {
+  it("puts the planned work and deadline on separate calendar days", () => {
+    const events = taskToCalendarEvents(
+      [
+        {
+          ...fixture,
+          scheduled_date: "2026-12-05",
+          deadline_date: "2026-12-08",
+          deadline: "2026-12-07T21:00:00Z",
+        },
+      ],
+      [],
+      new Date(2026, 11, 8, 23, 59),
     );
+
+    expect(events).toMatchObject([
+      {
+        id: "task-1-plan",
+        start: "2026-12-05",
+        allDay: true,
+        extendedProps: { kind: "plan", taskId: 1 },
+      },
+      {
+        id: "task-1-deadline",
+        start: "2026-12-08",
+        allDay: true,
+        extendedProps: { kind: "deadline", taskId: 1, overdue: false },
+      },
+    ]);
   });
 
-  it("lets the calendar use the current month when there are no valid events", () => {
-    expect(getInitialCalendarMonth([])).toBeUndefined();
-    expect(getInitialCalendarMonth([{ start: "invalid" }])).toBeUndefined();
+  it("shows one combined event when both all-day dates coincide", () => {
+    const events = taskToCalendarEvents(
+      [
+        {
+          ...fixture,
+          scheduled_date: "2026-12-05",
+          deadline_date: "2026-12-05",
+        },
+      ],
+      [],
+      new Date(2026, 11, 6),
+    );
+
+    expect(events).toMatchObject([
+      {
+        start: "2026-12-05",
+        extendedProps: { kind: "plan-and-deadline", overdue: true },
+      },
+    ]);
+  });
+
+  it("preserves the time of legacy plans and deadlines on the same day", () => {
+    const events = taskToCalendarEvents(
+      [
+        {
+          ...fixture,
+          scheduled_at: "2026-12-05T12:00:00Z",
+          deadline: "2026-12-05T16:00:00Z",
+        },
+      ],
+      [],
+      new Date("2026-12-05T17:00:00Z"),
+    );
+
+    expect(events).toMatchObject([
+      {
+        start: "2026-12-05T12:00:00Z",
+        end: "2026-12-05T12:45:00.000Z",
+        allDay: false,
+      },
+      {
+        start: "2026-12-05T16:00:00Z",
+        allDay: false,
+        extendedProps: { overdue: true },
+      },
+    ]);
+  });
+
+  it("omits completed tasks and tasks with no dates", () => {
+    expect(
+      taskToCalendarEvents(
+        [
+          fixture,
+          { ...fixture, status: "completed", deadline_date: "2026-12-08" },
+        ],
+        [],
+      ),
+    ).toEqual([]);
   });
 });

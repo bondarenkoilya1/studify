@@ -47,6 +47,12 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
     },
     stringify: ({ id }) => ({ id: String(id) }),
   },
+  validateSearch: (search: Record<string, unknown>): { task?: number } => {
+    const task = search.task;
+    return typeof task === "number" && Number.isSafeInteger(task) && task > 0
+      ? { task }
+      : {};
+  },
   loader: async ({ context: { queryClient }, params: { id } }) => {
     try {
       await Promise.all([
@@ -144,6 +150,8 @@ function SubjectFilesSidebar({
 
 function SubjectPage() {
   const { id } = Route.useParams();
+  const { task: focusedTaskId } = Route.useSearch();
+  const navigate = Route.useNavigate();
 
   const { data: subject } = useGetSubjectSuspense(id);
   const { data: tasks } = useGetSubjectTasksSuspense(id);
@@ -153,12 +161,22 @@ function SubjectPage() {
   const [editingSubject, setEditingSubject] = useState(false);
 
   const types = getTaskTypeCounts(tasks);
-  const filteredTasksByType = filterTasksByType(tasks, selectedType);
+  const activeType = focusedTaskId === undefined ? selectedType : "all";
+  const filteredTasksByType = filterTasksByType(tasks, activeType);
+  const missingTask =
+    focusedTaskId !== undefined &&
+    !tasks.some((task) => task.id === focusedTaskId);
+
+  function selectType(type: TaskTypeFilter) {
+    setSelectedType(type);
+    if (focusedTaskId !== undefined)
+      void navigate({ search: {}, replace: true });
+  }
 
   return (
     <div className="min-h-screen bg-muted/40">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8 lg:flex-row">
-        <main className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
           <Link
             to="/subjects"
             className="
@@ -181,8 +199,8 @@ function SubjectPage() {
 
           <header>
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-semibold tracking-[-0.02em] text-foreground">
+              <div className="min-w-0">
+                <h1 className="text-3xl font-semibold tracking-[-0.02em] wrap-anywhere text-foreground">
                   {subject.name}
                 </h1>
 
@@ -221,13 +239,13 @@ function SubjectPage() {
               <div className="mt-5 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedType("all")}
+                  onClick={() => selectType("all")}
                   className={`
                     rounded-full px-3.5 py-1.5
                     text-xs font-medium
                     transition-all duration-200
                     ${
-                      selectedType === "all"
+                      activeType === "all"
                         ? "bg-primary text-primary-foreground shadow-sm"
                         : "bg-card text-muted-foreground shadow-xs hover:bg-muted hover:text-foreground"
                     }
@@ -240,13 +258,13 @@ function SubjectPage() {
                   <button
                     key={type}
                     type="button"
-                    onClick={() => setSelectedType(type)}
+                    onClick={() => selectType(type)}
                     className={`
                       rounded-full px-3.5 py-1.5
                       text-xs font-medium
                       transition-all duration-200
                       ${
-                        selectedType === type
+                        activeType === type
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "bg-card text-muted-foreground shadow-xs hover:bg-muted hover:text-foreground"
                       }
@@ -262,9 +280,17 @@ function SubjectPage() {
           </header>
 
           <div className="mt-8">
-            <TaskList tasks={filteredTasksByType} />
+            {missingTask && (
+              <p role="status" className="text-sm text-muted-foreground">
+                Эта задача больше не доступна в предмете.
+              </p>
+            )}
+            <TaskList
+              tasks={filteredTasksByType}
+              focusedTaskId={focusedTaskId}
+            />
           </div>
-        </main>
+        </div>
 
         <SubjectFilesSidebar files={subject.files ?? []} subjectId={id} />
       </div>

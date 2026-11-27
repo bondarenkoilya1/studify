@@ -1,5 +1,6 @@
 import { CalendarIcon, X } from "lucide-react";
 import { ru } from "date-fns/locale";
+import { useState } from "react";
 import { formatStudyDate } from "@/shared/lib/study-date";
 
 import { Calendar } from "@/shared/ui/calendar";
@@ -25,22 +26,13 @@ export function DatePicker({
   clearLabel = "Очистить дату",
   id,
 }: DatePickerProps) {
+  const [open, setOpen] = useState(false);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const defaultSessionMonth = (() => {
-    const now = new Date();
-
-    if (now.getMonth() < 5) {
-      return new Date(now.getFullYear(), 5, 1);
-    }
-
-    return new Date(now.getFullYear() + 1, 0, 1);
-  })();
-
   return (
     <div className={cn("flex items-center gap-1.5", clearable && "w-full")}>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           id={id}
           className={cn(
@@ -63,10 +55,13 @@ export function DatePicker({
           <Calendar
             mode="single"
             selected={value}
-            onSelect={onChange}
+            onSelect={(date) => {
+              onChange(date);
+              setOpen(false);
+            }}
             locale={ru}
             disabled={disablePast ? { before: today } : undefined}
-            defaultMonth={value ?? defaultSessionMonth}
+            defaultMonth={value ?? today}
           />
         </PopoverContent>
       </Popover>

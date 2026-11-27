@@ -1,17 +1,12 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { cn } from "@/shared/lib/cn";
-import type { CalendarView } from "../model/calendar-events";
-
-const views: Array<{ value: CalendarView; label: string }> = [
-  { value: "dayGridMonth", label: "Месяц" },
-  { value: "timeGridWeek", label: "Неделя" },
-  { value: "listMonth", label: "Список" },
-];
+import type { AgendaView, CalendarView } from "../model/calendar-events";
 
 export function ExamCalendarToolbar({
   title,
   view,
+  agendaView,
   onViewChange,
   onPrev,
   onNext,
@@ -19,15 +14,22 @@ export function ExamCalendarToolbar({
 }: {
   title: string;
   view: CalendarView;
+  agendaView: AgendaView;
   onViewChange: (view: CalendarView) => void;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
 }) {
+  const views = [
+    { value: "dayGridMonth", label: "Месяц" },
+    { value: "timeGridWeek", label: "Неделя" },
+    { value: agendaView, label: "Список" },
+  ] as const;
+
   return (
-    <div className="flex flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between lg:px-7">
-      <div className="flex items-center gap-3">
-        <h2 className="min-w-44 text-[22px] font-semibold tracking-[-0.03em] text-studify-text">
+    <div className="flex flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5 lg:flex-row lg:items-center lg:justify-between lg:px-7">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 className="min-w-0 basis-full text-xl font-semibold tracking-[-0.03em] wrap-anywhere text-studify-text sm:basis-auto sm:text-[22px]">
           {title}
         </h2>
 
@@ -35,7 +37,8 @@ export function ExamCalendarToolbar({
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
+            size="icon"
+            className="size-10"
             aria-label="Предыдущий период"
             onClick={onPrev}
           >
@@ -44,7 +47,8 @@ export function ExamCalendarToolbar({
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
+            size="icon"
+            className="size-10"
             aria-label="Следующий период"
             onClick={onNext}
           >
@@ -52,7 +56,12 @@ export function ExamCalendarToolbar({
           </Button>
         </div>
 
-        <Button type="button" variant="outline" size="sm" onClick={onToday}>
+        <Button
+          type="button"
+          variant="outline"
+          className="min-h-10"
+          onClick={onToday}
+        >
           Сегодня
         </Button>
       </div>
@@ -62,9 +71,10 @@ export function ExamCalendarToolbar({
           <button
             key={item.value}
             type="button"
+            aria-pressed={view === item.value}
             onClick={() => onViewChange(item.value)}
             className={cn(
-              "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors",
+              "min-h-9 rounded-full px-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-studify-active sm:px-3.5",
               view === item.value
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",

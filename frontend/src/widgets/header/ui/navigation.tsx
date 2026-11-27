@@ -1,48 +1,64 @@
 import { Link } from "@tanstack/react-router";
-import { cn } from "@/shared/lib/cn";
+import { Menu } from "lucide-react";
+import { useState } from "react";
+import { buttonVariants } from "@/shared/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 
-const linkClass = cn(
-  "text-sm font-medium text-studify-muted transition-colors",
-  "hover:text-studify-text",
-);
+const sections = [
+  { to: "/subjects", label: "Предметы" },
+  { to: "/dashboard", label: "Дашборд" },
+  { to: "/share", label: "Общие проекты" },
+  { to: "/calendar", label: "Календарь экзаменов" },
+] as const;
+
+function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
+  return sections.map(({ to, label }) => (
+    <Link
+      key={to}
+      to={to}
+      onClick={onNavigate}
+      className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium whitespace-nowrap text-studify-muted hover:bg-studify-field hover:text-studify-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studify-active aria-[current=page]:bg-studify-wash aria-[current=page]:font-semibold aria-[current=page]:text-studify-active"
+    >
+      {label}
+    </Link>
+  ));
+}
 
 export function HeaderNavigation() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <nav className="flex items-center gap-6">
-      <Link
-        to="/subjects"
-        className={linkClass}
-        activeProps={{
-          className: "text-studify-text",
-        }}
+    <>
+      <nav
+        aria-label="Разделы Studify"
+        className="mx-auto hidden min-w-0 items-center lg:flex"
       >
-        Предметы
-      </Link>
-      <Link
-        to="/dashboard"
-        className={linkClass}
-        activeProps={{
-          className: "text-studify-text",
-        }}
-      >
-        Дашборд
-      </Link>
-      <Link
-        to="/share"
-        className={linkClass}
-        activeProps={{
-          className: "text-studify-text",
-        }}
-      >
-        Общие проекты
-      </Link>
-      <Link
-        to="/calendar"
-        className={`${linkClass} group/nav flex items-center gap-2`}
-        activeProps={{ className: "text-studify-text" }}
-      >
-        <span>Календарь экзаменов</span>
-      </Link>
-    </nav>
+        <NavigationLinks />
+      </nav>
+      <div className="ml-auto lg:hidden">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            aria-label="Открыть навигацию"
+            className={buttonVariants({
+              variant: "ghost",
+              size: "icon",
+              className: "size-11",
+            })}
+          >
+            <Menu className="size-5" aria-hidden="true" />
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            sideOffset={8}
+            aria-label="Навигация"
+            className="w-56 max-w-(--available-width) border border-studify-border bg-studify-surface p-1.5 lg:hidden"
+          >
+            <nav aria-label="Разделы Studify" className="flex flex-col gap-0.5">
+              <NavigationLinks onNavigate={() => setOpen(false)} />
+            </nav>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </>
   );
 }

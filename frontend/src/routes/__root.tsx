@@ -28,8 +28,18 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 function RootComponent() {
   return (
     <div className="min-h-screen flex flex-col">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-3 focus:text-primary-foreground"
+      >
+        К основному содержимому
+      </a>
       <Header />
-      <main className="flex-1 flex flex-col">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex min-w-0 flex-1 flex-col"
+      >
         <Outlet />
       </main>
       {RouterDevtools && (
@@ -43,7 +53,7 @@ function RootComponent() {
 
 function NotFound() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-6">
+    <div className="flex flex-1 items-center justify-center bg-background px-6 py-12">
       <div className="mx-auto flex max-w-xl flex-col items-center text-center">
         <div className="mb-6 rounded-full border bg-muted/40 p-5 shadow-sm">
           <Search className="h-10 w-10 text-muted-foreground" />
@@ -82,6 +92,6 @@ function NotFound() {
           Studify • Учись эффективнее
         </p>
       </div>
-    </main>
+    </div>
   );
 }

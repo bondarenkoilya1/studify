@@ -1,45 +1,45 @@
 import type { EventDisplayInfo } from "@fullcalendar/react";
 import { EXAM_TYPE_LABELS } from "@/entities/subject";
-import { getSubjectPresentation } from "@/entities/subject/model/presentation";
+import type { TaskEventKind } from "../model/calendar-events";
 
-export function ExamCalendarEvent({ event, color }: EventDisplayInfo) {
-  const kind = event.extendedProps.kind as "task" | "subject" | undefined;
-  const subjectName = event.extendedProps.subjectName as string | undefined;
-  const examType = event.extendedProps.examType as
-    | keyof typeof EXAM_TYPE_LABELS
-    | undefined;
-  const subjectId = event.extendedProps.subjectId as
-    | string
-    | number
-    | undefined;
-  const scope = event.extendedProps.scope as string | undefined;
-  const presentation =
-    subjectId !== undefined
-      ? getSubjectPresentation(scope ?? "other", subjectId)
-      : null;
+const taskLabels: Record<TaskEventKind, string> = {
+  plan: "План",
+  deadline: "Срок сдачи",
+  "plan-and-deadline": "План и срок сдачи",
+};
+
+export function ExamCalendarEvent({ event, timeText, view }: EventDisplayInfo) {
+  const { kind, examType, overdue, subjectName } = event.extendedProps as {
+    kind?: TaskEventKind;
+    examType?: keyof typeof EXAM_TYPE_LABELS;
+    overdue?: boolean;
+    subjectName?: string;
+  };
+  const label = kind
+    ? taskLabels[kind]
+    : examType && EXAM_TYPE_LABELS[examType];
+  const description = [
+    label,
+    timeText,
+    event.title,
+    overdue && "Просрочено",
+    subjectName,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="flex min-w-0 items-center gap-1.5 px-1 py-0.5">
+    <div className="min-w-0 px-1 py-0.5" title={description}>
       <span
-        className="size-1.5 shrink-0 rounded-full"
-        style={{
-          backgroundColor:
-            presentation?.borderColor ?? color ?? "#71717a",
-        }}
-      />
-      <span className="min-w-0 truncate text-[12px] font-medium leading-tight">
-        {event.title}
+        className={`block text-[12px] leading-tight ${view.type === "listUpcoming" ? "wrap-anywhere whitespace-normal" : "truncate"}`}
+      >
+        {label && <span className="font-semibold">{label}: </span>}
+        {timeText && <span>{timeText} · </span>}
+        <span>{event.title}</span>
+        {overdue && (
+          <span className="font-semibold text-red-800"> · Просрочено</span>
+        )}
       </span>
-      {kind === "task" && subjectName && (
-        <span className="hidden truncate text-[10px] opacity-60 xl:inline">
-          · {subjectName}
-        </span>
-      )}
-      {!kind && examType && (
-        <span className="hidden truncate text-[10px] opacity-60 xl:inline">
-          · {EXAM_TYPE_LABELS[examType]}
-        </span>
-      )}
     </div>
   );
 }

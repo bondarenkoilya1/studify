@@ -44,7 +44,7 @@ export interface Task {
    */
   scheduled_date?: string | null;
   /**
-   * All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+   * All-day deadline date. Takes precedence over deadline for calendar and dashboard calculations.
    * @nullable
    */
   deadline_date?: string | null;

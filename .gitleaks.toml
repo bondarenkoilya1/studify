@@ -1,0 +1,16 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "studify-local-secret"
+description = "Hardcoded Studify auth key or database password"
+regex = '''(?im)^[ \t]*(?:export[ \t]+)?(?:JWT_ACCESS_SECRET|JWT_REFRESH_SECRET|TOTP_ENCRYPTION_KEY|POSTGRES_PASSWORD)[ \t]*[:=][ \t]*["']?([A-Za-z0-9+/=_-]{32,})'''
+secretGroup = 1
+
+[[rules.allowlists]]
+regexTarget = "secret"
+regexes = [
+    '''^replace-with-a-random-secret$''',
+    '''^replace-with-a-different-random-secret$''',
+    '''^output-of-openssl-rand-base64-32$''',
+]

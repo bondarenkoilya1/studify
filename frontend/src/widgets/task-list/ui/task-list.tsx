@@ -4,6 +4,7 @@ import { TaskActions } from "./task-actions";
 
 interface TaskListProps {
   tasks?: Task[];
+  focusedTaskId?: number;
 }
 
 function EmptyState() {
@@ -41,7 +42,7 @@ function EmptyState() {
   );
 }
 
-export function TaskList({ tasks }: TaskListProps) {
+export function TaskList({ tasks, focusedTaskId }: TaskListProps) {
   if (!tasks?.length) {
     return <EmptyState />;
   }
@@ -49,7 +50,11 @@ export function TaskList({ tasks }: TaskListProps) {
   return (
     <section className="mt-8 flex flex-col gap-3">
       {tasks.map((task) => (
-        <TaskCard key={task.id} task={task}>
+        <TaskCard
+          key={task.id}
+          task={task}
+          highlighted={task.id === focusedTaskId}
+        >
           <TaskActions task={task} />
         </TaskCard>
       ))}

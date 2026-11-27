@@ -152,15 +152,18 @@ type CreateSubjectDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   subject?: Subject;
+  onCreated?: (subject: Subject) => void;
 };
 
 export function CreateSubjectDialog({
   open,
   onOpenChange,
   subject,
+  onCreated,
 }: CreateSubjectDialogProps) {
-  const form = useCreateSubjectForm(subject, () => {
+  const form = useCreateSubjectForm(subject, (saved) => {
     onOpenChange(false);
+    if (!subject) onCreated?.(saved);
   });
 
   const subjectType = form.watch("type");

@@ -1,7 +1,7 @@
-import { useProfileMenu } from "../model/use-profile-menu";
+import { useState } from "react";
+import { Popover, PopoverContent } from "@/shared/ui/popover";
 import { ProfileMenuContent } from "./profile-menu-content";
 import { ProfileMenuTrigger } from "./profile-menu-trigger";
-import type { JSX } from "react";
 
 export function ProfileMenu({
   email,
@@ -9,19 +9,20 @@ export function ProfileMenu({
 }: {
   email: string;
   avatarUrl?: string | null;
-}): JSX.Element {
-  const { isOpen, menuRef, toggleMenu, closeMenu } = useProfileMenu();
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div ref={menuRef} className="relative">
-      <ProfileMenuTrigger
-        email={email}
-        avatarUrl={avatarUrl}
-        isOpen={isOpen}
-        onClick={toggleMenu}
-      />
-
-      {isOpen && <ProfileMenuContent onClose={closeMenu} />}
-    </div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <ProfileMenuTrigger email={email} avatarUrl={avatarUrl} />
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        aria-label="Настройки аккаунта"
+        className="w-64 max-w-(--available-width) gap-0.5 border border-studify-border bg-studify-surface p-1.5"
+      >
+        <ProfileMenuContent email={email} onClose={() => setOpen(false)} />
+      </PopoverContent>
+    </Popover>
   );
 }

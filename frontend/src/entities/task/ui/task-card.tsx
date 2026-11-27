@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatStudyDate } from "@/shared/lib/study-date";
 import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
 import type { Task, TaskDifficulty } from "@/shared/api";
@@ -13,6 +13,7 @@ import {
 
 interface TaskCardProps {
   task: Task;
+  highlighted?: boolean;
   children?: React.ReactNode;
 }
 
@@ -39,8 +40,17 @@ function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
   );
 }
 
-export function TaskCard({ task, children }: TaskCardProps) {
+export function TaskCard({
+  task,
+  highlighted = false,
+  children,
+}: TaskCardProps) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (highlighted) cardRef.current?.focus();
+  }, [highlighted]);
 
   const status = STATUS_CONFIG[task.status];
   const isDone = task.status === "completed";
@@ -57,6 +67,9 @@ export function TaskCard({ task, children }: TaskCardProps) {
 
   return (
     <article
+      ref={cardRef}
+      tabIndex={highlighted ? -1 : undefined}
+      aria-labelledby={`task-heading-${task.id}`}
       className={`
         group relative overflow-hidden rounded-2xl
         border border-border
@@ -66,6 +79,7 @@ export function TaskCard({ task, children }: TaskCardProps) {
         hover:border-ring/30
         hover:shadow-md
         sm:p-6
+        ${highlighted ? "outline-2 outline-offset-2 outline-ring" : ""}
       `}
     >
       {priorityChip && (
@@ -86,10 +100,11 @@ export function TaskCard({ task, children }: TaskCardProps) {
       )}
 
       <h3
+        id={`task-heading-${task.id}`}
         className={`
           pr-16
           text-[16px] font-semibold leading-snug
-          tracking-[-0.01em]
+          tracking-[-0.01em] wrap-anywhere
           ${isDone ? "text-muted-foreground line-through" : "text-foreground"}
         `}
       >
@@ -102,7 +117,7 @@ export function TaskCard({ task, children }: TaskCardProps) {
             className={`
               text-[13.5px]
               leading-relaxed
-              text-muted-foreground
+              wrap-anywhere text-muted-foreground
               ${descriptionExpanded ? "" : "line-clamp-2"}
             `}
           >
@@ -134,6 +149,17 @@ export function TaskCard({ task, children }: TaskCardProps) {
         </div>
       )}
 
+      {scheduled && (
+        <p className="mt-2.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
+          План:{" "}
+          {formatStudyDate(
+            scheduled,
+            task.scheduled_date ? "d MMMM" : "d MMMM, HH:mm",
+          )}
+        </p>
+      )}
+
       {deadline && (
         <p
           className={`
@@ -143,7 +169,7 @@ export function TaskCard({ task, children }: TaskCardProps) {
               isDone
                 ? "text-muted-foreground"
                 : deadline.urgent
-                  ? "text-red-500"
+                  ? "text-destructive"
                   : "text-foreground"
             }
           `}
@@ -181,23 +207,6 @@ export function TaskCard({ task, children }: TaskCardProps) {
             "
           >
             <Clock className="h-3.5 w-3.5 shrink-0" />~{task.estimated_time} мин
-          </span>
-        )}
-
-        {!deadline && scheduled && (
-          <span
-            className="
-              flex items-center gap-1.5
-              sm:translate-y-1
-              sm:opacity-0
-              sm:transition-all
-              sm:duration-200
-              sm:group-hover:translate-y-0
-              sm:group-hover:opacity-100
-            "
-          >
-            <Calendar className="h-3.5 w-3.5 shrink-0" />
-            {formatStudyDate(scheduled)}
           </span>
         )}
       </div>

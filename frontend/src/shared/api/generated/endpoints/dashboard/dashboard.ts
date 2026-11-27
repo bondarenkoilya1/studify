@@ -39,7 +39,9 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BadRequestResponse,
   DashboardStatus,
+  GetDashboardStatusParams,
   InternalErrorResponse,
   UnauthorizedResponse,
 } from "../../model";
@@ -67,46 +69,67 @@ const withQueryKey = <T extends object, K>(
   return result;
 };
 
-export const getGetDashboardStatusUrl = () => {
-  return `/api/dashboard`;
+export const getGetDashboardStatusUrl = (params?: GetDashboardStatusParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/dashboard?${stringifiedParams}`
+    : `/api/dashboard`;
 };
 
 /**
  * @summary Get dashboard statistics for the authenticated user
  */
 export const getDashboardStatus = async (
+  params?: GetDashboardStatusParams,
   options?: Parameters<typeof fetcher>[1],
 ): Promise<DashboardStatus> => {
-  return fetcher<DashboardStatus>(getGetDashboardStatusUrl(), {
+  return fetcher<DashboardStatus>(getGetDashboardStatusUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetDashboardStatusQueryKey = () => {
-  return [`/api/dashboard`] as const;
+export const getGetDashboardStatusQueryKey = (
+  params?: GetDashboardStatusParams,
+) => {
+  return [`/api/dashboard`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetDashboardStatusQueryOptions = <
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
->(options?: {
-  query?: Partial<
-    UseQueryOptions<
-      Awaited<ReturnType<typeof getDashboardStatus>>,
-      TError,
-      TData
-    >
-  >;
-  request?: SecondParameter<typeof fetcher>;
-}) => {
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetDashboardStatusParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getDashboardStatus>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDashboardStatusQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDashboardStatusQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getDashboardStatus>>
-  > = () => getDashboardStatus(requestOptions);
+  > = () => getDashboardStatus(params, requestOptions);
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getDashboardStatus>>,
@@ -119,13 +142,16 @@ export type GetDashboardStatusQueryResult = NonNullable<
   Awaited<ReturnType<typeof getDashboardStatus>>
 >;
 export type GetDashboardStatusQueryError = ErrorType<
-  UnauthorizedResponse | InternalErrorResponse
+  BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
 >;
 
 export function useGetDashboardStatus<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params: undefined | GetDashboardStatusParams,
   options: {
     query: Partial<
       UseQueryOptions<
@@ -150,8 +176,11 @@ export function useGetDashboardStatus<
 };
 export function useGetDashboardStatus<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params?: GetDashboardStatusParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -176,8 +205,11 @@ export function useGetDashboardStatus<
 };
 export function useGetDashboardStatus<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params?: GetDashboardStatusParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -198,8 +230,11 @@ export function useGetDashboardStatus<
 
 export function useGetDashboardStatus<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params?: GetDashboardStatusParams,
   options?: {
     query?: Partial<
       UseQueryOptions<
@@ -214,7 +249,7 @@ export function useGetDashboardStatus<
 ): UseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getGetDashboardStatusQueryOptions(options);
+  const queryOptions = getGetDashboardStatusQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<
     TData,
@@ -229,10 +264,11 @@ export function useGetDashboardStatus<
  */
 export const invalidateGetDashboardStatus = async (
   queryClient: QueryClient,
+  params?: GetDashboardStatusParams,
   options?: InvalidateOptions,
 ): Promise<QueryClient> => {
   await queryClient.invalidateQueries(
-    { queryKey: getGetDashboardStatusQueryKey() },
+    { queryKey: getGetDashboardStatusQueryKey(params) },
     options,
   );
 
@@ -241,24 +277,30 @@ export const invalidateGetDashboardStatus = async (
 
 export const getGetDashboardStatusSuspenseQueryOptions = <
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
->(options?: {
-  query?: Partial<
-    UseSuspenseQueryOptions<
-      Awaited<ReturnType<typeof getDashboardStatus>>,
-      TError,
-      TData
-    >
-  >;
-  request?: SecondParameter<typeof fetcher>;
-}) => {
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetDashboardStatusParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getDashboardStatus>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetDashboardStatusQueryKey();
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDashboardStatusQueryKey(params);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof getDashboardStatus>>
-  > = () => getDashboardStatus(requestOptions);
+  > = () => getDashboardStatus(params, requestOptions);
 
   return queryOptionsBuilder({
     queryKey,
@@ -279,13 +321,16 @@ export type GetDashboardStatusSuspenseQueryResult = NonNullable<
   Awaited<ReturnType<typeof getDashboardStatus>>
 >;
 export type GetDashboardStatusSuspenseQueryError = ErrorType<
-  UnauthorizedResponse | InternalErrorResponse
+  BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
 >;
 
 export function useGetDashboardStatusSuspense<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params: undefined | GetDashboardStatusParams,
   options: {
     query: Partial<
       UseSuspenseQueryOptions<
@@ -302,8 +347,11 @@ export function useGetDashboardStatusSuspense<
 };
 export function useGetDashboardStatusSuspense<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params?: GetDashboardStatusParams,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
@@ -320,8 +368,11 @@ export function useGetDashboardStatusSuspense<
 };
 export function useGetDashboardStatusSuspense<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params?: GetDashboardStatusParams,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
@@ -342,8 +393,11 @@ export function useGetDashboardStatusSuspense<
 
 export function useGetDashboardStatusSuspense<
   TData = Awaited<ReturnType<typeof getDashboardStatus>>,
-  TError = ErrorType<UnauthorizedResponse | InternalErrorResponse>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
 >(
+  params?: GetDashboardStatusParams,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
@@ -358,7 +412,10 @@ export function useGetDashboardStatusSuspense<
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData, TError>;
 } {
-  const queryOptions = getGetDashboardStatusSuspenseQueryOptions(options);
+  const queryOptions = getGetDashboardStatusSuspenseQueryOptions(
+    params,
+    options,
+  );
 
   const query = useSuspenseQuery(
     queryOptions,

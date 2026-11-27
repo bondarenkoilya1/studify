@@ -17,6 +17,8 @@ make env
 Fill the required values in `.env`. All supported root variables are listed in
 `.env.example`.
 
+- `POSTGRES_PASSWORD` is required. Generate a random URL-safe password, for
+  example with `openssl rand -hex 32`.
 - `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must each be at least 32 bytes.
   Generate a separate random value for each with `openssl rand -hex 32`.
 - `TOTP_ENCRYPTION_KEY` must be base64 that decodes to exactly 32 bytes:
@@ -87,6 +89,25 @@ docker run --name studify-api --stop-timeout 35 \
 Expose the API through your HTTPS reverse proxy. For a host bind mount in
 place of the named volume, make the directory writable by UID and GID 10001.
 The development Compose stack continues to use the Air image.
+
+## Rotating credentials for an existing environment
+
+1. Identify every instance sharing the old credentials and pause authentication
+   writes during the cutover. Prepare independent replacements and confirm the
+   database volume and a usable backup before changing the environment.
+2. Count accounts with TOTP enabled or a nonempty `totp_encrypted` value. With
+   existing ciphertext, coordinate a tested re-encryption using the old and new
+   keys, or arrange 2FA re-enrollment if the factors may have been exposed.
+   Keep the old key protected until the migration and recovery checks pass.
+3. Stop the affected API instances. For Compose, change the password of the
+   existing PostgreSQL role using PostgreSQL’s `\password` command. Updating
+   `POSTGRES_PASSWORD` in `.env` changes the initialization environment, while
+   passwords in an existing PostgreSQL volume are changed through the database.
+4. Update the environment or secret store and recreate the services with the
+   same data volume. Revoke sessions and any remaining unlinked refresh tokens
+   before reopening the API. Verify that old credentials are rejected and that
+   fresh sign-in and 2FA work. Restore service with the new credentials if a
+   restart fails after revocation.
 
 ## Backend outside Docker
 
@@ -201,8 +222,7 @@ Defaults:
 ```text
 database: studify
 user:     studify
-password: studify
-host:     localhost
+host:     127.0.0.1
 port:     4444
 ```
 
@@ -210,14 +230,16 @@ The migration commands are not a migration-state manager: rerunning `migrate-up`
 against an already migrated database can fail because objects already exist.
 
 Apply the missing migrations through 000019 in order before starting the API.
-A database already at 000014 needs these commands:
+For a local database already at 000014, run this command and enter the
+password configured in `POSTGRES_PASSWORD`:
 
 ```bash
-psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000015_normalize_email_lookup.up.sql
-psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000016_queue_deleted_subject_files.up.sql
-psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000017_shared_project_visibility.up.sql
-psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000018_auth_token_timestamps.up.sql
-psql "$POSTGRES_DSN" -v ON_ERROR_STOP=1 -f backend/migrations/000019_query_indexes.up.sql
+psql -h 127.0.0.1 -p 4444 -U studify -d studify -W -v ON_ERROR_STOP=1 \
+  -f backend/migrations/000015_normalize_email_lookup.up.sql \
+  -f backend/migrations/000016_queue_deleted_subject_files.up.sql \
+  -f backend/migrations/000017_shared_project_visibility.up.sql \
+  -f backend/migrations/000018_auth_token_timestamps.up.sql \
+  -f backend/migrations/000019_query_indexes.up.sql
 ```
 
 Migration 000015 preserves existing accounts whose addresses differ only by
