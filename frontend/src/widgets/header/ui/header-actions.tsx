@@ -9,18 +9,12 @@ export function HeaderActions({
   email: string | undefined;
   avatarUrl?: string | null;
 }) {
+  if (email) return <ProfileMenu email={email} avatarUrl={avatarUrl} />;
+
   return (
-    <div className="ml-auto flex items-center gap-4">
-      {email ? (
-        <>
-          <ProfileMenu email={email} avatarUrl={avatarUrl} />
-        </>
-      ) : (
-        <>
-          <LoginButton />
-          <RegisterButton />
-        </>
-      )}
+    <div className="ml-auto flex items-center gap-1 sm:gap-2">
+      <LoginButton />
+      <RegisterButton />
     </div>
   );
 }

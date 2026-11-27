@@ -40,7 +40,7 @@ function ProjectCards({
         >
           <div>
             <div className="flex items-start justify-between gap-3">
-              <h2 className="min-w-0 break-words text-lg font-semibold text-foreground">
+              <h2 className="min-w-0 wrap-anywhere text-lg font-semibold text-foreground">
                 {project.name}
               </h2>
               <div className="flex shrink-0 items-center gap-1">

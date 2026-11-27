@@ -8,7 +8,7 @@ export function RegisterButton() {
       to="/register"
       className={cn(
         buttonVariants({ variant: "secondary", size: "default" }),
-        "px-6",
+        "min-h-11 px-3 sm:px-4",
       )}
     >
       Создать аккаунт

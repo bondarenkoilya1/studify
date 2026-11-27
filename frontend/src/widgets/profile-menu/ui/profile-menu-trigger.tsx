@@ -1,38 +1,22 @@
-import { cn } from "@/shared/lib/cn";
 import { Avatar } from "@/widgets/avatar";
-
-interface Props {
-  email: string;
-  avatarUrl?: string | null;
-  isOpen: boolean;
-  onClick: () => void;
-}
+import { PopoverTrigger } from "@/shared/ui/popover";
 
 export function ProfileMenuTrigger({
   email,
   avatarUrl,
-  isOpen,
-  onClick,
-}: Props) {
+}: {
+  email: string;
+  avatarUrl?: string | null;
+}) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-expanded={isOpen}
-      aria-haspopup="menu"
-      className={cn(
-        "flex items-center gap-3 rounded-lg border border-studify-border",
-        "bg-studify-surface px-3 py-2 text-sm shadow-sm",
-        "transition-colors hover:bg-studify-field",
-        "focus-visible:ring-3 focus-visible:ring-studify-focus/50",
-        "focus-visible:outline-none",
-      )}
+    <PopoverTrigger
+      aria-label={`Меню аккаунта ${email}`}
+      className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-studify-border/70 bg-studify-surface px-1.5 text-sm font-medium text-studify-text hover:bg-studify-field focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studify-active xl:px-2.5"
     >
-      <Avatar email={email} avatarUrl={avatarUrl} size={32} />
-
-      <span className="max-w-64 truncate font-medium text-studify-text">
-        {email}
+      <span aria-hidden="true">
+        <Avatar email={email} avatarUrl={avatarUrl} size={30} alt="" />
       </span>
-    </button>
+      <span className="hidden max-w-36 truncate xl:block">{email}</span>
+    </PopoverTrigger>
   );
 }

@@ -11,7 +11,7 @@ export function LogoutButton() {
       onClick={() => mutate()}
       disabled={isPending}
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-4 py-2",
+        "flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2",
         "text-left text-sm font-medium text-destructive",
         "transition-colors",
         "hover:bg-destructive/10 focus-visible:bg-destructive/10",

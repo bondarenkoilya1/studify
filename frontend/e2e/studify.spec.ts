@@ -382,3 +382,141 @@ test("uses theme colors and keeps the password dialog usable on mobile", async (
     page.getByRole("button", { name: "Забыли пароль?" }),
   ).toBeFocused();
 });
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const { contentWidth, viewportWidth } = await page.evaluate(() => ({
+    contentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+  }));
+  expect(
+    contentWidth,
+    `horizontal overflow on ${new URL(page.url()).pathname}`,
+  ).toBeLessThanOrEqual(viewportWidth);
+}
+
+test("gives guests a useful home page and sends signed-in visitors to the dashboard", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 780 });
+  await page.goto("/");
+  await expect(
+    page.getByRole("heading", { name: "Спланируйте учёбу на неделю" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Пример учебной недели" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.keyboard.press("Tab");
+  const skip = page.getByRole("link", { name: "К основному содержимому" });
+  await expect(skip).toBeFocused();
+  await skip.press("Enter");
+  await expect(page.getByRole("main")).toBeFocused();
+
+  await page.getByRole("link", { name: "Начать", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Создать аккаунт" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await register(page);
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/dashboard\/?$/);
+  await expect(
+    page.getByRole("heading", { name: "Дашборд", exact: true }),
+  ).toBeVisible();
+});
+
+test("keeps navigation and long content usable at 320, 390 and 768 pixels", async ({
+  page,
+}) => {
+  const email = await register(page);
+  const subjectName = "Длинноеназвание".repeat(7).slice(0, 100);
+  const taskName = "Продолжительнаязадача".repeat(7);
+  const subjectResponse = await page.request.post(`${apiUrl}/api/subjects/`, {
+    data: { name: subjectName },
+  });
+  expect(subjectResponse.ok()).toBe(true);
+  const { id: subjectId } = await subjectResponse.json();
+
+  const taskResponse = await page.request.post(`${apiUrl}/api/tasks/`, {
+    data: {
+      subject_id: subjectId,
+      name: taskName,
+      type: "other",
+      status: "not_completed",
+      difficulty: "medium",
+      priority: "medium",
+      deadline_date: "2000-01-01",
+    },
+  });
+  expect(taskResponse.ok()).toBe(true);
+
+  await page.setViewportSize({ width: 320, height: 780 });
+  await page.goto("/subjects");
+  const trigger = page.getByRole("button", { name: "Открыть навигацию" });
+  await trigger.focus();
+  await trigger.press("Enter");
+  const navigation = page.getByRole("navigation", { name: "Разделы Studify" });
+  const subjectsLink = navigation.getByRole("link", { name: "Предметы" });
+  await expect(subjectsLink).toBeFocused();
+  await expect(subjectsLink).toHaveAttribute("aria-current", "page");
+  await expectNoHorizontalOverflow(page);
+
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+  await expect(navigation).toBeHidden();
+
+  await trigger.press("Enter");
+  await expect(subjectsLink).toBeFocused();
+  await page.keyboard.press("Tab");
+  const dashboardLink = navigation.getByRole("link", { name: "Дашборд" });
+  await expect(dashboardLink).toBeFocused();
+  await dashboardLink.press("Enter");
+  await expect(page).toHaveURL(/\/dashboard\/?$/);
+  await expect(navigation).toBeHidden();
+
+  const profile = page.getByRole("button", { name: `Меню аккаунта ${email}` });
+  await expect(profile).toBeVisible();
+  await expect(profile).not.toContainText(email, { useInnerText: true });
+  await profile.focus();
+  await profile.press("Enter");
+  const account = page.getByRole("dialog", { name: "Настройки аккаунта" });
+  await expect(account.getByText(email, { exact: true })).toBeVisible();
+  await expect(account.getByRole("link", { name: "Профиль" })).toBeFocused();
+  await expectNoHorizontalOverflow(page);
+  await page.keyboard.press("Escape");
+  await expect(profile).toBeFocused();
+
+  const screens = [
+    ["/subjects", "Предметы"],
+    [`/subjects/${subjectId}`, subjectName],
+    ["/dashboard", "Дашборд"],
+    ["/calendar", "Календарь экзаменов"],
+    ["/share", "Общие предметы"],
+    ["/settings/profile", "Настройки"],
+    ["/settings/security", "Настройки"],
+    ["/settings/sessions", "Настройки"],
+  ] as const;
+
+  /* oxlint-disable eslint/no-await-in-loop -- Each viewport and route reuses the same browser page. */
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 960 });
+    for (const [path, heading] of screens) {
+      await page.goto(path);
+      await expect(
+        page.getByRole("heading", { level: 1, name: heading, exact: true }),
+      ).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+    }
+  }
+  /* oxlint-enable eslint/no-await-in-loop */
+
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await page.goto("/dashboard");
+  await expect(
+    page.getByRole("button", { name: "Открыть навигацию" }),
+  ).toBeHidden();
+  await expect(dashboardLink).toHaveAttribute("aria-current", "page");
+  await expect(profile.getByText(email, { exact: true })).toBeVisible();
+});

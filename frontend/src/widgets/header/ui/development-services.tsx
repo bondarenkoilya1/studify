@@ -9,7 +9,10 @@ interface Props {
 
 export function DevelopmentServices({ isEmailVerified, isTotpEnabled }: Props) {
   return (
-    <nav className="flex items-center gap-1.5">
+    <nav
+      aria-label="Инструменты разработки"
+      className="flex flex-wrap items-center gap-1.5"
+    >
       {navItems.map((service) => {
         const Icon = service.icon;
 
