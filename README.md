@@ -74,8 +74,7 @@ See [SETUP.md](./SETUP.md) for configuration and operational commands. See
 [API.md](./API.md) for routes, authentication, payloads, and responses.
 The consolidated project audit is in [ISSUES.md](./ISSUES.md).
 
-The calendar opens on the earliest month with an exam or visible task. It
-opens the current month when there are no events.
+The calendar opens on the current month and displays task plans and deadlines.
 
 ## Checks
 

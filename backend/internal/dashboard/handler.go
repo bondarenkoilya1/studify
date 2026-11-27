@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"studify/internal/httpx"
 	"studify/internal/util"
+	"time"
+	_ "time/tzdata"
 )
 
 func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +16,16 @@ func (h *Handler) GetDashboardStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := getStatus(r.Context(), h.DB, userID)
+	zone := r.URL.Query().Get("time_zone")
+	if zone == "" {
+		zone = "UTC"
+	}
+	if _, err := time.LoadLocation(zone); err != nil || zone == "Local" {
+		httpx.WriteError(w, "time_zone must be an IANA time zone", http.StatusBadRequest)
+		return
+	}
+
+	status, err := getStatus(r.Context(), h.DB, userID, zone)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "failed to get dashboard status",
 			util.AttrUserID(userID),

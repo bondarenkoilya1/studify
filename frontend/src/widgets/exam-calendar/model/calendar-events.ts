@@ -1,36 +1,23 @@
 import type { EventInput } from "@fullcalendar/react";
-import { addMinutes, formatISO, parseISO, startOfMonth } from "date-fns";
+import { addMinutes } from "date-fns";
 import type { Subject, Task } from "@/shared/api";
 import { getSubjectPresentation } from "@/entities/subject/model/presentation";
+import { formatTaskDeadline } from "@/entities/task/model/dates";
 
-export type CalendarView = "dayGridMonth" | "timeGridWeek" | "listMonth";
-
-export function getInitialCalendarMonth(
-  events: EventInput[],
-): Date | undefined {
-  let earliest: Date | undefined;
-
-  for (const { start } of events) {
-    if (typeof start !== "string") continue;
-
-    const date = parseISO(start);
-    if (Number.isNaN(date.getTime())) continue;
-    if (!earliest || date < earliest) earliest = date;
-  }
-
-  return earliest && startOfMonth(earliest);
-}
+export type AgendaView = "listMonth" | "listUpcoming";
+export type CalendarView = "dayGridMonth" | "timeGridWeek" | AgendaView;
+export type TaskEventKind = "plan" | "deadline" | "plan-and-deadline";
 
 export function subjectToCalendarEvents(subjects: Subject[]): EventInput[] {
-  return subjects
-    .filter((subject) => subject.exam_date)
-    .map((subject) => {
-      const colors = getSubjectPresentation(subject.scope, subject.id);
+  return subjects.flatMap((subject) => {
+    if (!subject.exam_date) return [];
+    const colors = getSubjectPresentation(subject.scope, subject.id);
 
-      return {
-        id: String(subject.id),
+    return [
+      {
+        id: `subject-${subject.id}`,
         title: subject.name,
-        start: subject.exam_date!,
+        start: subject.exam_date,
         allDay: true,
         backgroundColor: colors.backgroundColor,
         borderColor: colors.borderColor,
@@ -39,16 +26,16 @@ export function subjectToCalendarEvents(subjects: Subject[]): EventInput[] {
           subjectId: subject.id,
           examType: subject.exam_type,
           scope: subject.scope,
-          course: subject.course,
-          term: subject.term,
         },
-      };
-    });
+      },
+    ];
+  });
 }
 
 export function taskToCalendarEvents(
   tasks: Task[],
   subjects: Subject[],
+  now = new Date(),
 ): EventInput[] {
   const subjectsById = new Map(
     subjects.map((subject) => [subject.id, subject]),
@@ -56,47 +43,55 @@ export function taskToCalendarEvents(
 
   return tasks.flatMap((task): EventInput[] => {
     if (task.status === "completed") return [];
+    const plan = task.scheduled_date ?? task.scheduled_at;
+    const due = task.deadline_date ?? task.deadline;
+    if (!plan && !due) return [];
 
-    const start =
-      task.scheduled_date ??
-      task.scheduled_at ??
-      task.deadline_date ??
-      task.deadline;
-    if (!start) return [];
-
-    const isTimed = !task.scheduled_date && task.scheduled_at != null;
-    const end = isTimed
-      ? addMinutes(new Date(start), task.estimated_time ?? 60).toISOString()
-      : undefined;
     const subject = subjectsById.get(task.subject_id);
-    const presentation = subject
-      ? getSubjectPresentation(subject.scope, subject.id)
-      : null;
+    const colors = subject && getSubjectPresentation(subject.scope, subject.id);
+    const overdue = formatTaskDeadline(task, now)?.overdue ?? false;
 
-    const event: EventInput = {
-      id: `task-${task.id}`,
-      title: task.name,
-      start: isTimed
-        ? start
-        : (task.scheduled_date ??
-          task.deadline_date ??
-          formatISO(new Date(start), { representation: "date" })),
-      end,
-      allDay: !isTimed,
-      backgroundColor: presentation?.backgroundColor ?? "#f4f4f5",
-      borderColor: presentation?.borderColor ?? "#a1a1aa",
-      textColor: "#18181b",
-      extendedProps: {
-        kind: "task",
-        subjectId: task.subject_id,
-        subjectName: subject?.name ?? "Личное расписание",
-        scope: subject?.scope,
-        status: task.status,
-        priority: task.priority,
-        taskType: task.type,
-      },
-    };
+    function event(
+      kind: TaskEventKind,
+      start: string,
+      allDay: boolean,
+      end?: string,
+    ): EventInput {
+      return {
+        id: `task-${task.id}-${kind}`,
+        title: task.name,
+        start,
+        end,
+        allDay,
+        backgroundColor: colors?.backgroundColor ?? "#f4f4f5",
+        borderColor: colors?.borderColor ?? "#a1a1aa",
+        textColor: "#18181b",
+        extendedProps: {
+          kind,
+          taskId: task.id,
+          subjectId: task.subject_id,
+          subjectName: subject?.name,
+          scope: subject?.scope,
+          overdue: kind !== "plan" && overdue,
+        },
+      };
+    }
 
-    return [event];
+    if (task.scheduled_date && task.scheduled_date === task.deadline_date) {
+      return [event("plan-and-deadline", task.scheduled_date, true)];
+    }
+
+    const events: EventInput[] = [];
+    if (plan) {
+      const allDay = Boolean(task.scheduled_date);
+      const end = allDay
+        ? undefined
+        : addMinutes(new Date(plan), task.estimated_time ?? 60).toISOString();
+      events.push(event("plan", plan, allDay, end));
+    }
+    if (due) {
+      events.push(event("deadline", due, Boolean(task.deadline_date)));
+    }
+    return events;
   });
 }

@@ -28,7 +28,7 @@ function CalendarPage() {
             Календарь экзаменов
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Все важные даты предметов в одном месте.
+            Планы работы, сроки сдачи и экзамены.
           </p>
         </div>
       </header>

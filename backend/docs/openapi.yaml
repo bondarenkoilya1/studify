@@ -592,6 +592,14 @@ paths:
       operationId: getDashboardStatus
       security:
         - accessCookie: []
+      parameters:
+        - in: query
+          name: time_zone
+          description: IANA time zone used to classify date-only deadlines.
+          schema:
+            type: string
+            default: UTC
+          example: Europe/Moscow
       responses:
         '200':
           description: Dashboard statistics.
@@ -599,6 +607,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardStatus'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -2074,7 +2084,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+          description: All-day deadline date. Takes precedence over deadline for calendar and dashboard calculations.
           example: '2026-07-10'
         status:
           $ref: '#/components/schemas/TaskStatus'
@@ -2137,7 +2147,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+          description: All-day deadline date. Takes precedence over deadline for calendar and dashboard calculations.
           example: '2026-07-10'
         status:
           $ref: '#/components/schemas/TaskStatus'
@@ -2188,7 +2198,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: All-day deadline date, independent of timezone. If deadline is omitted, the cutoff is the end of this day in UTC.
+          description: All-day deadline date. Takes precedence over deadline for calendar and dashboard calculations.
           example: '2026-07-10'
         subject_id:
           type: integer
