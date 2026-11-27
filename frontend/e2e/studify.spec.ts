@@ -284,7 +284,7 @@ test("shows work and deadline days in the current month and opens the task", asy
   await expect(due).toHaveCount(0);
 
   await page.getByRole("link", { name: "Дашборд", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Просроченные задачи" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Просрочено" })).toBeVisible();
   await expect(deadlineLink).toHaveCount(0);
 });
 
