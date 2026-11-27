@@ -127,7 +127,7 @@ The body has the same shape as registration. Wrong credentials return
 
 ```json
 {
-  "challenge_token": "Xk3pN8vQ2mR7tY1wZ5cB9dF4gH6jL0sA2eU8iO3qT7y"
+  "challenge_token": "<challenge_token>"
 }
 ```
 
@@ -139,7 +139,7 @@ POST /api/auth/login/totp
 
 ```json
 {
-  "challenge_token": "Xk3pN8vQ2mR7tY1wZ5cB9dF4gH6jL0sA2eU8iO3qT7y",
+  "challenge_token": "<challenge_token>",
   "code": "123456"
 }
 ```
@@ -256,7 +256,7 @@ These routes do not require authentication.
    invalid or expired token returns `422`.
 
    ```json
-   { "password_reset_token": "q8Zr3k1V0p9xWm2Lc7NfYt4Hb6Ds5Ja0Ue8Gi1Ko3Rw" }
+   { "password_reset_token": "<password_reset_token>" }
    ```
 
 3. Set the new password. Success: `204 No Content`. This uses up the reset
@@ -266,7 +266,7 @@ These routes do not require authentication.
 
    ```json
    {
-     "password_reset_token": "q8Zr3k1V0p9xWm2Lc7NfYt4Hb6Ds5Ja0Ue8Gi1Ko3Rw",
+     "password_reset_token": "<password_reset_token>",
      "new_password": "newStrongPassword123",
      "new_password_confirmed": "newStrongPassword123"
    }
