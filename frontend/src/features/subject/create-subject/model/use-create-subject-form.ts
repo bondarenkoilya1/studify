@@ -15,7 +15,7 @@ import { createSubjectSchema, type CreateSubjectFormValues } from "./schema";
 
 export function useCreateSubjectForm(
   subject?: Subject,
-  onSuccess?: () => void,
+  onSuccess?: (saved: Subject) => void,
 ) {
   const queryClient = useQueryClient();
   const form = useForm<CreateSubjectFormValues>({
@@ -89,7 +89,7 @@ export function useCreateSubjectForm(
         queryClient.setQueryData(getGetSubjectQueryKey(saved.id), saved);
       await invalidateSubjectData(queryClient, saved.id);
       if (!subject) form.reset();
-      onSuccess?.();
+      onSuccess?.(saved);
     },
   });
 

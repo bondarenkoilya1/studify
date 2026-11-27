@@ -520,3 +520,121 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   await expect(dashboardLink).toHaveAttribute("aria-current", "page");
   await expect(profile.getByText(email, { exact: true })).toBeVisible();
 });
+
+test("recovers a quick draft, adds the first subject and opens a saved task on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await register(page);
+  await page.goto("/dashboard");
+
+  const newTask = page.getByRole("button", {
+    name: "Новая задача",
+    exact: true,
+  });
+  const form = page.getByRole("dialog", { name: "Новая задача", exact: true });
+  const name = form.getByLabel("Название", { exact: true });
+  const details = form.getByRole("button", {
+    name: "Дополнительные параметры",
+  });
+  const draftName = "Разобрать материалы";
+  const draftNote = "Прочитать главу и составить список вопросов.";
+
+  await newTask.click();
+  await expect(form.getByLabel("Описание", { exact: true })).toBeHidden();
+  await name.fill(draftName);
+  await details.click();
+  await form.getByLabel("Описание", { exact: true }).fill(draftNote);
+  await page.keyboard.press("Escape");
+  await expect(form).toBeHidden();
+
+  await page.reload();
+  await newTask.click();
+  await expect(name).toHaveValue(draftName);
+  await details.click();
+  await expect(form.getByLabel("Описание", { exact: true })).toHaveValue(
+    draftNote,
+  );
+
+  await form.getByRole("button", { name: "Добавить предмет" }).click();
+  const subjectDialog = page.getByRole("dialog", {
+    name: "Новый предмет",
+    exact: true,
+  });
+  await subjectDialog
+    .getByRole("textbox", { name: "Название", exact: true })
+    .fill("Физика");
+  await subjectDialog
+    .getByRole("button", { name: "Создать предмет", exact: true })
+    .click();
+
+  const subject = form.getByLabel("Предмет", { exact: true });
+  await expect(subject).toHaveValue(/^\d+$/);
+  await expect(subject).not.toHaveValue("0");
+  await expect(name).toHaveValue(draftName);
+  await form
+    .getByRole("button", { name: "Создать задачу", exact: true })
+    .click();
+  await expect(form).toBeHidden();
+
+  const later = page.getByRole("region", { name: "Позже и без даты" });
+  const savedTask = later.getByRole("link", { name: /Разобрать материалы/ });
+  await expect(savedTask).toBeInViewport();
+  await expect(savedTask).toContainText("Физика");
+  await expect(savedTask).toContainText("Без даты");
+  await expectNoHorizontalOverflow(page);
+  await page.reload();
+  await savedTask.click();
+  await expect(
+    page.getByRole("article", { name: draftName, exact: true }),
+  ).toBeFocused();
+  await expect(page.getByText(draftNote, { exact: true })).toBeVisible();
+
+  await page.goto("/dashboard");
+  await newTask.click();
+  await expect(name).toHaveValue("");
+  const todayName = "Проверить конспект";
+  const todayDate = new Date().toISOString().slice(0, 10);
+  await name.fill(todayName);
+  await form.getByLabel("Дедлайн", { exact: true }).click();
+  await page
+    .locator('[data-slot="popover-content"]')
+    .locator(`[data-day="${todayDate}"]`)
+    .getByRole("button")
+    .click();
+  await expect(page.locator('[data-slot="popover-content"]')).toHaveCount(0);
+  await form
+    .getByRole("button", { name: "Создать задачу", exact: true })
+    .click();
+  await expect(form).toBeHidden();
+  const today = page.getByRole("region", { name: "Сегодня", exact: true });
+  await expect(
+    today.getByRole("link", { name: /Проверить конспект/ }),
+  ).toBeVisible();
+
+  await page.goto("/calendar");
+  const list = page.getByRole("button", { name: "Список", exact: true });
+  await expect(list).toHaveAttribute("aria-pressed", "true");
+  const due = page.getByRole("link", {
+    name: /Срок сдачи:.*Проверить конспект/,
+  });
+  await expect(due).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await page.getByRole("button", { name: "Следующий период" }).click();
+  await expect(due).toBeHidden();
+  await page.getByRole("button", { name: "Сегодня", exact: true }).click();
+  await expect(due).toBeVisible();
+  const month = page.getByRole("button", { name: "Месяц", exact: true });
+  await month.click();
+  await expect(month).toHaveAttribute("aria-pressed", "true");
+  await expect(due.locator("xpath=ancestor::*[@data-date][1]")).toHaveAttribute(
+    "data-date",
+    todayDate,
+  );
+  await list.click();
+  await expect(due).toBeVisible();
+  await due.click();
+  await expect(
+    page.getByRole("article", { name: todayName, exact: true }),
+  ).toBeFocused();
+});

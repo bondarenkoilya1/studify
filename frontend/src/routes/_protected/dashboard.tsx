@@ -5,6 +5,7 @@ import {
   useGetUserSubjectsSuspense,
   useGetUserTasksSuspense,
 } from "@/shared/api";
+import { QuickTaskButton } from "@/features/task/create-task/ui/quick-task-button";
 import { formatStudyDate } from "@/shared/lib/study-date";
 import { getStudyPlan } from "@/widgets/dashboard/model/study-plan";
 import { PlanSection } from "@/widgets/dashboard/ui/study-plan";
@@ -36,6 +37,7 @@ function DashboardPage() {
             {formatStudyDate(plan.weekStart)} — {formatStudyDate(plan.weekEnd)}
           </p>
         </div>
+        <QuickTaskButton subjects={subjects} />
       </header>
 
       <div className="space-y-3">

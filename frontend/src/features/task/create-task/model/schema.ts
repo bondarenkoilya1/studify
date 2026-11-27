@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createTaskSchema = z.object({
-  subject_id: z.number(),
+  subject_id: z.number().int().positive("Выберите предмет"),
 
   name: z
     .string()

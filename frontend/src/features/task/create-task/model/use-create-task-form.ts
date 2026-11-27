@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { endOfDay, formatISO, parseISO } from "date-fns";
+import { formatISO, parseISO } from "date-fns";
 
 import {
   addTask,
   getGetTaskQueryKey,
+  getGetUserTasksQueryKey,
   updateTask,
   type Task,
   type TaskUpdateRequest,
@@ -22,22 +23,24 @@ export function useCreateTaskForm(
   subjectId: number,
   task?: Task,
   onSuccess?: () => void,
+  draft?: Partial<CreateTaskFormValues>,
 ) {
   const queryClient = useQueryClient();
+  const defaults: CreateTaskFormValues = {
+    subject_id: subjectId,
+    name: task?.name ?? "",
+    type: task?.type ?? "other",
+    description: task?.description ?? "",
+    estimated_time: task?.estimated_time ?? null,
+    scheduled_date: dateValue(task?.scheduled_date ?? task?.scheduled_at),
+    deadline_date: dateValue(task?.deadline_date ?? task?.deadline),
+    status: task?.status ?? "not_completed",
+    difficulty: task?.difficulty ?? "medium",
+    priority: task?.priority ?? "medium",
+  };
   const form = useForm<CreateTaskFormValues>({
     resolver: zodResolver(createTaskSchema),
-    defaultValues: {
-      subject_id: subjectId,
-      name: task?.name ?? "",
-      type: task?.type ?? "other",
-      description: task?.description ?? "",
-      estimated_time: task?.estimated_time ?? null,
-      scheduled_date: dateValue(task?.scheduled_date ?? task?.scheduled_at),
-      deadline_date: dateValue(task?.deadline_date ?? task?.deadline),
-      status: task?.status ?? "not_completed",
-      difficulty: task?.difficulty ?? "medium",
-      priority: task?.priority ?? "medium",
-    },
+    defaultValues: { ...defaults, ...draft },
   });
   const { dirtyFields } = form.formState;
 
@@ -54,16 +57,12 @@ export function useCreateTaskForm(
       const deadlineDate = deadline_date
         ? formatISO(deadline_date, { representation: "date" })
         : null;
-      const deadline = deadline_date
-        ? endOfDay(deadline_date).toISOString()
-        : null;
 
       if (!task) {
         return addTask({
           ...values,
           scheduled_date: schedule,
           deadline_date: deadlineDate,
-          deadline,
         });
       }
 
@@ -79,12 +78,18 @@ export function useCreateTaskForm(
         priority: dirtyFields.priority ? values.priority : undefined,
         scheduled_date: dirtyFields.scheduled_date ? schedule : undefined,
         deadline_date: dirtyFields.deadline_date ? deadlineDate : undefined,
-        deadline: dirtyFields.deadline_date ? deadline : undefined,
       };
       return updateTask(task.id, changes);
     },
     onSuccess: async (saved) => {
       queryClient.setQueryData(getGetTaskQueryKey(saved.id), saved);
+      if (!task) {
+        queryClient.setQueryData<Task[]>(
+          getGetUserTasksQueryKey(),
+          (tasks) =>
+            tasks && [saved, ...tasks.filter(({ id }) => id !== saved.id)],
+        );
+      }
       await invalidateTaskLists(queryClient, saved.subject_id);
       onSuccess?.();
     },
@@ -93,7 +98,7 @@ export function useCreateTaskForm(
   return {
     ...form,
     reset: () => {
-      form.reset();
+      form.reset(defaults);
       mutation.reset();
     },
     onSubmit: form.handleSubmit((values) => mutation.mutate(values)),
