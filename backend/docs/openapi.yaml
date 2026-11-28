@@ -32,6 +32,8 @@ tags:
     description: Active user session management
   - name: Dashboard
     description: Dashboard overview and task statistics
+  - name: Search
+    description: Search owned subjects and tasks
   - name: Reminders
     description: Email reminders for study deadlines
   - name: Calendar
@@ -648,6 +650,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StudyPlan'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/search:
+    get:
+      tags: [Search]
+      operationId: getStudySearch
+      summary: Search subjects and tasks in the current account
+      security:
+        - accessCookie: []
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string, maxLength: 100 }
+        - in: query
+          name: kind
+          schema: { type: string, enum: [task, subject] }
+        - in: query
+          name: subject_id
+          schema: { type: integer, format: int64, minimum: 1 }
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - in: query
+          name: due
+          schema: { type: string, enum: [today, week, overdue, none] }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [recent, name, due, subject, status] }
+        - in: query
+          name: time_zone
+          schema: { type: string, default: UTC }
+        - in: query
+          name: offset
+          schema: { type: integer, minimum: 0, default: 0 }
+      responses:
+        '200':
+          description: Up to 25 results and an indicator for the next page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudySearchPage'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2371,6 +2420,30 @@ components:
           $ref: '#/components/schemas/TaskDifficulty'
         priority:
           $ref: '#/components/schemas/TaskPriority'
+
+    StudySearchPage:
+      type: object
+      required: [items, has_more]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StudySearchResult'
+        has_more: { type: boolean }
+
+    StudySearchResult:
+      type: object
+      required: [kind, id, name, subject_id, subject_name, status, deadline, deadline_date, exam_date]
+      properties:
+        kind: { type: string, enum: [task, subject] }
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        subject_id: { type: integer, format: int64 }
+        subject_name: { type: string, nullable: true }
+        status: { type: string, enum: [not_completed, ongoing, completed], nullable: true }
+        deadline: { type: string, format: date-time, nullable: true }
+        deadline_date: { type: string, format: date, nullable: true }
+        exam_date: { type: string, format: date-time, nullable: true }
 
     ReminderTarget:
       type: string

@@ -32,6 +32,7 @@ import (
 	"studify/internal/dashboard"
 	"studify/internal/mail"
 	"studify/internal/reminder"
+	"studify/internal/studysearch"
 	"studify/internal/subject"
 	"studify/internal/task"
 	"studify/internal/user"
@@ -67,6 +68,7 @@ type Handler struct {
 	Dashboard            *dashboard.Handler
 	Calendar             *calendar.Handler
 	Reminder             *reminder.Handler
+	Search               *studysearch.Handler
 	SharedProjectHandler *sharedproject.Handler
 	Session              *session.Handler
 }
@@ -172,6 +174,7 @@ func newApplication(ctx context.Context, cfg *config.Config, reg *prometheus.Reg
 		Dashboard: &dashboard.Handler{DB: db},
 		Calendar:  &calendar.Handler{DB: db},
 		Reminder:  &reminder.Handler{DB: db},
+		Search:    &studysearch.Handler{DB: db},
 
 		SharedProjectHandler: &sharedproject.Handler{Service: sharedProjectService},
 

@@ -7,6 +7,7 @@ export * from "./calendar/calendar";
 export * from "./dashboard/dashboard";
 export * from "./profile/profile";
 export * from "./reminders/reminders";
+export * from "./search/search";
 export * from "./shared-projects/shared-projects";
 export * from "./subjects/subjects";
 export * from "./tasks/tasks";

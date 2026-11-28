@@ -313,6 +313,13 @@ function SubjectPage() {
                     <span className="ml-1.5 opacity-60">{count}</span>
                   </button>
                 ))}
+                <Link
+                  to="/search"
+                  search={{ subject: id }}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  <Search className="size-4" aria-hidden="true" /> Поиск задач
+                </Link>
               </div>
             )}
           </header>

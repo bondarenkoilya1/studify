@@ -667,3 +667,100 @@ test("recovers a quick draft, adds the first subject and opens a saved task on m
     page.getByRole("article", { name: todayName, exact: true }),
   ).toBeFocused();
 });
+
+test("searches and sorts owned study work, then edits its reminder and reopens the task after sign-in", async ({
+  page,
+  browser,
+  request,
+}) => {
+  const email = await register(page);
+  await page.goto(await confirmationLink(request, email));
+  await expect(
+    page.getByRole("heading", { name: "Почта подтверждена" }),
+  ).toBeVisible();
+
+  const subjectResponse = await page.request.post(`${apiUrl}/api/subjects/`, {
+    data: {
+      name: "Практическая физика",
+      exam_date: new Date(Date.now() + 86400_000).toISOString(),
+    },
+  });
+  expect(subjectResponse.ok()).toBe(true);
+  const { id: subject } = await subjectResponse.json();
+  const titles = ["Расчёт тока", "Расчёт нагрузки", "Расчёт в архиве"];
+  const taskResponses = await Promise.all(
+    titles.map((name, index) =>
+      page.request.post(`${apiUrl}/api/tasks/`, {
+        data: {
+          subject_id: subject,
+          name,
+          type: "other",
+          status: index === 2 ? "completed" : "ongoing",
+          difficulty: "medium",
+          priority: "medium",
+          deadline: new Date(
+            Date.now() + (index + 1) * 86400_000,
+          ).toISOString(),
+        },
+      }),
+    ),
+  );
+  expect(taskResponses.every((response) => response.ok())).toBe(true);
+  const { id: task } = await taskResponses[0]!.json();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/search?subject=${subject}`);
+  await page.getByLabel("Название или описание").fill("РАСЧЁТ");
+  await page.getByLabel("Статус задачи").selectOption("ongoing");
+  await page.getByLabel("Срок сдачи").selectOption("week");
+  await page.getByLabel("Сортировка").selectOption("due");
+  await page.getByRole("button", { name: "Найти", exact: true }).click();
+  const results = page.getByRole("region", { name: "Результаты поиска" });
+  await expect(results.getByRole("link")).toHaveCount(2);
+  await expect(results.getByRole("link").first()).toContainText(titles[0]!);
+  await expect(results.getByRole("link", { name: /в архиве/ })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+  await results.getByRole("link").first().click();
+
+  const taskUrl = `/subjects/${subject}?task=${task}`;
+  await expect(page).toHaveURL((url) => url.pathname + url.search === taskUrl);
+  const card = page.getByRole("article", { name: titles[0], exact: true });
+  await expect(card).toBeFocused();
+  const reminder = card.getByRole("button", {
+    name: `Напоминание «${titles[0]}»`,
+  });
+  const dialog = page.getByRole("dialog", { name: "Напоминание по почте" });
+  await reminder.click();
+  const timing = dialog.getByLabel("Когда напомнить до сдачи");
+  await timing.selectOption("30");
+  await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(dialog.getByText(/Запланировано на/)).toBeVisible();
+  await page.reload();
+  await reminder.click();
+  await expect(timing).toHaveValue("30");
+  await dialog.getByRole("button", { name: "Выключить напоминание" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Выключить напоминание" }),
+  ).toBeHidden();
+
+  const guest = await browser.newPage();
+  try {
+    await guest.goto(new URL(taskUrl, page.url()).href);
+    await expect(guest).toHaveURL(/\/login\?/);
+    await signIn(guest, email);
+    await expect(guest).toHaveURL(
+      (url) => url.pathname + url.search === taskUrl,
+    );
+    await expect(
+      guest.getByRole("article", { name: titles[0], exact: true }),
+    ).toBeFocused();
+    await guest.goto(
+      new URL(`/subjects/${subject}?event=true`, page.url()).href,
+    );
+    await expect(
+      guest.getByRole("region", { name: "Событие предмета" }),
+    ).toBeFocused();
+  } finally {
+    await guest.close();
+  }
+});

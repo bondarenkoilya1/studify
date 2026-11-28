@@ -430,7 +430,12 @@ day is inclusive and the end day is exclusive. The range may span 1–62 days.
 Date-only task values stay on their calendar day. The time zone sets period
 boundaries for exams and legacy timestamps. Omitted time zones default to UTC.
 
-## Reminders
+## Search and reminders
+
+`GET /api/search` searches subject names and notes plus task names and
+descriptions in the current account. Use `q`, `kind`, `subject_id`, `status`,
+`due`, `sort`, and `time_zone` to narrow results. Each page returns up to 25
+rows. Advance `offset` by 25 while `has_more` is true.
 
 `GET /api/reminders/{target}/{id}` reads settings for a `task` or `subject`.
 Use `PUT` with `lead_minutes` (5–10080) and an IANA `time_zone` to schedule a

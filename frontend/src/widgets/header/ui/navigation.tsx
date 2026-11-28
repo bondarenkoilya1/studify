@@ -9,6 +9,7 @@ const sections = [
   { to: "/dashboard", label: "Дашборд" },
   { to: "/share", label: "Общие проекты" },
   { to: "/calendar", label: "Календарь экзаменов" },
+  { to: "/search", label: "Поиск" },
 ] as const;
 
 function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
