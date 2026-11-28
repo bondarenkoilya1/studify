@@ -42,7 +42,9 @@ import type {
   BadRequestResponse,
   DashboardStatus,
   GetDashboardStatusParams,
+  GetStudyPlanParams,
   InternalErrorResponse,
+  StudyPlan,
   UnauthorizedResponse,
 } from "../../model";
 
@@ -416,6 +418,335 @@ export function useGetDashboardStatusSuspense<
     params,
     options,
   );
+
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient,
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetStudyPlanUrl = (params?: GetStudyPlanParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/dashboard/plan?${stringifiedParams}`
+    : `/api/dashboard/plan`;
+};
+
+/**
+ * @summary Get the study plan with a page of overdue tasks
+ */
+export const getStudyPlan = async (
+  params?: GetStudyPlanParams,
+  options?: Parameters<typeof fetcher>[1],
+): Promise<StudyPlan> => {
+  return fetcher<StudyPlan>(getGetStudyPlanUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetStudyPlanQueryKey = (params?: GetStudyPlanParams) => {
+  return [`/api/dashboard/plan`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetStudyPlanQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getStudyPlan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetStudyPlanQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStudyPlan>>> = () =>
+    getStudyPlan(params, requestOptions);
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getStudyPlan>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetStudyPlanQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStudyPlan>>
+>;
+export type GetStudyPlanQueryError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+>;
+
+export function useGetStudyPlan<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params: undefined | GetStudyPlanParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getStudyPlan>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getStudyPlan>>,
+          TError,
+          Awaited<ReturnType<typeof getStudyPlan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetStudyPlan<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getStudyPlan>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getStudyPlan>>,
+          TError,
+          Awaited<ReturnType<typeof getStudyPlan>>
+        >,
+        "initialData"
+      >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetStudyPlan<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getStudyPlan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get the study plan with a page of overdue tasks
+ */
+
+export function useGetStudyPlan<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getStudyPlan>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetStudyPlanQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+/**
+ * @summary Invalidates the {@link useGetStudyPlan} query
+ */
+export const invalidateGetStudyPlan = async (
+  queryClient: QueryClient,
+  params?: GetStudyPlanParams,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getGetStudyPlanQueryKey(params) },
+    options,
+  );
+
+  return queryClient;
+};
+
+export const getGetStudyPlanSuspenseQueryOptions = <
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getStudyPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetStudyPlanQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getStudyPlan>>> = () =>
+    getStudyPlan(params, requestOptions);
+
+  return queryOptionsBuilder({
+    queryKey,
+    ...queryOptions,
+    queryFn: queryOptions?.queryFn ?? queryFn,
+  }) as UseSuspenseQueryOptions<
+    Awaited<ReturnType<typeof getStudyPlan>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> } & {
+    throwOnError?: ((this: never, error: TError) => boolean) & {
+      readonly __inferenceOnly: never;
+    };
+  };
+};
+
+export type GetStudyPlanSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getStudyPlan>>
+>;
+export type GetStudyPlanSuspenseQueryError = ErrorType<
+  BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+>;
+
+export function useGetStudyPlanSuspense<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params: undefined | GetStudyPlanParams,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getStudyPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetStudyPlanSuspense<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getStudyPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+export function useGetStudyPlanSuspense<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getStudyPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+};
+/**
+ * @summary Get the study plan with a page of overdue tasks
+ */
+
+export function useGetStudyPlanSuspense<
+  TData = Awaited<ReturnType<typeof getStudyPlan>>,
+  TError = ErrorType<
+    BadRequestResponse | UnauthorizedResponse | InternalErrorResponse
+  >,
+>(
+  params?: GetStudyPlanParams,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof getStudyPlan>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof fetcher>;
+  },
+  queryClient?: QueryClient,
+): UseSuspenseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
+  const queryOptions = getGetStudyPlanSuspenseQueryOptions(params, options);
 
   const query = useSuspenseQuery(
     queryOptions,

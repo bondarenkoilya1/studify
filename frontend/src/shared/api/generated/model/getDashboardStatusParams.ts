@@ -24,4 +24,9 @@ export type GetDashboardStatusParams = {
    * IANA time zone used to classify date-only deadlines.
    */
   time_zone?: string;
+  /**
+   * Number of overdue tasks to skip. Each page contains at most 10 items.
+   * @minimum 0
+   */
+  overdue_offset?: number;
 };

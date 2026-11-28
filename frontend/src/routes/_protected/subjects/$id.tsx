@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   FileText,
@@ -23,6 +23,7 @@ import { UploadSubjectFile } from "@/features/subject/upload-file/upload-subject
 import { CreateSubjectDialog } from "@/features/subject/create-subject/ui/create-subject-dialog";
 import { CreateTaskButton } from "@/features/task/create-task";
 import { UpdateSubjectEventDialog } from "@/features/subject/update-subject";
+import { StudyReminderButton } from "@/features/reminders/study-reminder-button";
 import { Button } from "@/shared/ui/button";
 import {
   ApiError,
@@ -32,6 +33,8 @@ import {
   useGetSubjectSuspense,
   useGetSubjectTasksSuspense,
 } from "@/shared/api";
+import { EXAM_TYPE_LABELS } from "@/entities/subject";
+import { formatStudyDate } from "@/shared/lib/study-date";
 import { formatBytes, toAbsoluteUrl } from "@/shared/utils";
 
 export const Route = createFileRoute("/_protected/subjects/$id")({
@@ -47,11 +50,13 @@ export const Route = createFileRoute("/_protected/subjects/$id")({
     },
     stringify: ({ id }) => ({ id: String(id) }),
   },
-  validateSearch: (search: Record<string, unknown>): { task?: number } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { task?: number; event?: boolean } => {
     const task = search.task;
-    return typeof task === "number" && Number.isSafeInteger(task) && task > 0
-      ? { task }
-      : {};
+    if (typeof task === "number" && Number.isSafeInteger(task) && task > 0)
+      return { task };
+    return search.event === true ? { event: true } : {};
   },
   loader: async ({ context: { queryClient }, params: { id } }) => {
     try {
@@ -150,7 +155,7 @@ function SubjectFilesSidebar({
 
 function SubjectPage() {
   const { id } = Route.useParams();
-  const { task: focusedTaskId } = Route.useSearch();
+  const { task: focusedTaskId, event: focusedEvent } = Route.useSearch();
   const navigate = Route.useNavigate();
 
   const { data: subject } = useGetSubjectSuspense(id);
@@ -159,6 +164,11 @@ function SubjectPage() {
   const [selectedType, setSelectedType] = useState<TaskTypeFilter>("all");
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState(false);
+  const eventRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (focusedEvent) eventRef.current?.focus();
+  }, [focusedEvent]);
 
   const types = getTaskTypeCounts(tasks);
   const activeType = focusedTaskId === undefined ? selectedType : "all";
@@ -218,30 +228,59 @@ function SubjectPage() {
                   onClick={() => setEditingSubject(true)}
                 >
                   <Pencil />
-                  Редактировать
+                  Редактировать предмет
                 </Button>
-                {subject.type === "university" && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setEventDialogOpen(true)}
-                  >
-                    <CalendarDays />
-                    Событие
-                  </Button>
-                )}
                 <CreateTaskButton subjectId={id} />
               </div>
             </div>
 
+            {(subject.type === "university" || subject.exam_date) && (
+              <section
+                ref={eventRef}
+                tabIndex={focusedEvent ? -1 : undefined}
+                aria-label="Событие предмета"
+                className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3 focus:outline-2 focus:outline-ring"
+              >
+                <div className="min-w-0 space-y-0.5">
+                  <h2 className="text-sm font-semibold">
+                    {EXAM_TYPE_LABELS[subject.exam_type]}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {subject.exam_date
+                      ? formatStudyDate(subject.exam_date, "d MMMM yyyy")
+                      : "Дата ещё не назначена"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-11"
+                    onClick={() => setEventDialogOpen(true)}
+                  >
+                    <CalendarDays aria-hidden="true" />
+                    {subject.exam_date ? "Изменить дату" : "Назначить дату"}
+                  </Button>
+                  {subject.exam_date && (
+                    <StudyReminderButton
+                      target="subject"
+                      id={id}
+                      name={subject.name}
+                    />
+                  )}
+                </div>
+              </section>
+            )}
+
             {types.length > 0 && (
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => selectType("all")}
+                  aria-pressed={activeType === "all"}
                   className={`
-                    rounded-full px-3.5 py-1.5
+                    min-h-10 rounded-full px-3.5
                     text-xs font-medium
                     transition-all duration-200
                     ${
@@ -259,8 +298,9 @@ function SubjectPage() {
                     key={type}
                     type="button"
                     onClick={() => selectType(type)}
+                    aria-pressed={activeType === type}
                     className={`
-                      rounded-full px-3.5 py-1.5
+                      min-h-10 rounded-full px-3.5
                       text-xs font-medium
                       transition-all duration-200
                       ${
@@ -275,11 +315,18 @@ function SubjectPage() {
                     <span className="ml-1.5 opacity-60">{count}</span>
                   </button>
                 ))}
+                <Link
+                  to="/search"
+                  search={{ subject: id }}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  <Search className="size-4" aria-hidden="true" /> Поиск задач
+                </Link>
               </div>
             )}
           </header>
 
-          <div className="mt-8">
+          <div className="mt-4">
             {missingTask && (
               <p role="status" className="text-sm text-muted-foreground">
                 Эта задача больше не доступна в предмете.
@@ -288,6 +335,9 @@ function SubjectPage() {
             <TaskList
               tasks={filteredTasksByType}
               focusedTaskId={focusedTaskId}
+              emptyMessage={
+                activeType === "all" ? undefined : "Задач этого типа пока нет."
+              }
             />
           </div>
         </div>
@@ -302,7 +352,7 @@ function SubjectPage() {
           onOpenChange={setEditingSubject}
         />
       )}
-      {subject.type === "university" && (
+      {eventDialogOpen && (
         <UpdateSubjectEventDialog
           subject={subject}
           open={eventDialogOpen}

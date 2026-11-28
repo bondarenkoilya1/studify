@@ -130,6 +130,25 @@ Compose defaults to `noreply@studify.dev`. Set both `SMTP_USERNAME` and
 timeout and use STARTTLS when the server offers it. Go's SMTP client requires
 TLS for plain authentication to a remote host.
 
+Apply migrations 000020 and 000021 before releasing the API. Registration and password
+reset queue mail in PostgreSQL. Confirmation and reset messages are written in
+the transaction that saves the token. The worker retries after 5 seconds,
+30 seconds, 2 minutes, 5 minutes, and 10 minutes while the link remains valid.
+An SMTP server can accept a message just before the worker loses its
+connection. Retrying in that case may deliver a duplicate with the same link.
+The `studify_mail_delivery_total` metric tracks acceptance, retries, and
+terminal failures. Outbox payloads are encrypted with a purpose-derived key
+from `TOTP_ENCRYPTION_KEY`. Drain the outbox before routine key rotation. For
+emergency rotation, ask users to request new links after the cutover.
+
+The reminder worker checks due tasks and subject events every ten seconds.
+Reminders require a verified mailbox. For an all-day task deadline, the
+worker uses midnight after the deadline in the saved time zone. Scheduled
+notices follow the current deadline or exam time. Completing a task,
+disabling the reminder, or clearing its date makes outstanding delivery
+jobs ineligible. Reminders expire at the event. Each application instance
+can run the workers against the same PostgreSQL database.
+
 The PostgreSQL pool defaults to 20 open connections and up to 5 idle
 connections per process. Tune `DB_MAX_OPEN_CONNS` and `DB_MAX_IDLE_CONNS`
 for your database. Idle connections are closed after 5 minutes and all
@@ -229,7 +248,7 @@ port:     4444
 The migration commands are not a migration-state manager: rerunning `migrate-up`
 against an already migrated database can fail because objects already exist.
 
-Apply the missing migrations through 000019 in order before starting the API.
+Apply the missing migrations through 000021 in order before starting the API.
 For a local database already at 000014, run this command and enter the
 password configured in `POSTGRES_PASSWORD`:
 
@@ -239,7 +258,9 @@ psql -h 127.0.0.1 -p 4444 -U studify -d studify -W -v ON_ERROR_STOP=1 \
   -f backend/migrations/000016_queue_deleted_subject_files.up.sql \
   -f backend/migrations/000017_shared_project_visibility.up.sql \
   -f backend/migrations/000018_auth_token_timestamps.up.sql \
-  -f backend/migrations/000019_query_indexes.up.sql
+  -f backend/migrations/000019_query_indexes.up.sql \
+  -f backend/migrations/000020_mail_outbox.up.sql \
+  -f backend/migrations/000021_study_reminders.up.sql
 ```
 
 Migration 000015 preserves existing accounts whose addresses differ only by
@@ -258,3 +279,53 @@ if expired. Apply both migrations before starting the new API.
 After 000014, the first authenticated request with old cookies triggers a token
 refresh in the web app. A valid refresh cookie creates a tracked session, so
 the user can continue without signing in again.
+
+## Backing up and restoring study materials
+
+The same backup must include the PostgreSQL database and the entire API
+`data/` directory, including attachments, thumbnails and avatars. Stop the
+API before taking either snapshot so writes and the file cleanup worker are
+paused. Keep the corresponding environment secrets in their existing secret
+store so TOTP and queued mail can be read after restore.
+
+In development Compose, with the API stopped, create a fresh private backup
+directory and capture both artifacts from the repository root:
+
+```bash
+docker compose stop backend
+umask 077
+studify_backup_dir=$(mktemp -d)
+docker compose exec -T postgres sh -c 'pg_dump -Fc -U "$POSTGRES_USER" "$POSTGRES_DB"'   > "$studify_backup_dir/studify.dump"
+tar -C backend -czf "$studify_backup_dir/data.tar.gz" data
+(cd "$studify_backup_dir" && shasum -a 256 studify.dump data.tar.gz > SHA256SUMS)
+```
+
+For the production image, archive the `studify-data` volume mounted read-only
+in a maintenance container at its `/app/data` path. Start the API again once
+both artifacts have been created and verified.
+
+Verify the archive before restoring. Restore the database into a fresh
+database and extract the files into a fresh working directory. Configure an
+isolated API to use both restored artifacts. Use an isolated SMTP inbox for
+the drill. Run these commands against the database server selected through
+the standard PostgreSQL connection environment:
+
+```bash
+(cd "$studify_backup_dir" && shasum -a 256 -c SHA256SUMS)
+studify_restore_db=studify_restore
+createdb "$studify_restore_db"
+pg_restore --exit-on-error --no-owner -d "$studify_restore_db" "$studify_backup_dir/studify.dump"
+studify_restore_dir=$(mktemp -d)
+tar -xzf "$studify_backup_dir/data.tar.gz" -C "$studify_restore_dir"
+```
+
+On the restored API, sign in as the owner, open a subject, and download a
+known attachment. Compare the downloaded file with its original checksum.
+Sign in as a second account and verify that the attachment and thumbnail
+cannot be opened by that account. Switch traffic to restored data only after
+both checks pass.
+
+Subject attachments and thumbnails are private to their owner. Signed-in
+users can load avatar URLs for the shared catalog. Each account can store up
+to 100 attachments totaling 500 MiB. The limit per attachment remains 50 MiB.
+Deleting a subject releases its attachment quota.

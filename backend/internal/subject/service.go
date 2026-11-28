@@ -16,6 +16,8 @@ import (
 )
 
 var ErrNoFieldsToUpdate = errors.New("no fields to update")
+var ErrFileQuotaExceeded = errors.New("attachment quota exceeded")
+var ErrLocalThumbnailReference = errors.New("use the subject thumbnail upload to attach a local cover")
 
 // ValidationError — ошибка валидации входных данных.
 // Message предназначен для показа клиенту как есть.
@@ -33,7 +35,11 @@ var thumbnailConstraints = media.ImageConstraints{
 	Quality:   85,
 }
 
-const maxFileSize = 50 << 20 // 50 MB
+const (
+	maxFileSize     = 50 << 20
+	maxUserFileSize = 500 << 20
+	maxUserFiles    = 100
+)
 
 type Service struct {
 	db *sql.DB
@@ -66,6 +72,9 @@ func (s *Service) getUserSubjects(ctx context.Context, userID int64) ([]Subject,
 }
 
 func (s *Service) addSubject(ctx context.Context, userID int64, req *CreateSubjectRequest) (*Subject, error) {
+	if err := checkLocalThumbnail(req.ThumbnailURL, nil); err != nil {
+		return nil, err
+	}
 	subject, err := InsertSubject(
 		ctx, s.db, userID, req.Name,
 		req.Note, req.Type, req.Scope,
@@ -80,8 +89,21 @@ func (s *Service) addSubject(ctx context.Context, userID int64, req *CreateSubje
 }
 
 func (s *Service) replaceSubject(ctx context.Context, userID, id int64, req *CreateSubjectRequest) (*Subject, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback() }()
+	current, err := getSubjectByID(ctx, tx, id, userID, true)
+	if err != nil {
+		return nil, err
+	}
+	if err := checkLocalThumbnail(req.ThumbnailURL, current.ThumbnailURL); err != nil {
+		return nil, err
+	}
+
 	if err := UpdateSubject(
-		ctx, s.db, userID, id, req.Name,
+		ctx, tx, userID, id, req.Name,
 		req.Note, req.Type, req.Scope,
 		req.ExamType, req.ThumbnailURL, req.ExamDate,
 		req.Course, req.Term,
@@ -89,12 +111,12 @@ func (s *Service) replaceSubject(ctx context.Context, userID, id int64, req *Cre
 		return nil, fmt.Errorf("replace subject %d: %w", id, err)
 	}
 
-	subject, err := GetSubjectByID(ctx, s.db, id, userID)
+	subject, err := getSubjectByID(ctx, tx, id, userID, false)
 	if err != nil {
 		return nil, fmt.Errorf("load replaced subject %d: %w", id, err)
 	}
 
-	return subject, nil
+	return subject, tx.Commit()
 }
 
 func (s *Service) updateSubject(ctx context.Context, userID, id int64, req *UpdateSubjectRequest) (*Subject, error) {
@@ -139,6 +161,9 @@ func (s *Service) updateSubject(ctx context.Context, userID, id int64, req *Upda
 		subject.ExamType = *req.ExamType
 	}
 	if req.ThumbnailURL != nil {
+		if err := checkLocalThumbnail(req.ThumbnailURL, subject.ThumbnailURL); err != nil {
+			return nil, err
+		}
 		subject.ThumbnailURL = req.ThumbnailURL
 	}
 	if req.ExamDateSet {
@@ -235,12 +260,53 @@ func (s *Service) uploadFile(ctx context.Context, userID, subjectID int64, file 
 
 	publicPath := filesPublicDir + filename
 
-	if _, err := InsertSubjectFile(ctx, s.db, subjectID, userID, publicPath, originalFilename, contentType, sizeBytes); err != nil {
+	if err := s.attachFile(ctx, subjectID, userID, publicPath, originalFilename, contentType, sizeBytes); err != nil {
 		removeFile(filepath.Join(filesDir, filename))
 		return "", fmt.Errorf("insert file of subject %d: %w", subjectID, err)
 	}
 
 	return publicPath, nil
+}
+
+func (s *Service) attachFile(ctx context.Context, subjectID, userID int64, path, name, contentType string, size int64) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	// Serialize quota checks for uploads to any subject in the account.
+	var present int
+	if err := tx.QueryRowContext(ctx, `SELECT 1 FROM users WHERE id = $1 FOR UPDATE`, userID).Scan(&present); err != nil {
+		return err
+	}
+	if err := tx.QueryRowContext(ctx, `
+		SELECT 1 FROM subjects WHERE id = $1 AND user_id = $2 FOR KEY SHARE
+	`, subjectID, userID).Scan(&present); err != nil {
+		return err
+	}
+	var count, used int64
+	if err := tx.QueryRowContext(ctx, `
+		SELECT COUNT(*), COALESCE(SUM(f.size_bytes), 0)
+		FROM subjects_files f JOIN subjects s ON s.id = f.subject_id WHERE s.user_id = $1
+	`, userID).Scan(&count, &used); err != nil {
+		return err
+	}
+	if count >= maxUserFiles || size > maxUserFileSize-used {
+		return ErrFileQuotaExceeded
+	}
+	if _, err := InsertSubjectFile(ctx, tx, subjectID, userID, path, name, contentType, size); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+func checkLocalThumbnail(next, current *string) error {
+	if next != nil && strings.HasPrefix(*next, thumbnailsPublicDir) &&
+		(current == nil || *next != *current) {
+		return ErrLocalThumbnailReference
+	}
+	return nil
 }
 
 // thumbnailFilePath превращает публичный URL thumbnail в путь на диске.

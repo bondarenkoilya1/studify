@@ -1,53 +1,98 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, useTransition } from "react";
 import {
-  getGetUserSubjectsQueryOptions,
-  getGetUserTasksQueryOptions,
-  useGetUserSubjectsSuspense,
-  useGetUserTasksSuspense,
+  getGetStudyPlanQueryOptions,
+  useGetStudyPlanSuspense,
 } from "@/shared/api";
+import { Button } from "@/shared/ui/button";
 import { QuickTaskButton } from "@/features/task/create-task/ui/quick-task-button";
 import { formatStudyDate } from "@/shared/lib/study-date";
 import { getStudyPlan } from "@/widgets/dashboard/model/study-plan";
 import { PlanSection } from "@/widgets/dashboard/ui/study-plan";
 
+const overduePageSize = 10;
+const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const firstPage = { time_zone: timeZone, overdue_offset: 0 };
+
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: ({ context: { queryClient } }) =>
-    Promise.all([
-      queryClient.ensureQueryData(getGetUserSubjectsQueryOptions()),
-      queryClient.ensureQueryData(getGetUserTasksQueryOptions()),
-    ]),
+    queryClient.ensureQueryData(getGetStudyPlanQueryOptions(firstPage)),
   pendingComponent: DashboardSkeleton,
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const { data: subjects } = useGetUserSubjectsSuspense();
-  const { data: tasks } = useGetUserTasksSuspense();
+  const [offset, setOffset] = useState(0);
+  const [paging, startPaging] = useTransition();
+  const { data } = useGetStudyPlanSuspense({
+    ...firstPage,
+    overdue_offset: offset,
+  });
   const subjectNames = new Map(
-    subjects.map((subject) => [subject.id, subject.name]),
+    data.subjects.map((subject) => [subject.id, subject.name]),
   );
-  const plan = getStudyPlan(tasks);
+  const plan = getStudyPlan(data.tasks, new Date(data.as_of));
+
+  function changePage(next: number) {
+    startPaging(() => setOffset(next));
+  }
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Дашборд</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">План</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatStudyDate(plan.weekStart)} — {formatStudyDate(plan.weekEnd)}
           </p>
         </div>
-        <QuickTaskButton subjects={subjects} />
+        <QuickTaskButton />
       </header>
 
       <div className="space-y-3">
         <PlanSection
           id="plan-overdue"
           title="Просрочено"
-          empty="Просроченных задач нет."
-          tasks={plan.overdue}
+          empty={
+            offset > 0
+              ? "На этой странице задач нет."
+              : "Просроченных задач нет."
+          }
+          tasks={data.overdue_tasks}
           subjectNames={subjectNames}
-        />
+        >
+          {(offset > 0 || data.overdue_total > overduePageSize) && (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-3 text-sm sm:px-5">
+              <span aria-live="polite" className="text-muted-foreground">
+                {data.overdue_tasks.length > 0
+                  ? `${offset + 1}–${offset + data.overdue_tasks.length} из ${data.overdue_total}`
+                  : `Всего ${data.overdue_total}`}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={paging || offset === 0}
+                  onClick={() => changePage(offset - overduePageSize)}
+                >
+                  Назад
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={
+                    paging || offset + overduePageSize >= data.overdue_total
+                  }
+                  onClick={() => changePage(offset + overduePageSize)}
+                >
+                  Дальше
+                </Button>
+              </div>
+            </div>
+          )}
+        </PlanSection>
         <PlanSection
           id="plan-today"
           title="Сегодня"
@@ -73,10 +118,10 @@ function DashboardPage() {
       </div>
 
       <DashboardStats
-        subjectCount={subjects.length}
-        total={tasks.length}
-        completed={plan.completed}
-        ongoing={plan.ongoing}
+        subjectCount={data.subjects.length}
+        total={data.total_tasks}
+        completed={data.total_completed_tasks}
+        ongoing={data.total_ongoing_tasks}
       />
     </div>
   );

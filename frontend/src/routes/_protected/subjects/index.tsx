@@ -48,13 +48,7 @@ function SubjectsPage() {
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Предметы</h1>
-
-          <p className="mt-2 text-muted-foreground">
-            Управляйте предметами и следите за датами экзаменов.
-          </p>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">Предметы</h1>
 
         <Button onClick={() => setIsCreateSubjectOpen(true)}>
           Добавить предмет
@@ -66,8 +60,9 @@ function SubjectsPage() {
         <button
           type="button"
           onClick={() => setSelectedType("all")}
+          aria-pressed={selectedType === "all"}
           className={`
-            cursor-pointer rounded-full px-3.5 py-1.5
+            min-h-10 cursor-pointer rounded-full px-3.5
             text-xs font-medium
             transition-all duration-200
             ${
@@ -86,8 +81,9 @@ function SubjectsPage() {
             key={type}
             type="button"
             onClick={() => setSelectedType(type)}
+            aria-pressed={selectedType === type}
             className={`
-              cursor-pointer rounded-full px-3.5 py-1.5
+              min-h-10 cursor-pointer rounded-full px-3.5
               text-xs font-medium
               transition-all duration-200
               ${
@@ -103,7 +99,7 @@ function SubjectsPage() {
         ))}
       </div>
 
-      <SubjectList subjects={filteredSubjects} />
+      <SubjectList subjects={filteredSubjects} filtered={data.length > 0} />
 
       <CreateSubjectDialog
         open={isCreateSubjectOpen}

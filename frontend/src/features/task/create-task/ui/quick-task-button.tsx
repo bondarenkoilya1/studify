@@ -1,11 +1,12 @@
 import { lazy, Suspense, useState } from "react";
 import { Plus } from "lucide-react";
 import { useCurrentUser } from "@/entities/user";
-import type { Subject } from "@/shared/api";
+import { useGetUserSubjectsSuspense } from "@/shared/api";
 import { Button } from "@/shared/ui/button";
 
+const loadTaskDialog = () => import("./create-task-dialog");
 const CreateTaskDialog = lazy(() =>
-  import("./create-task-dialog").then((module) => ({
+  loadTaskDialog().then((module) => ({
     default: module.CreateTaskDialog,
   })),
 );
@@ -16,7 +17,16 @@ const loadingForm = (
   </span>
 );
 
-export function QuickTaskButton({ subjects }: { subjects: Subject[] }) {
+function QuickTaskDialog(props: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  draftKey: string;
+}) {
+  const { data: subjects } = useGetUserSubjectsSuspense();
+  return <CreateTaskDialog {...props} subjects={subjects} />;
+}
+
+export function QuickTaskButton() {
   const { data: user } = useCurrentUser();
   const [open, setOpen] = useState<boolean>();
 
@@ -24,17 +34,23 @@ export function QuickTaskButton({ subjects }: { subjects: Subject[] }) {
 
   return (
     <>
-      <Button type="button" size="lg" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        size="lg"
+        onClick={() => {
+          void loadTaskDialog().catch(() => undefined);
+          setOpen(true);
+        }}
+      >
         <Plus aria-hidden="true" />
         Новая задача
       </Button>
       {open !== undefined && (
         <Suspense fallback={loadingForm}>
-          <CreateTaskDialog
+          <QuickTaskDialog
             key={user.id}
             open={open}
             onOpenChange={setOpen}
-            subjects={subjects}
             draftKey={`studify:quick-task:v1:${user.id}`}
           />
         </Suspense>

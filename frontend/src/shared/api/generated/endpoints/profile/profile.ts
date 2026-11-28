@@ -393,7 +393,7 @@ export const getUpdateUserEmailUrl = () => {
 
 /**
  * Requires the current password and an already verified email. Sets `is_email_verified`
- * to false, invalidates older links, and sends a new confirmation email. The new email must
+ * to false, invalidates older links, and queues a new confirmation email. The new email must
  * be a valid address and differ from the current one. An email that is already taken returns 409 Conflict.
  * The response has `is_totp_enabled: false` and `avatar_url: null` regardless of the
  * stored values; call GET /api/users/me for the full profile.

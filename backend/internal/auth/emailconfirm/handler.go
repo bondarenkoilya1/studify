@@ -62,7 +62,7 @@ func (h *Handler) ResendConfirmationMail(w http.ResponseWriter, r *http.Request)
 			httpx.WriteError(w, "confirmation email requested too soon", http.StatusTooManyRequests)
 			return
 		}
-		slog.ErrorContext(r.Context(), "failed to send confirmation email",
+		slog.ErrorContext(r.Context(), "failed to queue confirmation email",
 			util.AttrError(err),
 		)
 		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)

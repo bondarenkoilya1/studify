@@ -37,19 +37,7 @@ func (s *Service) requestPasswordReset(ctx context.Context, email string) error 
 		return fmt.Errorf("get user by email: %w", err)
 	}
 
-	t, err := s.createResetPasswordToken(ctx, currentUser.ID, currentUser.Email)
-	if err != nil {
-		return fmt.Errorf("create password reset token: %w", err)
-	}
-
-	if err = s.mailService.SendPasswordResetEmail(ctx, currentUser.Email, string(t)); err != nil {
-		slog.ErrorContext(ctx, "failed to send password reset email",
-			util.AttrUserID(currentUser.ID),
-			util.AttrError(err),
-		)
-	}
-
-	return nil
+	return s.queuePasswordReset(ctx, currentUser.ID, currentUser.Email)
 }
 
 func (s *Service) verifyResetPasswordToken(ctx context.Context, t token.Token) error {
@@ -114,8 +102,8 @@ func (s *Service) resetPassword(ctx context.Context, t token.Token, newPassword,
 		return nil
 	}
 
-	if err = s.mailService.SendNewPasswordEmail(ctx, currentUser.Email); err != nil {
-		slog.ErrorContext(ctx, "failed to send new password email",
+	if err = s.mailService.QueuePasswordChanged(ctx, currentUser.ID, currentUser.Email); err != nil {
+		slog.ErrorContext(ctx, "failed to queue new password email",
 			util.AttrUserID(tokenRecord.UserID),
 			util.AttrError(err),
 		)
@@ -142,37 +130,37 @@ func (s *Service) validateResetPasswordToken(ctx context.Context, t token.Token)
 	return resetToken, nil
 }
 
-func (s *Service) createResetPasswordToken(ctx context.Context, userID int64, email string) (token.Token, error) {
+func (s *Service) queuePasswordReset(ctx context.Context, userID int64, email string) error {
 	t, err := token.GenerateAuthToken()
 	if err != nil {
-		return "", fmt.Errorf("generate reset password token: %w", err)
+		return fmt.Errorf("generate reset password token: %w", err)
 	}
 
-	hash := util.HashSHA256(string(t))
+	hash := []byte(util.HashSHA256(string(t)))
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return "", fmt.Errorf("begin password reset token tx: %w", err)
+		return fmt.Errorf("begin password reset token tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	currentUser, err := user.GetUserByIDForUpdate(ctx, tx, userID)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if currentUser.Email != email {
-		return "", user.ErrUserNotFound
+		return user.ErrUserNotFound
 	}
 
 	if err = DeleteResetPasswordToken(ctx, tx, userID); err != nil && !errors.Is(err, ErrNotFoundResetToken) {
-		return "", fmt.Errorf("delete previous reset password token: %w", err)
+		return fmt.Errorf("delete previous reset password token: %w", err)
 	}
 
 	expiresAt := time.Now().UTC().Add(config.ResetPasswordTokenTTL)
-	if err = InsertResetPasswordToken(ctx, tx, userID, []byte(hash), expiresAt); err != nil {
-		return "", err
+	if err = InsertResetPasswordToken(ctx, tx, userID, hash, expiresAt); err != nil {
+		return err
 	}
-	if err := tx.Commit(); err != nil {
-		return "", fmt.Errorf("commit password reset token: %w", err)
+	if err := s.mailService.QueuePasswordReset(ctx, tx, userID, email, t, hash); err != nil {
+		return err
 	}
-	return t, nil
+	return tx.Commit()
 }

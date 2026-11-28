@@ -6,9 +6,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 
 const sections = [
   { to: "/subjects", label: "Предметы" },
-  { to: "/dashboard", label: "Дашборд" },
-  { to: "/share", label: "Общие проекты" },
-  { to: "/calendar", label: "Календарь экзаменов" },
+  { to: "/dashboard", label: "План" },
+  { to: "/calendar", label: "Календарь" },
+  { to: "/search", label: "Поиск" },
 ] as const;
 
 function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {

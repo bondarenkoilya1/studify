@@ -91,6 +91,13 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h.User, limits)
 			registerDashboardRoutes(r, h.Dashboard)
+			r.Get("/calendar", h.Calendar.List)
+			r.Get("/search", h.Search.List)
+			r.Route("/reminders/{target}/{id}", func(r chi.Router) {
+				r.Get("/", h.Reminder.Get)
+				r.With(middlewares.RequireJSON).Put("/", h.Reminder.Put)
+				r.Delete("/", h.Reminder.Delete)
+			})
 			registerSharedProjectRoutes(r, h.SharedProjectHandler)
 		})
 	})
@@ -170,6 +177,7 @@ func registerUserRoutes(r chi.Router, h *user.Handler, limits *middlewares.AuthL
 
 func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
 	r.Get("/dashboard", h.GetDashboardStatus)
+	r.Get("/dashboard/plan", h.GetStudyPlan)
 }
 
 func registerMfaRoutes(r chi.Router, h *mfa.Handler, limits *middlewares.AuthLimiter) {
@@ -216,11 +224,10 @@ func registerSessionRoutes(r chi.Router, h *session.Handler) {
 func registerStaticRoutes(r chi.Router, h *subject.Handler) {
 	r.Get("/static/files/{filename}", h.DownloadFile)
 	r.Get("/static/users/{filename}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-store")
 		media.ServeStoredFile(w, r, "data/users", chi.URLParam(r, "filename"))
 	})
-	r.Get("/static/thumbnails/{filename}", func(w http.ResponseWriter, r *http.Request) {
-		media.ServeStoredFile(w, r, "data/thumbnails", chi.URLParam(r, "filename"))
-	})
+	r.Get("/static/thumbnails/{filename}", h.DownloadThumbnail)
 }
 
 func registerSharedProjectRoutes(r chi.Router, h *sharedproject.Handler) {

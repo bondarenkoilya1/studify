@@ -40,7 +40,17 @@ function getMfaErrorMessage(error: ApiError, method: LoginMfaMethod) {
   );
 }
 
-export function useLoginForm(confirmToken?: string) {
+export function useLoginForm({
+  confirmToken,
+  subjectId,
+  taskId,
+  subjectEvent,
+}: {
+  confirmToken?: string;
+  subjectId?: number;
+  taskId?: number;
+  subjectEvent?: boolean;
+}) {
   const [method, setMethod] = useState<LoginMfaMethod>("totp");
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -62,6 +72,15 @@ export function useLoginForm(confirmToken?: string) {
       await navigate({
         to: "/confirm",
         search: { token: confirmToken },
+        replace: true,
+      });
+      return;
+    }
+    if (subjectId) {
+      await navigate({
+        to: "/subjects/$id",
+        params: { id: subjectId },
+        search: { task: taskId, event: subjectEvent },
         replace: true,
       });
       return;

@@ -42,13 +42,13 @@ A missing or invalid token returns `401 Unauthorized`.
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | `GET` | `/api/auth/session` | optional cookies | Check the browser session |
-| `POST` | `/api/auth/register` | – | Create a user, set cookies, send a confirmation email |
+| `POST` | `/api/auth/register` | – | Create a user, set cookies, queue a confirmation email |
 | `POST` | `/api/auth/login` | – | Log in, or start a TOTP login |
 | `POST` | `/api/auth/login/totp` | – | Finish two-factor sign-in |
 | `POST` | `/api/auth/refresh` | refresh cookie | Rotate both cookies |
 | `POST` | `/api/auth/logout` | – | Revoke the current session and clear cookies |
 | `POST` | `/api/auth/logout-all` | ✓ | Revoke all active sessions and clear cookies |
-| `POST` | `/api/auth/confirm/resend` | ✓ | Send a new confirmation email |
+| `POST` | `/api/auth/confirm/resend` | ✓ | Queue a new confirmation email |
 | `POST` | `/api/auth/confirm/` | ✓ | Confirm the email address with a token body |
 | `GET` | `/api/auth/sessions` | ✓ | List active user sessions |
 | `DELETE` | `/api/auth/sessions` | ✓ | Revoke all active sessions |
@@ -244,7 +244,7 @@ These routes do not require authentication.
 | `POST` | `/api/auth/reset-password` | Set a new password |
 
 1. Request a link. The endpoint returns `204 No Content` both for a known email
-   after sending the link and for an unknown email.
+   after queuing the link and for an unknown address.
    The email links to `{APP_URL}/reset-password?token={token}`, and the token is
    valid for 30 minutes.
 
@@ -397,23 +397,50 @@ GET /api/dashboard?time_zone=Europe%2FMoscow
     "deadline": "2026-07-10T12:00:00Z",
     "status": "ongoing"
   },
+  "overdue_total": 0,
   "overdue_tasks": []
 }
 ```
 
-- `completion_percent` is rounded to two decimals, and is `0` with no tasks.
 The optional `time_zone` query parameter accepts an IANA time zone and defaults
 to UTC. A date-only deadline becomes overdue when that calendar day has ended in
 the selected zone. A timestamp-only deadline becomes overdue after its instant.
 
+- `completion_percent` is rounded to two decimals, and is `0` with no tasks.
 - `nearest_deadline_task` is the unfinished task with the closest future
   deadline, or `null`.
-- `overdue_tasks` holds unfinished tasks whose deadline has passed, latest
+- `overdue_tasks` contains up to 10 unfinished tasks whose deadline has passed, latest
   deadline first.
 - Dashboard tasks only fill `id`, `subject_id`, `name`, `description`,
   `deadline`, and `status`. The other task fields are still present with zero
   values (`""`, `null`, `0001-01-01T00:00:00Z`). The example above leaves them
   out.
+
+## Study plan and calendar
+
+`GET /api/dashboard/plan?time_zone=Europe%2FMoscow&overdue_offset=0` returns
+study-task summaries, subject names, aggregate counts, and up to 10 overdue
+tasks ordered by their earliest missed deadline. Advance `overdue_offset`
+by 10 until it reaches `overdue_total`. The statistics endpoint also accepts
+`overdue_offset` and reports `overdue_total`.
+
+`GET /api/calendar?start_date=2026-11-23&end_date=2026-11-30&time_zone=Europe%2FMoscow`
+returns exams and unfinished work overlapping the visible period. The start
+day is inclusive and the end day is exclusive. The range may span 1–62 days.
+Date-only task values stay on their calendar day. The time zone sets period
+boundaries for exams and legacy timestamps. Omitted time zones default to UTC.
+
+## Search and reminders
+
+`GET /api/search` searches subject names and notes plus task names and
+descriptions in the current account. Use `q`, `kind`, `subject_id`, `status`,
+`due`, `sort`, and `time_zone` to narrow results. Each page returns up to 25
+rows. Advance `offset` by 25 while `has_more` is true.
+
+`GET /api/reminders/{target}/{id}` reads settings for a `task` or `subject`.
+Use `PUT` with `lead_minutes` (5–10080) and an IANA `time_zone` to schedule a
+notice to the verified email address. For tasks, reminders use the deadline.
+For subjects, they use the event date. Use `DELETE` to turn the reminder off.
 
 ## Subjects
 
@@ -506,6 +533,7 @@ replaces the full ordered list. An empty array or `null` clears the list.
 
 Send the raw image bytes as the body, as for the user avatar. The limits and
 errors are the same: PNG, JPEG, or WebP, up to 2 MB and 2560×2560 px.
+The uploaded cover is accessible to the subject owner.
 
 ```json
 { "thumbnail_url": "/static/thumbnails/26c15f91-1756-4be7-b4b5-4ea6732dbe11.webp" }
@@ -526,7 +554,9 @@ curl -b cookies.txt -F "file=@lecture-1.pdf" http://localhost:8080/api/subjects/
 
 Invalid multipart data and missing or empty files return `400`. A missing or
 inaccessible subject returns `404`, an oversized upload returns `413`, and an
-unsupported file type returns `415`.
+unsupported file type returns `415`. Each account can store up to 100
+attachments totaling 500 MiB. Exceeding either quota returns `409` with
+`attachment_quota_exceeded`. Downloads require subject ownership.
 
 ## Tasks
 

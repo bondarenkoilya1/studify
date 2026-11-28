@@ -5,7 +5,7 @@ import {
   startOfDay,
   startOfWeek,
 } from "date-fns";
-import type { Task } from "@/shared/api";
+import type { StudyPlanTask } from "@/shared/api";
 import {
   getTaskDeadline,
   isTaskDeadlineOverdue,
@@ -13,12 +13,12 @@ import {
 
 export type PlanGroup = "overdue" | "today" | "week" | "later";
 
-export function getStudyPlan(tasks: Task[], now = new Date()) {
+export function getStudyPlan(tasks: StudyPlanTask[], now = new Date()) {
   const today = startOfDay(now).getTime();
   const tomorrow = startOfDay(addDays(now, 1)).getTime();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
-  const groups: Record<PlanGroup, { task: Task; order: number }[]> = {
+  const groups: Record<PlanGroup, { task: StudyPlanTask; order: number }[]> = {
     overdue: [],
     today: [],
     week: [],

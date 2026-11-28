@@ -1861,7 +1861,8 @@ export const getUploadSubjectFileUrl = (id: number) => {
 /**
  * Multipart upload with the file in the `file` field. Only PDF and plain-text files up to
  * 50 MiB are stored, under `/static/files/`. The multipart body is limited to 51 MiB.
- * The file then appears in the subject's `files`.
+ * The file then appears in the subject's `files`. Each account can store up to 100
+ * attachments totaling at most 500 MiB.
  * @summary Attach a PDF or text file to a subject
  */
 export const uploadSubjectFile = async (

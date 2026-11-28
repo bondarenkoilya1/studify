@@ -228,10 +228,18 @@ test("shows work and deadline days in the current month and opens the task", asy
   await expect(card.getByText(/План: 5/)).toBeVisible();
   await page.clock.setFixedTime(new Date());
 
-  await page
-    .getByRole("link", { name: "Календарь экзаменов", exact: true })
-    .click();
+  const calendarResponse = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/calendar",
+  );
+  await page.getByRole("link", { name: "Календарь", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar\/?$/);
+  const visibleCalendar = await calendarResponse;
+  expect(visibleCalendar.ok()).toBe(true);
+  const range = new URL(visibleCalendar.url()).searchParams;
+  expect(range.get("start_date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(range.get("end_date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  const { tasks } = await visibleCalendar.json();
+  expect(tasks.map((task: { name: string }) => task.name)).toEqual([taskName]);
   const calendar = page.locator(".exam-calendar");
   const planned = calendar.getByRole("link", {
     name: /План: Подготовить отчёт/,
@@ -259,7 +267,7 @@ test("shows work and deadline days in the current month and opens the task", asy
   await expect(card).toBeFocused();
   const taskUrl = page.url();
 
-  await page.getByRole("link", { name: "Дашборд", exact: true }).click();
+  await page.getByRole("link", { name: "План", exact: true }).click();
   const deadlineLink = page.getByRole("link", { name: /Подготовить отчёт/ });
   await expect(deadlineLink).toHaveAttribute(
     "href",
@@ -275,16 +283,37 @@ test("shows work and deadline days in the current month and opens the task", asy
   await status.selectOption("completed");
   await expect(status).toBeEnabled();
   await expect(status).toHaveValue("completed");
-  await page
-    .getByRole("link", { name: "Календарь экзаменов", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Календарь", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar\/?$/);
   await expect(calendar.getByRole("button", { name: "Сегодня" })).toBeVisible();
   await expect(planned).toHaveCount(0);
   await expect(due).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Дашборд", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Просрочено" })).toBeVisible();
+  const otherOverdue = await Promise.all(
+    Array.from({ length: 10 }, (_, index) =>
+      page.request.post(`${apiUrl}/api/tasks/`, {
+        data: {
+          subject_id: subjectId,
+          name: `Архивное задание ${index + 1}`,
+          type: "other",
+          status: "not_completed",
+          difficulty: "medium",
+          priority: "medium",
+          deadline_date: `2001-01-${String(index + 1).padStart(2, "0")}`,
+        },
+      }),
+    ),
+  );
+  expect(otherOverdue.every((response) => response.ok())).toBe(true);
+  await page.goto("/dashboard");
+  const overdue = page.getByRole("region", { name: "Просрочено" });
+  await expect(overdue.getByRole("link")).toHaveCount(10);
+  await expect(overdue.getByText("1–10 из 11", { exact: true })).toBeVisible();
+  await overdue.getByRole("button", { name: "Дальше" }).click();
+  await expect(
+    overdue.getByRole("link", { name: /Архивное задание 10/ }),
+  ).toBeVisible();
+  await expect(overdue.getByRole("link")).toHaveCount(1);
   await expect(deadlineLink).toHaveCount(0);
 });
 
@@ -423,7 +452,7 @@ test("gives guests a useful home page and sends signed-in visitors to the dashbo
   await page.goto("/");
   await expect(page).toHaveURL(/\/dashboard\/?$/);
   await expect(
-    page.getByRole("heading", { name: "Дашборд", exact: true }),
+    page.getByRole("heading", { name: "План", exact: true }),
   ).toBeVisible();
 });
 
@@ -461,6 +490,12 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   const subjectsLink = navigation.getByRole("link", { name: "Предметы" });
   await expect(subjectsLink).toBeFocused();
   await expect(subjectsLink).toHaveAttribute("aria-current", "page");
+  await expect(
+    navigation.getByRole("link", { name: "Поиск", exact: true }),
+  ).toBeVisible();
+  await expect(
+    navigation.getByRole("link", { name: "Общие предметы" }),
+  ).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
   await page.keyboard.press("Escape");
@@ -470,7 +505,7 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   await trigger.press("Enter");
   await expect(subjectsLink).toBeFocused();
   await page.keyboard.press("Tab");
-  const dashboardLink = navigation.getByRole("link", { name: "Дашборд" });
+  const dashboardLink = navigation.getByRole("link", { name: "План" });
   await expect(dashboardLink).toBeFocused();
   await dashboardLink.press("Enter");
   await expect(page).toHaveURL(/\/dashboard\/?$/);
@@ -484,6 +519,9 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   const account = page.getByRole("dialog", { name: "Настройки аккаунта" });
   await expect(account.getByText(email, { exact: true })).toBeVisible();
   await expect(account.getByRole("link", { name: "Профиль" })).toBeFocused();
+  await expect(
+    account.getByRole("link", { name: "Общие предметы" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await page.keyboard.press("Escape");
   await expect(profile).toBeFocused();
@@ -491,8 +529,9 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   const screens = [
     ["/subjects", "Предметы"],
     [`/subjects/${subjectId}`, subjectName],
-    ["/dashboard", "Дашборд"],
-    ["/calendar", "Календарь экзаменов"],
+    ["/dashboard", "План"],
+    ["/calendar", "Календарь"],
+    ["/search", "Поиск"],
     ["/share", "Общие предметы"],
     ["/settings/profile", "Настройки"],
     ["/settings/security", "Настройки"],
@@ -637,4 +676,101 @@ test("recovers a quick draft, adds the first subject and opens a saved task on m
   await expect(
     page.getByRole("article", { name: todayName, exact: true }),
   ).toBeFocused();
+});
+
+test("searches and sorts owned study work, then edits its reminder and reopens the task after sign-in", async ({
+  page,
+  browser,
+  request,
+}) => {
+  const email = await register(page);
+  await page.goto(await confirmationLink(request, email));
+  await expect(
+    page.getByRole("heading", { name: "Почта подтверждена" }),
+  ).toBeVisible();
+
+  const subjectResponse = await page.request.post(`${apiUrl}/api/subjects/`, {
+    data: {
+      name: "Практическая физика",
+      exam_date: new Date(Date.now() + 86400_000).toISOString(),
+    },
+  });
+  expect(subjectResponse.ok()).toBe(true);
+  const { id: subject } = await subjectResponse.json();
+  const titles = ["Расчёт тока", "Расчёт нагрузки", "Расчёт в архиве"];
+  const taskResponses = await Promise.all(
+    titles.map((name, index) =>
+      page.request.post(`${apiUrl}/api/tasks/`, {
+        data: {
+          subject_id: subject,
+          name,
+          type: "other",
+          status: index === 2 ? "completed" : "ongoing",
+          difficulty: "medium",
+          priority: "medium",
+          deadline: new Date(
+            Date.now() + (index + 1) * 86400_000,
+          ).toISOString(),
+        },
+      }),
+    ),
+  );
+  expect(taskResponses.every((response) => response.ok())).toBe(true);
+  const { id: task } = await taskResponses[0]!.json();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/search?subject=${subject}`);
+  await page.getByLabel("Название или описание").fill("РАСЧЁТ");
+  await page.getByLabel("Статус задачи").selectOption("ongoing");
+  await page.getByLabel("Срок сдачи").selectOption("week");
+  await page.getByLabel("Сортировка").selectOption("due");
+  await page.getByRole("button", { name: "Найти", exact: true }).click();
+  const results = page.getByRole("region", { name: "Результаты поиска" });
+  await expect(results.getByRole("link")).toHaveCount(2);
+  await expect(results.getByRole("link").first()).toContainText(titles[0]!);
+  await expect(results.getByRole("link", { name: /в архиве/ })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+  await results.getByRole("link").first().click();
+
+  const taskUrl = `/subjects/${subject}?task=${task}`;
+  await expect(page).toHaveURL((url) => url.pathname + url.search === taskUrl);
+  const card = page.getByRole("article", { name: titles[0], exact: true });
+  await expect(card).toBeFocused();
+  const reminder = card.getByRole("button", {
+    name: `Напоминание «${titles[0]}»`,
+  });
+  const dialog = page.getByRole("dialog", { name: "Напоминание по почте" });
+  await reminder.click();
+  const timing = dialog.getByLabel("Когда напомнить до сдачи");
+  await timing.selectOption("30");
+  await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(dialog.getByText(/Запланировано на/)).toBeVisible();
+  await page.reload();
+  await reminder.click();
+  await expect(timing).toHaveValue("30");
+  await dialog.getByRole("button", { name: "Выключить напоминание" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Выключить напоминание" }),
+  ).toBeHidden();
+
+  const guest = await browser.newPage();
+  try {
+    await guest.goto(new URL(taskUrl, page.url()).href);
+    await expect(guest).toHaveURL(/\/login\?/);
+    await signIn(guest, email);
+    await expect(guest).toHaveURL(
+      (url) => url.pathname + url.search === taskUrl,
+    );
+    await expect(
+      guest.getByRole("article", { name: titles[0], exact: true }),
+    ).toBeFocused();
+    await guest.goto(
+      new URL(`/subjects/${subject}?event=true`, page.url()).href,
+    );
+    await expect(
+      guest.getByRole("region", { name: "Событие предмета" }),
+    ).toBeFocused();
+  } finally {
+    await guest.close();
+  }
 });

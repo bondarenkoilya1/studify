@@ -13,6 +13,7 @@ type Status struct {
 	TotalNotCompleted   int64       `json:"total_not_completed_tasks"`
 	CompletionPercent   float64     `json:"completion_percent"`
 	NearestDeadlineTask *task.Task  `json:"nearest_deadline_task"`
+	OverdueTotal        int64       `json:"overdue_total"`
 	OverdueTasks        []task.Task `json:"overdue_tasks"`
 }
 

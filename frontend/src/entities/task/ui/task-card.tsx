@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { formatStudyDate } from "@/shared/lib/study-date";
 import { Calendar, ChevronDown, Clock, Flag } from "lucide-react";
-import type { Task, TaskDifficulty } from "@/shared/api";
+import type { Task } from "@/shared/api";
 import { formatTaskDeadline } from "../model/dates";
 import {
   DIFFICULTY_LABELS,
-  DIFFICULTY_LEVEL,
   PRIORITY_CHIP,
   PRIORITY_LABELS,
   STATUS_CONFIG,
@@ -15,29 +14,6 @@ interface TaskCardProps {
   task: Task;
   highlighted?: boolean;
   children?: React.ReactNode;
-}
-
-function DifficultyBars({ difficulty }: { difficulty: TaskDifficulty }) {
-  const level = DIFFICULTY_LEVEL[difficulty];
-  const heights = [5, 8, 11];
-
-  return (
-    <span
-      className="flex items-end gap-[2px]"
-      title={DIFFICULTY_LABELS[difficulty]}
-      aria-label={`Сложность: ${DIFFICULTY_LABELS[difficulty]}`}
-    >
-      {heights.map((height, index) => (
-        <span
-          key={height}
-          style={{ height }}
-          className={`w-[3px] rounded-full ${
-            index < level ? "bg-gray-500" : "bg-gray-200"
-          }`}
-        />
-      ))}
-    </span>
-  );
 }
 
 export function TaskCard({
@@ -70,46 +46,26 @@ export function TaskCard({
       ref={cardRef}
       tabIndex={highlighted ? -1 : undefined}
       aria-labelledby={`task-heading-${task.id}`}
-      className={`
-        group relative overflow-hidden rounded-2xl
-        border border-border
-        bg-card p-5
-        shadow-sm
-        transition-all duration-200 ease-out
-        hover:border-ring/30
-        hover:shadow-md
-        sm:p-6
-        ${highlighted ? "outline-2 outline-offset-2 outline-ring" : ""}
-      `}
+      className={`rounded-2xl border bg-card p-4 sm:p-5
+        ${highlighted ? "outline-2 outline-offset-2 outline-ring" : ""}`}
     >
-      {priorityChip && (
-        <span
-          className={`
-            absolute right-0 top-0
-            flex items-center gap-1
-            rounded-bl-xl rounded-tr-2xl
-            px-3 py-1.5
-            text-[11px] font-medium
-            ${priorityChip.bg}
-            ${priorityChip.text}
-          `}
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h3
+          id={`task-heading-${task.id}`}
+          className={`min-w-0 text-base font-semibold leading-snug wrap-anywhere
+          ${isDone ? "text-muted-foreground line-through" : "text-foreground"}`}
         >
-          <Flag className="h-3 w-3 shrink-0" />
-          {PRIORITY_LABELS[task.priority]}
-        </span>
-      )}
-
-      <h3
-        id={`task-heading-${task.id}`}
-        className={`
-          pr-16
-          text-[16px] font-semibold leading-snug
-          tracking-[-0.01em] wrap-anywhere
-          ${isDone ? "text-muted-foreground line-through" : "text-foreground"}
-        `}
-      >
-        {task.name}
-      </h3>
+          {task.name}
+        </h3>
+        {priorityChip && (
+          <span
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${priorityChip.bg} ${priorityChip.text}`}
+          >
+            <Flag className="size-3 shrink-0" aria-hidden="true" />
+            {PRIORITY_LABELS[task.priority]}
+          </span>
+        )}
+      </div>
 
       {task.description && (
         <div className="mt-1.5">
@@ -128,9 +84,10 @@ export function TaskCard({
             <button
               type="button"
               onClick={() => setDescriptionExpanded((expanded) => !expanded)}
+              aria-expanded={descriptionExpanded}
               className="
                 mt-1
-                flex items-center gap-1
+                flex min-h-8 items-center gap-1
                 text-[12px] font-medium
                 text-muted-foreground
                 transition-colors
@@ -178,7 +135,7 @@ export function TaskCard({
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3.5 text-[12.5px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
         {!children && task.status !== "not_completed" && (
           <span className={`flex items-center gap-1.5 ${status.text}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
@@ -186,27 +143,13 @@ export function TaskCard({
           </span>
         )}
 
-        <span
-          className="flex items-center gap-2"
-          title={DIFFICULTY_LABELS[task.difficulty]}
-        >
-          <DifficultyBars difficulty={task.difficulty} />
-          <span>{DIFFICULTY_LABELS[task.difficulty]}</span>
+        <span>
+          Сложность {DIFFICULTY_LABELS[task.difficulty].toLowerCase()}
         </span>
-
         {task.estimated_time !== null && (
-          <span
-            className="
-              flex items-center gap-1.5
-              sm:translate-y-1
-              sm:opacity-0
-              sm:transition-all
-              sm:duration-200
-              sm:group-hover:translate-y-0
-              sm:group-hover:opacity-100
-            "
-          >
-            <Clock className="h-3.5 w-3.5 shrink-0" />~{task.estimated_time} мин
+          <span className="inline-flex items-center gap-1">
+            <Clock className="size-3.5 shrink-0" aria-hidden="true" />{" "}
+            {task.estimated_time} мин
           </span>
         )}
       </div>

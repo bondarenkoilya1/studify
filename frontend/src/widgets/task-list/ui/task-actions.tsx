@@ -12,6 +12,7 @@ import { getRequestErrorMessage } from "@/shared/api/request-error-message";
 import { STATUS_CONFIG } from "@/entities/task/model/presentation";
 import { invalidateTaskLists } from "@/entities/task/model/invalidation";
 import { CreateTaskDialog } from "@/features/task/create-task/ui/create-task-dialog";
+import { StudyReminderButton } from "@/features/reminders/study-reminder-button";
 import { Button } from "@/shared/ui/button";
 import { ConfirmDeleteDialog } from "@/shared/ui/confirm-delete-dialog";
 import { toast } from "@/shared/ui/sonner";
@@ -72,6 +73,7 @@ export function TaskActions({ task }: { task: Task }) {
         ))}
       </select>
       <div className="flex items-center gap-1">
+        <StudyReminderButton target="task" id={task.id} name={task.name} />
         <Button
           type="button"
           variant="outline"

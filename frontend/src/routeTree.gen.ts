@@ -18,6 +18,7 @@ import { Route as GuestRegisterRouteImport } from './routes/_guest/register'
 import { Route as GuestResetPasswordRouteImport } from './routes/_guest/reset-password'
 import { Route as ProtectedCalendarRouteImport } from './routes/_protected/calendar'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedSearchRouteImport } from './routes/_protected/search'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedShareRouteImport } from './routes/_protected/share'
 import { Route as ConfirmTokenRouteImport } from './routes/confirm/$token'
@@ -68,6 +69,11 @@ const ProtectedCalendarRoute = ProtectedCalendarRouteImport.update({
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedSearchRoute = ProtectedSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof GuestResetPasswordRoute
   '/calendar': typeof ProtectedCalendarRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/search': typeof ProtectedSearchRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
   '/share': typeof ProtectedShareRoute
   '/confirm/$token': typeof ConfirmTokenRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof GuestResetPasswordRoute
   '/calendar': typeof ProtectedCalendarRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/search': typeof ProtectedSearchRoute
   '/settings': typeof ProtectedSettingsRouteWithChildren
   '/share': typeof ProtectedShareRoute
   '/confirm/$token': typeof ConfirmTokenRoute
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/_guest/reset-password': typeof GuestResetPasswordRoute
   '/_protected/calendar': typeof ProtectedCalendarRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/search': typeof ProtectedSearchRoute
   '/_protected/settings': typeof ProtectedSettingsRouteWithChildren
   '/_protected/share': typeof ProtectedShareRoute
   '/confirm/$token': typeof ConfirmTokenRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/calendar'
     | '/dashboard'
+    | '/search'
     | '/settings'
     | '/share'
     | '/confirm/$token'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/calendar'
     | '/dashboard'
+    | '/search'
     | '/settings'
     | '/share'
     | '/confirm/$token'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/_guest/reset-password'
     | '/_protected/calendar'
     | '/_protected/dashboard'
+    | '/_protected/search'
     | '/_protected/settings'
     | '/_protected/share'
     | '/confirm/$token'
@@ -294,6 +306,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/search': {
+      id: '/_protected/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof ProtectedSearchRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/settings': {
@@ -387,6 +406,7 @@ const ProtectedSettingsRouteWithChildren =
 interface ProtectedRouteChildren {
   ProtectedCalendarRoute: typeof ProtectedCalendarRoute
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedSearchRoute: typeof ProtectedSearchRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRouteWithChildren
   ProtectedShareRoute: typeof ProtectedShareRoute
   ProtectedSubjectsIdRoute: typeof ProtectedSubjectsIdRoute
@@ -396,6 +416,7 @@ interface ProtectedRouteChildren {
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedCalendarRoute: ProtectedCalendarRoute,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedSearchRoute: ProtectedSearchRoute,
   ProtectedSettingsRoute: ProtectedSettingsRouteWithChildren,
   ProtectedShareRoute: ProtectedShareRoute,
   ProtectedSubjectsIdRoute: ProtectedSubjectsIdRoute,
