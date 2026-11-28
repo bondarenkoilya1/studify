@@ -32,6 +32,8 @@ tags:
     description: Active user session management
   - name: Dashboard
     description: Dashboard overview and task statistics
+  - name: Reminders
+    description: Email reminders for study deadlines
   - name: Calendar
     description: Study events for a visible date range
   - name: Subjects
@@ -650,6 +652,82 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/reminders/{target}/{id}:
+    parameters:
+      - name: target
+        in: path
+        required: true
+        schema:
+          $ref: '#/components/schemas/ReminderTarget'
+      - $ref: '#/components/parameters/NumericId'
+    get:
+      tags: [Reminders]
+      operationId: getReminder
+      summary: Read reminder settings for a task or subject
+      security:
+        - accessCookie: []
+      responses:
+        '200':
+          description: Current settings and availability.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderState'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    put:
+      tags: [Reminders]
+      operationId: putReminder
+      summary: Set the email reminder for a task deadline or subject event
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReminderTiming'
+      responses:
+        '200':
+          description: Updated reminder.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderState'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    delete:
+      tags: [Reminders]
+      operationId: deleteReminder
+      summary: Turn off the email reminder
+      security:
+        - accessCookie: []
+      responses:
+        '204':
+          description: Reminder disabled.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -2293,6 +2371,28 @@ components:
           $ref: '#/components/schemas/TaskDifficulty'
         priority:
           $ref: '#/components/schemas/TaskPriority'
+
+    ReminderTarget:
+      type: string
+      enum: [task, subject]
+
+    ReminderTiming:
+      type: object
+      required: [lead_minutes, time_zone]
+      properties:
+        lead_minutes: { type: integer, minimum: 5, maximum: 10080 }
+        time_zone: { type: string, example: Europe/Moscow }
+
+    ReminderState:
+      type: object
+      required: [verified, event_at, lead_minutes, send_at, outcome, time_zone]
+      properties:
+        verified: { type: boolean }
+        event_at: { type: string, format: date-time, nullable: true }
+        lead_minutes: { type: integer, nullable: true }
+        send_at: { type: string, format: date-time, nullable: true }
+        outcome: { type: string, enum: [accepted, exhausted], nullable: true }
+        time_zone: { type: string }
 
     CalendarData:
       type: object

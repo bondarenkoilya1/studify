@@ -130,7 +130,7 @@ Compose defaults to `noreply@studify.dev`. Set both `SMTP_USERNAME` and
 timeout and use STARTTLS when the server offers it. Go's SMTP client requires
 TLS for plain authentication to a remote host.
 
-Apply migration 000020 before releasing the API. Registration and password
+Apply migrations 000020 and 000021 before releasing the API. Registration and password
 reset queue mail in PostgreSQL. Confirmation and reset messages are written in
 the transaction that saves the token. The worker retries after 5 seconds,
 30 seconds, 2 minutes, 5 minutes, and 10 minutes while the link remains valid.
@@ -140,6 +140,14 @@ The `studify_mail_delivery_total` metric tracks acceptance, retries, and
 terminal failures. Outbox payloads are encrypted with a purpose-derived key
 from `TOTP_ENCRYPTION_KEY`. Drain the outbox before routine key rotation. For
 emergency rotation, ask users to request new links after the cutover.
+
+The reminder worker checks due tasks and subject events every ten seconds.
+Reminders require a verified mailbox. For an all-day task deadline, the
+worker uses midnight after the deadline in the saved time zone. Scheduled
+notices follow the current deadline or exam time. Completing a task,
+disabling the reminder, or clearing its date makes outstanding delivery
+jobs ineligible. Reminders expire at the event. Each application instance
+can run the workers against the same PostgreSQL database.
 
 The PostgreSQL pool defaults to 20 open connections and up to 5 idle
 connections per process. Tune `DB_MAX_OPEN_CONNS` and `DB_MAX_IDLE_CONNS`
@@ -240,7 +248,7 @@ port:     4444
 The migration commands are not a migration-state manager: rerunning `migrate-up`
 against an already migrated database can fail because objects already exist.
 
-Apply the missing migrations through 000020 in order before starting the API.
+Apply the missing migrations through 000021 in order before starting the API.
 For a local database already at 000014, run this command and enter the
 password configured in `POSTGRES_PASSWORD`:
 
@@ -251,7 +259,8 @@ psql -h 127.0.0.1 -p 4444 -U studify -d studify -W -v ON_ERROR_STOP=1 \
   -f backend/migrations/000017_shared_project_visibility.up.sql \
   -f backend/migrations/000018_auth_token_timestamps.up.sql \
   -f backend/migrations/000019_query_indexes.up.sql \
-  -f backend/migrations/000020_mail_outbox.up.sql
+  -f backend/migrations/000020_mail_outbox.up.sql \
+  -f backend/migrations/000021_study_reminders.up.sql
 ```
 
 Migration 000015 preserves existing accounts whose addresses differ only by

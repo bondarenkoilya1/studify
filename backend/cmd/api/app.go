@@ -31,6 +31,7 @@ import (
 	"studify/internal/config"
 	"studify/internal/dashboard"
 	"studify/internal/mail"
+	"studify/internal/reminder"
 	"studify/internal/subject"
 	"studify/internal/task"
 	"studify/internal/user"
@@ -65,6 +66,7 @@ type Handler struct {
 	Task                 *task.Handler
 	Dashboard            *dashboard.Handler
 	Calendar             *calendar.Handler
+	Reminder             *reminder.Handler
 	SharedProjectHandler *sharedproject.Handler
 	Session              *session.Handler
 }
@@ -96,6 +98,7 @@ func run() error {
 	var cleanup sync.WaitGroup
 	cleanup.Go(func() { app.subjects.RunFileCleanup(cleanupCtx) })
 	cleanup.Go(func() { token.RunCleanup(cleanupCtx, app.db) })
+	cleanup.Go(func() { app.mail.RunStudyReminders(cleanupCtx) })
 	cleanup.Go(func() {
 		app.mail.RunOutbox(cleanupCtx, func(outcome string) { m.mailDelivery.WithLabelValues(outcome).Inc() })
 	})
@@ -168,6 +171,7 @@ func newApplication(ctx context.Context, cfg *config.Config, reg *prometheus.Reg
 		Task:      &task.Handler{Service: taskService},
 		Dashboard: &dashboard.Handler{DB: db},
 		Calendar:  &calendar.Handler{DB: db},
+		Reminder:  &reminder.Handler{DB: db},
 
 		SharedProjectHandler: &sharedproject.Handler{Service: sharedProjectService},
 

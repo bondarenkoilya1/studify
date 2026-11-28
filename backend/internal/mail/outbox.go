@@ -16,6 +16,15 @@ const (
 	logAttempts = "attempts"
 )
 
+const currentReminder = `
+		EXISTS (
+			SELECT 1 FROM study_reminder_schedule s WHERE s.id = m.reminder_id
+				AND s.event_at = m.reminder_event_at AND s.send_at = m.reminder_send_at
+				AND s.email_key = m.reminder_email_key
+				AND s.handled_for IS DISTINCT FROM s.event_at
+		)
+`
+
 var retryDelays = [...]time.Duration{5 * time.Second, 30 * time.Second, 2 * time.Minute, 5 * time.Minute, 10 * time.Minute}
 
 func (s *Service) RunOutbox(ctx context.Context, recordDelivery func(string)) {
@@ -35,13 +44,20 @@ func (s *Service) RunOutbox(ctx context.Context, recordDelivery func(string)) {
 
 func (s *Service) deliverBatch(ctx context.Context, recordDelivery func(string)) error {
 	_, err := s.db.ExecContext(ctx, `
-		DELETE FROM mail_outbox m
-		WHERE m.expires_at <= clock_timestamp()
-			OR (m.attempts >= $1 AND m.next_attempt_at <= clock_timestamp())
-			OR (m.token_hash IS NOT NULL AND NOT EXISTS (
-				SELECT 1 FROM auth_tokens t WHERE t.token_hash = m.token_hash AND t.user_id = m.user_id
-				AND t.expires_at > clock_timestamp()
-			))
+		WITH discarded AS (
+			DELETE FROM mail_outbox m
+			WHERE m.expires_at <= clock_timestamp()
+				OR (m.attempts >= $1 AND m.next_attempt_at <= clock_timestamp())
+				OR (m.reminder_id IS NOT NULL AND NOT `+currentReminder+`)
+				OR (m.token_hash IS NOT NULL AND NOT EXISTS (
+					SELECT 1 FROM auth_tokens t WHERE t.token_hash = m.token_hash AND t.user_id = m.user_id
+					AND t.expires_at > clock_timestamp()
+				))
+			RETURNING m.reminder_id, m.reminder_event_at, m.attempts, m.next_attempt_at
+		)
+		UPDATE study_reminders r SET handled_for = d.reminder_event_at, outcome = 'exhausted'
+		FROM discarded d
+		WHERE r.id = d.reminder_id AND d.attempts >= $1 AND d.next_attempt_at <= clock_timestamp()
 	`, len(retryDelays)+1)
 	if err != nil {
 		return fmt.Errorf("discard obsolete email: %w", err)
@@ -69,6 +85,7 @@ func (s *Service) deliverNext(ctx context.Context, recordDelivery func(string)) 
 					SELECT 1 FROM auth_tokens t WHERE t.token_hash = m.token_hash AND t.user_id = m.user_id
 					AND t.expires_at > clock_timestamp()
 				))
+				AND (m.reminder_id IS NULL OR `+currentReminder+`)
 			ORDER BY next_attempt_at, id LIMIT 1 FOR UPDATE SKIP LOCKED
 		)
 		UPDATE mail_outbox m
@@ -88,13 +105,13 @@ func (s *Service) deliverNext(ctx context.Context, recordDelivery func(string)) 
 	if err != nil || json.Unmarshal(data, &mail) != nil {
 		recordDelivery("invalid")
 		slog.ErrorContext(ctx, "unable to read encrypted email", slog.Int64(logMailID, id))
-		return true, s.remove(ctx, id, attempt)
+		return true, s.finish(ctx, id, attempt, "exhausted")
 	}
 	if err := s.mailer.send(ctx, mail.Recipient, mail.Subject, mail.Body); err == nil {
 		recordDelivery("accepted")
 		finishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 3*time.Second)
 		defer cancel()
-		return true, s.remove(finishCtx, id, attempt)
+		return true, s.finish(finishCtx, id, attempt, "accepted")
 	}
 	if ctx.Err() != nil {
 		return true, ctx.Err()
@@ -105,7 +122,7 @@ func (s *Service) deliverNext(ctx context.Context, recordDelivery func(string)) 
 			slog.Int64(logMailID, id),
 			slog.Int(logAttempts, attempt),
 		)
-		return true, s.remove(ctx, id, attempt)
+		return true, s.finish(ctx, id, attempt, "exhausted")
 	}
 
 	recordDelivery("retry")
@@ -116,7 +133,19 @@ func (s *Service) deliverNext(ctx context.Context, recordDelivery func(string)) 
 	return true, err
 }
 
-func (s *Service) remove(ctx context.Context, id int64, attempt int) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM mail_outbox WHERE id = $1 AND attempts = $2", id, attempt)
+func (s *Service) finish(ctx context.Context, id int64, attempt int, outcome string) error {
+	_, err := s.db.ExecContext(ctx, `
+		WITH locked AS MATERIALIZED (
+			SELECT r.id FROM study_reminders r JOIN mail_outbox m ON m.reminder_id = r.id
+			WHERE m.id = $1 AND m.attempts = $2 FOR UPDATE OF r
+		), removed AS (
+			DELETE FROM mail_outbox m
+			WHERE m.id = $1 AND m.attempts = $2
+				AND (m.reminder_id IS NULL OR m.reminder_id IN (SELECT id FROM locked))
+			RETURNING m.reminder_id, m.reminder_event_at
+		)
+		UPDATE study_reminders r SET handled_for = d.reminder_event_at, outcome = $3
+		FROM removed d WHERE d.reminder_id = r.id
+	`, id, attempt, outcome)
 	return err
 }

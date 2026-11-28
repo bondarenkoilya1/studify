@@ -92,6 +92,11 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 			registerUserRoutes(r, h.User, limits)
 			registerDashboardRoutes(r, h.Dashboard)
 			r.Get("/calendar", h.Calendar.List)
+			r.Route("/reminders/{target}/{id}", func(r chi.Router) {
+				r.Get("/", h.Reminder.Get)
+				r.With(middlewares.RequireJSON).Put("/", h.Reminder.Put)
+				r.Delete("/", h.Reminder.Delete)
+			})
 			registerSharedProjectRoutes(r, h.SharedProjectHandler)
 		})
 	})

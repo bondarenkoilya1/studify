@@ -430,6 +430,13 @@ day is inclusive and the end day is exclusive. The range may span 1–62 days.
 Date-only task values stay on their calendar day. The time zone sets period
 boundaries for exams and legacy timestamps. Omitted time zones default to UTC.
 
+## Reminders
+
+`GET /api/reminders/{target}/{id}` reads settings for a `task` or `subject`.
+Use `PUT` with `lead_minutes` (5–10080) and an IANA `time_zone` to schedule a
+notice to the verified email address. For tasks, reminders use the deadline.
+For subjects, they use the event date. Use `DELETE` to turn the reminder off.
+
 ## Subjects
 
 | Method | Path | Description |
