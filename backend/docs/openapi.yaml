@@ -955,7 +955,8 @@ paths:
       description: |
         Multipart upload with the file in the `file` field. Only PDF and plain-text files up to
         50 MiB are stored, under `/static/files/`. The multipart body is limited to 51 MiB.
-        The file then appears in the subject's `files`.
+        The file then appears in the subject's `files`. Each account can store up to 100
+        attachments totaling at most 500 MiB.
       operationId: uploadSubjectFile
       security:
         - accessCookie: []
@@ -989,6 +990,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Account attachment quota reached (`attachment_quota_exceeded`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '413':
           description: File exceeds 50 MiB or multipart body exceeds the upload limit.
           content:
@@ -1515,8 +1522,8 @@ paths:
       description: |
         Serves files from the backend `data/` directory, for example
         `/static/users/{file}.webp`, `/static/thumbnails/{file}.webp`, and `/static/files/{file}.pdf`.
-        Requires authentication. Attachments under `/static/files/` are accessible only to the
-        owner of the subject. Avatar and thumbnail URLs are available to signed-in users.
+        Requires authentication. Attachments and thumbnails are accessible only to the
+        owner of the subject. Avatar URLs are available to signed-in users, including the shared catalog.
         The API serves individual files and does not list directories.
       operationId: getStaticFile
       security:

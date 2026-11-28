@@ -270,3 +270,53 @@ if expired. Apply both migrations before starting the new API.
 After 000014, the first authenticated request with old cookies triggers a token
 refresh in the web app. A valid refresh cookie creates a tracked session, so
 the user can continue without signing in again.
+
+## Backing up and restoring study materials
+
+The same backup must include the PostgreSQL database and the entire API
+`data/` directory, including attachments, thumbnails and avatars. Stop the
+API before taking either snapshot so writes and the file cleanup worker are
+paused. Keep the corresponding environment secrets in their existing secret
+store so TOTP and queued mail can be read after restore.
+
+In development Compose, with the API stopped, create a fresh private backup
+directory and capture both artifacts from the repository root:
+
+```bash
+docker compose stop backend
+umask 077
+studify_backup_dir=$(mktemp -d)
+docker compose exec -T postgres sh -c 'pg_dump -Fc -U "$POSTGRES_USER" "$POSTGRES_DB"'   > "$studify_backup_dir/studify.dump"
+tar -C backend -czf "$studify_backup_dir/data.tar.gz" data
+(cd "$studify_backup_dir" && shasum -a 256 studify.dump data.tar.gz > SHA256SUMS)
+```
+
+For the production image, archive the `studify-data` volume mounted read-only
+in a maintenance container at its `/app/data` path. Start the API again once
+both artifacts have been created and verified.
+
+Verify the archive before restoring. Restore the database into a fresh
+database and extract the files into a fresh working directory. Configure an
+isolated API to use both restored artifacts. Use an isolated SMTP inbox for
+the drill. Run these commands against the database server selected through
+the standard PostgreSQL connection environment:
+
+```bash
+(cd "$studify_backup_dir" && shasum -a 256 -c SHA256SUMS)
+studify_restore_db=studify_restore
+createdb "$studify_restore_db"
+pg_restore --exit-on-error --no-owner -d "$studify_restore_db" "$studify_backup_dir/studify.dump"
+studify_restore_dir=$(mktemp -d)
+tar -xzf "$studify_backup_dir/data.tar.gz" -C "$studify_restore_dir"
+```
+
+On the restored API, sign in as the owner, open a subject, and download a
+known attachment. Compare the downloaded file with its original checksum.
+Sign in as a second account and verify that the attachment and thumbnail
+cannot be opened by that account. Switch traffic to restored data only after
+both checks pass.
+
+Subject attachments and thumbnails are private to their owner. Signed-in
+users can load avatar URLs for the shared catalog. Each account can store up
+to 100 attachments totaling 500 MiB. The limit per attachment remains 50 MiB.
+Deleting a subject releases its attachment quota.

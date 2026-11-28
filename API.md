@@ -521,6 +521,7 @@ replaces the full ordered list. An empty array or `null` clears the list.
 
 Send the raw image bytes as the body, as for the user avatar. The limits and
 errors are the same: PNG, JPEG, or WebP, up to 2 MB and 2560×2560 px.
+The uploaded cover is accessible to the subject owner.
 
 ```json
 { "thumbnail_url": "/static/thumbnails/26c15f91-1756-4be7-b4b5-4ea6732dbe11.webp" }
@@ -541,7 +542,9 @@ curl -b cookies.txt -F "file=@lecture-1.pdf" http://localhost:8080/api/subjects/
 
 Invalid multipart data and missing or empty files return `400`. A missing or
 inaccessible subject returns `404`, an oversized upload returns `413`, and an
-unsupported file type returns `415`.
+unsupported file type returns `415`. Each account can store up to 100
+attachments totaling 500 MiB. Exceeding either quota returns `409` with
+`attachment_quota_exceeded`. Downloads require subject ownership.
 
 ## Tasks
 

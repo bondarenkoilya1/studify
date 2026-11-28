@@ -218,11 +218,10 @@ func registerSessionRoutes(r chi.Router, h *session.Handler) {
 func registerStaticRoutes(r chi.Router, h *subject.Handler) {
 	r.Get("/static/files/{filename}", h.DownloadFile)
 	r.Get("/static/users/{filename}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "private, no-store")
 		media.ServeStoredFile(w, r, "data/users", chi.URLParam(r, "filename"))
 	})
-	r.Get("/static/thumbnails/{filename}", func(w http.ResponseWriter, r *http.Request) {
-		media.ServeStoredFile(w, r, "data/thumbnails", chi.URLParam(r, "filename"))
-	})
+	r.Get("/static/thumbnails/{filename}", h.DownloadThumbnail)
 }
 
 func registerSharedProjectRoutes(r chi.Router, h *sharedproject.Handler) {

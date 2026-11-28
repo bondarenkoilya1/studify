@@ -102,6 +102,10 @@ func (h *Handler) AddSubject(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteError(w, "Предмет с таким названием уже существует", http.StatusConflict)
 			return
 		}
+		if errors.Is(err, ErrLocalThumbnailReference) {
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		if internal.IsInvalidData(err) {
 			httpx.WriteError(w, "invalid subject values", http.StatusBadRequest)
 			return
@@ -150,6 +154,8 @@ func (h *Handler) ReplaceSubject(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteError(w, fmt.Sprintf("No such element with ID: %d", id), http.StatusNotFound)
 		case errors.Is(err, ErrSubjectAlreadyExists):
 			httpx.WriteError(w, "Предмет с таким названием уже существует", http.StatusConflict)
+		case errors.Is(err, ErrLocalThumbnailReference):
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		case internal.IsInvalidData(err):
 			httpx.WriteError(w, "invalid subject values", http.StatusBadRequest)
 		default:
@@ -200,6 +206,8 @@ func (h *Handler) UpdateSubject(w http.ResponseWriter, r *http.Request) {
 			httpx.WriteError(w, "Subject not found", http.StatusNotFound)
 		case errors.Is(err, ErrSubjectAlreadyExists):
 			httpx.WriteError(w, "Предмет с таким названием уже существует", http.StatusConflict)
+		case errors.Is(err, ErrLocalThumbnailReference):
+			httpx.WriteError(w, err.Error(), http.StatusBadRequest)
 		case internal.IsInvalidData(err):
 			httpx.WriteError(w, "invalid subject values", http.StatusBadRequest)
 		default:
@@ -357,6 +365,9 @@ func (h *Handler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, media.ErrFileTooLarge):
 			httpx.WriteError(w, err.Error(), http.StatusRequestEntityTooLarge)
 			return
+		case errors.Is(err, ErrFileQuotaExceeded):
+			httpx.WriteCodedError(w, http.StatusConflict, "attachment_quota_exceeded", err.Error())
+			return
 		case errors.Is(err, media.ErrInvalidFileFormat):
 			httpx.WriteError(w, err.Error(), http.StatusUnsupportedMediaType)
 			return
@@ -400,4 +411,29 @@ func (h *Handler) DownloadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	media.ServeStoredFile(w, r, filesDir, filename)
+}
+
+func (h *Handler) DownloadThumbnail(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "private, no-store")
+	userID, err := httpx.GetUserID(r)
+	if err != nil {
+		httpx.WriteError(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	filename := chi.URLParam(r, "filename")
+	var belongs bool
+	err = h.Service.db.QueryRowContext(r.Context(), `
+		SELECT EXISTS (SELECT 1 FROM subjects WHERE user_id = $1 AND thumbnail_url = $2)
+	`, userID, thumbnailsPublicDir+filename).Scan(&belongs)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "failed to check thumbnail ownership", util.AttrError(err))
+		httpx.WriteError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !belongs {
+		httpx.WriteError(w, "file not found", http.StatusNotFound)
+		return
+	}
+
+	media.ServeStoredFile(w, r, thumbnailsDir, filename)
 }
