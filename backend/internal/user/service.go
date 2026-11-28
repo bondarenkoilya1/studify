@@ -108,7 +108,7 @@ func (s *Service) UpdateUserEmail(ctx context.Context, userID int64, newEmail, c
 	}
 
 	if err = s.emailConfirmService.SendConfirmationEmail(ctx, internal.UserID(newUser.ID), newUser.Email); err != nil {
-		slog.ErrorContext(ctx, "failed to send confirmation email",
+		slog.ErrorContext(ctx, "failed to queue confirmation email",
 			util.AttrError(err),
 		)
 	}

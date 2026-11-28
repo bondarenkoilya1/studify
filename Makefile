@@ -60,8 +60,10 @@ migrate-up: check-postgres-env
 	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000017_shared_project_visibility.up.sql
 	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000018_auth_token_timestamps.up.sql
 	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000019_query_indexes.up.sql
+	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000020_mail_outbox.up.sql
 
 migrate-down: check-postgres-env
+	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000020_mail_outbox.down.sql
 	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000019_query_indexes.down.sql
 	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000018_auth_token_timestamps.down.sql
 	$(MIGRATE_PSQL) -f $(MIGRATIONS_DIR)/000017_shared_project_visibility.down.sql

@@ -85,7 +85,7 @@ func (s *Service) register(ctx context.Context, email, password string, client s
 	}
 
 	if err := s.emailConfirmService.SendConfirmationEmail(ctx, internal.UserID(newUser.ID), newUser.Email); err != nil {
-		slog.ErrorContext(ctx, "failed to send registration confirmation",
+		slog.ErrorContext(ctx, "failed to queue registration confirmation",
 			util.AttrUserID(newUser.ID),
 			util.AttrError(err),
 		)

@@ -130,6 +130,17 @@ Compose defaults to `noreply@studify.dev`. Set both `SMTP_USERNAME` and
 timeout and use STARTTLS when the server offers it. Go's SMTP client requires
 TLS for plain authentication to a remote host.
 
+Apply migration 000020 before releasing the API. Registration and password
+reset queue mail in PostgreSQL. Confirmation and reset messages are written in
+the transaction that saves the token. The worker retries after 5 seconds,
+30 seconds, 2 minutes, 5 minutes, and 10 minutes while the link remains valid.
+An SMTP server can accept a message just before the worker loses its
+connection. Retrying in that case may deliver a duplicate with the same link.
+The `studify_mail_delivery_total` metric tracks acceptance, retries, and
+terminal failures. Outbox payloads are encrypted with a purpose-derived key
+from `TOTP_ENCRYPTION_KEY`. Drain the outbox before routine key rotation. For
+emergency rotation, ask users to request new links after the cutover.
+
 The PostgreSQL pool defaults to 20 open connections and up to 5 idle
 connections per process. Tune `DB_MAX_OPEN_CONNS` and `DB_MAX_IDLE_CONNS`
 for your database. Idle connections are closed after 5 minutes and all
@@ -229,7 +240,7 @@ port:     4444
 The migration commands are not a migration-state manager: rerunning `migrate-up`
 against an already migrated database can fail because objects already exist.
 
-Apply the missing migrations through 000019 in order before starting the API.
+Apply the missing migrations through 000020 in order before starting the API.
 For a local database already at 000014, run this command and enter the
 password configured in `POSTGRES_PASSWORD`:
 
@@ -239,7 +250,8 @@ psql -h 127.0.0.1 -p 4444 -U studify -d studify -W -v ON_ERROR_STOP=1 \
   -f backend/migrations/000016_queue_deleted_subject_files.up.sql \
   -f backend/migrations/000017_shared_project_visibility.up.sql \
   -f backend/migrations/000018_auth_token_timestamps.up.sql \
-  -f backend/migrations/000019_query_indexes.up.sql
+  -f backend/migrations/000019_query_indexes.up.sql \
+  -f backend/migrations/000020_mail_outbox.up.sql
 ```
 
 Migration 000015 preserves existing accounts whose addresses differ only by

@@ -41,6 +41,7 @@ type application struct {
 	db       *sql.DB
 	router   http.Handler
 	subjects *subject.Service
+	mail     *mail.Service
 }
 
 // TODO
@@ -51,7 +52,6 @@ type application struct {
 type Handler struct {
 	Config               *config.Config
 	TokenManager         *token.Manager
-	MailService          *mail.Service
 	Auth                 *auth.Handler
 	User                 *user.Handler
 	UserService          *user.Service
@@ -72,6 +72,7 @@ type Handler struct {
 type Metrics struct {
 	requestsTotal    *prometheus.CounterVec
 	requestsDuration *prometheus.HistogramVec
+	mailDelivery     *prometheus.CounterVec
 }
 
 func run() error {
@@ -95,6 +96,9 @@ func run() error {
 	var cleanup sync.WaitGroup
 	cleanup.Go(func() { app.subjects.RunFileCleanup(cleanupCtx) })
 	cleanup.Go(func() { token.RunCleanup(cleanupCtx, app.db) })
+	cleanup.Go(func() {
+		app.mail.RunOutbox(cleanupCtx, func(outcome string) { m.mailDelivery.WithLabelValues(outcome).Inc() })
+	})
 	defer func() {
 		cancelCleanup()
 		cleanup.Wait()
@@ -119,7 +123,11 @@ func newApplication(ctx context.Context, cfg *config.Config, reg *prometheus.Reg
 	mailer := mail.NewMailer(cfg.SMTPAddr, cfg.MailFrom, cfg.SMTPUsername, cfg.SMTPPassword)
 	tokenManager := token.NewManager([]byte(cfg.JWTAccessSecret), []byte(cfg.JWTRefreshSecret), cfg.Issuer, config.AccessTokenTTL, config.RefreshTokenTTL)
 	cookiesService := token.NewCookies(cfg.IsProduction(), config.AccessTokenTTL, config.RefreshTokenTTL)
-	mailService := mail.NewService(mailer, cfg)
+	mailService, err := mail.NewService(db, mailer, cfg)
+	if err != nil {
+		_ = db.Close()
+		return nil, err
+	}
 	emailConfirmService := emailconfirm.NewService(db, mailService)
 	mfaService := mfa.NewService(db, cfg)
 	resetPasswordService := resetpassword.NewService(db, mailService)
@@ -134,7 +142,6 @@ func newApplication(ctx context.Context, cfg *config.Config, reg *prometheus.Reg
 	h := &Handler{
 		Config:       cfg,
 		TokenManager: tokenManager,
-		MailService:  mailService,
 
 		Auth: &auth.Handler{
 			Service: authService,
@@ -174,6 +181,7 @@ func newApplication(ctx context.Context, cfg *config.Config, reg *prometheus.Reg
 		db:       db,
 		router:   newRouter(h, cfg.CORSOrigins, reg, m),
 		subjects: subjectService,
+		mail:     mailService,
 	}, nil
 }
 
@@ -248,6 +256,13 @@ func newMetrics(reg prometheus.Registerer) *Metrics {
 				Help: "Total processed requests",
 			},
 			[]string{"method", "route", "status"},
+		),
+		mailDelivery: promauto.With(reg).NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "studify_mail_delivery_total",
+				Help: "Mail outbox delivery outcomes",
+			},
+			[]string{"outcome"},
 		),
 		requestsDuration: promauto.With(reg).NewHistogramVec(
 			prometheus.HistogramOpts{

@@ -382,7 +382,7 @@ export const getRegisterUserUrl = () => {
 };
 
 /**
- * Creates the user, issues auth cookies, and attempts to send a confirmation link. New email addresses are stored in lowercase. An existing address is rejected regardless of case. Mail delivery failure does not roll back registration or prevent session cookies from being set.
+ * Creates the user, issues auth cookies, and queues a confirmation link for delivery. New email addresses are stored in lowercase. An existing address is rejected regardless of case. SMTP delivery runs after the request and does not prevent session cookies from being set.
  * @summary Register a new user
  */
 export const registerUser = async (

@@ -72,10 +72,10 @@ paths:
       tags: [Auth]
       summary: Register a new user
       description: >-
-        Creates the user, issues auth cookies, and attempts to send a confirmation link.
+        Creates the user, issues auth cookies, and queues a confirmation link for delivery.
         New email addresses are stored in lowercase. An existing address is rejected
-        regardless of case. Mail delivery failure does not roll back registration
-        or prevent session cookies from being set.
+        regardless of case. SMTP delivery runs after the request and does not prevent
+        session cookies from being set.
       operationId: registerUser
       security: []
       requestBody:
@@ -435,7 +435,7 @@ paths:
               $ref: '#/components/schemas/PasswordResetEmailRequest'
       responses:
         '204':
-          description: Password reset email was sent (or email does not exist, returning 204 to prevent enumeration).
+          description: Password reset email was queued. Unknown addresses receive the same response.
         '400':
           $ref: '#/components/responses/BadRequest'
         '413':
@@ -1369,7 +1369,7 @@ paths:
       summary: Update the authenticated user's email
       description: |
         Requires the current password and an already verified email. Sets `is_email_verified`
-        to false, invalidates older links, and sends a new confirmation email. The new email must
+        to false, invalidates older links, and queues a new confirmation email. The new email must
         be a valid address and differ from the current one. An email that is already taken returns 409 Conflict.
         The response has `is_totp_enabled: false` and `avatar_url: null` regardless of the
         stored values; call GET /api/users/me for the full profile.

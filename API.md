@@ -42,13 +42,13 @@ A missing or invalid token returns `401 Unauthorized`.
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | `GET` | `/api/auth/session` | optional cookies | Check the browser session |
-| `POST` | `/api/auth/register` | – | Create a user, set cookies, send a confirmation email |
+| `POST` | `/api/auth/register` | – | Create a user, set cookies, queue a confirmation email |
 | `POST` | `/api/auth/login` | – | Log in, or start a TOTP login |
 | `POST` | `/api/auth/login/totp` | – | Finish two-factor sign-in |
 | `POST` | `/api/auth/refresh` | refresh cookie | Rotate both cookies |
 | `POST` | `/api/auth/logout` | – | Revoke the current session and clear cookies |
 | `POST` | `/api/auth/logout-all` | ✓ | Revoke all active sessions and clear cookies |
-| `POST` | `/api/auth/confirm/resend` | ✓ | Send a new confirmation email |
+| `POST` | `/api/auth/confirm/resend` | ✓ | Queue a new confirmation email |
 | `POST` | `/api/auth/confirm/` | ✓ | Confirm the email address with a token body |
 | `GET` | `/api/auth/sessions` | ✓ | List active user sessions |
 | `DELETE` | `/api/auth/sessions` | ✓ | Revoke all active sessions |
@@ -244,7 +244,7 @@ These routes do not require authentication.
 | `POST` | `/api/auth/reset-password` | Set a new password |
 
 1. Request a link. The endpoint returns `204 No Content` both for a known email
-   after sending the link and for an unknown email.
+   after queuing the link and for an unknown address.
    The email links to `{APP_URL}/reset-password?token={token}`, and the token is
    valid for 30 minutes.
 

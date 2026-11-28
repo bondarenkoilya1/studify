@@ -23,36 +23,37 @@ func NewService(db *sql.DB, mailService *mail.Service) *Service {
 	return &Service{db: db, mailService: mailService}
 }
 
-func (s *Service) createConfirmationToken(ctx context.Context, userID int64, email string) (token.Token, error) {
+func (s *Service) SendConfirmationEmail(ctx context.Context, userID internal.UserID, email string) error {
+	id := int64(userID)
 	authToken, err := token.GenerateAuthToken()
 	if err != nil {
-		return "", fmt.Errorf("generate confirmation token: %w", err)
+		return fmt.Errorf("generate confirmation token: %w", err)
 	}
 
-	hash := util.HashSHA256(string(authToken))
+	hash := []byte(util.HashSHA256(string(authToken)))
 	ttlSeconds := int64(config.ConfirmationTokenTTL / time.Second)
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer func() { _ = tx.Rollback() }()
-	current, err := user.GetUserByIDForUpdate(ctx, tx, userID)
+	current, err := user.GetUserByIDForUpdate(ctx, tx, id)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if current.IsEmailVerified {
-		return "", ErrAlreadyVerified
+		return ErrAlreadyVerified
 	}
 	if current.Email != email {
-		return "", errors.New("confirmation email no longer current")
+		return errors.New("confirmation email no longer current")
 	}
-	if err := saveConfirmationToken(ctx, tx, userID, []byte(hash), ttlSeconds); err != nil {
-		return "", err
+	if err := saveConfirmationToken(ctx, tx, id, hash, ttlSeconds); err != nil {
+		return err
 	}
-	if err := tx.Commit(); err != nil {
-		return "", err
+	if err := s.mailService.QueueConfirmation(ctx, tx, id, email, authToken, hash); err != nil {
+		return err
 	}
-	return authToken, nil
+	return tx.Commit()
 }
 
 func (s *Service) ConfirmEmail(ctx context.Context, t token.Token) error {
@@ -81,17 +82,6 @@ func (s *Service) ConfirmEmail(ctx context.Context, t token.Token) error {
 	}
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit confirm email transaction: %w", err)
-	}
-	return nil
-}
-
-func (s *Service) SendConfirmationEmail(ctx context.Context, userID internal.UserID, email string) error {
-	t, err := s.createConfirmationToken(ctx, int64(userID), email)
-	if err != nil {
-		return fmt.Errorf("create confirmation token: %w", err)
-	}
-	if err := s.mailService.SendConfirmationEmail(ctx, email, t); err != nil {
-		return fmt.Errorf("send confirmation email: %w", err)
 	}
 	return nil
 }
