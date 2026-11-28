@@ -1,6 +1,6 @@
 import type { EventInput } from "@fullcalendar/react";
 import { addMinutes } from "date-fns";
-import type { Subject, Task } from "@/shared/api";
+import type { CalendarSubject, StudyPlanTask } from "@/shared/api";
 import { getSubjectPresentation } from "@/entities/subject/model/presentation";
 import { formatTaskDeadline } from "@/entities/task/model/dates";
 
@@ -8,7 +8,9 @@ export type AgendaView = "listMonth" | "listUpcoming";
 export type CalendarView = "dayGridMonth" | "timeGridWeek" | AgendaView;
 export type TaskEventKind = "plan" | "deadline" | "plan-and-deadline";
 
-export function subjectToCalendarEvents(subjects: Subject[]): EventInput[] {
+export function subjectToCalendarEvents(
+  subjects: CalendarSubject[],
+): EventInput[] {
   return subjects.flatMap((subject) => {
     if (!subject.exam_date) return [];
     const colors = getSubjectPresentation(subject.scope, subject.id);
@@ -33,8 +35,8 @@ export function subjectToCalendarEvents(subjects: Subject[]): EventInput[] {
 }
 
 export function taskToCalendarEvents(
-  tasks: Task[],
-  subjects: Subject[],
+  tasks: StudyPlanTask[],
+  subjects: CalendarSubject[],
   now = new Date(),
 ): EventInput[] {
   const subjectsById = new Map(

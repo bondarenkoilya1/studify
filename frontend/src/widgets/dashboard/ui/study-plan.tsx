@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
-import type { Task } from "@/shared/api";
+import type { ReactNode } from "react";
+import type { StudyPlanTask } from "@/shared/api";
 import { formatStudyDate } from "@/shared/lib/study-date";
 
-function TaskDates({ task }: { task: Task }) {
+function TaskDates({ task }: { task: StudyPlanTask }) {
   const plan = task.scheduled_date ?? task.scheduled_at;
   const due = task.deadline_date ?? task.deadline;
 
@@ -42,12 +43,14 @@ export function PlanSection({
   tasks,
   subjectNames,
   empty,
+  children,
 }: {
   id: string;
   title: string;
-  tasks: Task[];
+  tasks: StudyPlanTask[];
   subjectNames: Map<number, string>;
   empty?: string;
+  children?: ReactNode;
 }) {
   return (
     <section
@@ -92,6 +95,7 @@ export function PlanSection({
           {empty}
         </p>
       )}
+      {children}
     </section>
   );
 }

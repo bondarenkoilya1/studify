@@ -27,6 +27,7 @@ import (
 	"studify/internal/auth/mfa"
 	"studify/internal/auth/resetpassword"
 	"studify/internal/auth/token"
+	"studify/internal/calendar"
 	"studify/internal/config"
 	"studify/internal/dashboard"
 	"studify/internal/mail"
@@ -63,6 +64,7 @@ type Handler struct {
 	Subject              *subject.Handler
 	Task                 *task.Handler
 	Dashboard            *dashboard.Handler
+	Calendar             *calendar.Handler
 	SharedProjectHandler *sharedproject.Handler
 	Session              *session.Handler
 }
@@ -158,6 +160,7 @@ func newApplication(ctx context.Context, cfg *config.Config, reg *prometheus.Reg
 		Subject:   &subject.Handler{Service: subjectService},
 		Task:      &task.Handler{Service: taskService},
 		Dashboard: &dashboard.Handler{DB: db},
+		Calendar:  &calendar.Handler{DB: db},
 
 		SharedProjectHandler: &sharedproject.Handler{Service: sharedProjectService},
 

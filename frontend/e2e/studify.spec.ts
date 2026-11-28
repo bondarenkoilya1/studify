@@ -228,10 +228,18 @@ test("shows work and deadline days in the current month and opens the task", asy
   await expect(card.getByText(/План: 5/)).toBeVisible();
   await page.clock.setFixedTime(new Date());
 
-  await page
-    .getByRole("link", { name: "Календарь экзаменов", exact: true })
-    .click();
+  const calendarResponse = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === "/api/calendar",
+  );
+  await page.getByRole("link", { name: "Календарь экзаменов", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar\/?$/);
+  const visibleCalendar = await calendarResponse;
+  expect(visibleCalendar.ok()).toBe(true);
+  const range = new URL(visibleCalendar.url()).searchParams;
+  expect(range.get("start_date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(range.get("end_date")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  const { tasks } = await visibleCalendar.json();
+  expect(tasks.map((task: { name: string }) => task.name)).toEqual([taskName]);
   const calendar = page.locator(".exam-calendar");
   const planned = calendar.getByRole("link", {
     name: /План: Подготовить отчёт/,
@@ -275,16 +283,37 @@ test("shows work and deadline days in the current month and opens the task", asy
   await status.selectOption("completed");
   await expect(status).toBeEnabled();
   await expect(status).toHaveValue("completed");
-  await page
-    .getByRole("link", { name: "Календарь экзаменов", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Календарь экзаменов", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar\/?$/);
   await expect(calendar.getByRole("button", { name: "Сегодня" })).toBeVisible();
   await expect(planned).toHaveCount(0);
   await expect(due).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Дашборд", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Просрочено" })).toBeVisible();
+  const otherOverdue = await Promise.all(
+    Array.from({ length: 10 }, (_, index) =>
+      page.request.post(`${apiUrl}/api/tasks/`, {
+        data: {
+          subject_id: subjectId,
+          name: `Архивное задание ${index + 1}`,
+          type: "other",
+          status: "not_completed",
+          difficulty: "medium",
+          priority: "medium",
+          deadline_date: `2001-01-${String(index + 1).padStart(2, "0")}`,
+        },
+      }),
+    ),
+  );
+  expect(otherOverdue.every((response) => response.ok())).toBe(true);
+  await page.goto("/dashboard");
+  const overdue = page.getByRole("region", { name: "Просрочено" });
+  await expect(overdue.getByRole("link")).toHaveCount(10);
+  await expect(overdue.getByText("1–10 из 11", { exact: true })).toBeVisible();
+  await overdue.getByRole("button", { name: "Дальше" }).click();
+  await expect(
+    overdue.getByRole("link", { name: /Архивное задание 10/ }),
+  ).toBeVisible();
+  await expect(overdue.getByRole("link")).toHaveCount(1);
   await expect(deadlineLink).toHaveCount(0);
 });
 

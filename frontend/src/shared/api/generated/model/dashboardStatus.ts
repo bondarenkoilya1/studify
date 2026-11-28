@@ -32,6 +32,7 @@ export interface DashboardStatus {
    * @nullable
    */
   nearest_deadline_task: DashboardTask | null;
-  /** Unfinished tasks whose deadline has passed, latest deadline first. */
+  overdue_total: number;
+  /** One page of unfinished tasks whose deadline has passed, latest deadline first. */
   overdue_tasks: DashboardTask[];
 }

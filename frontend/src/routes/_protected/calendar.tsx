@@ -1,17 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarDays } from "lucide-react";
 import { ExamCalendar } from "@/widgets/exam-calendar";
-import {
-  getGetUserSubjectsQueryOptions,
-  getGetUserTasksQueryOptions,
-} from "@/shared/api";
 
 export const Route = createFileRoute("/_protected/calendar")({
-  loader: ({ context: { queryClient } }) =>
-    Promise.all([
-      queryClient.ensureQueryData(getGetUserSubjectsQueryOptions()),
-      queryClient.ensureQueryData(getGetUserTasksQueryOptions()),
-    ]),
   component: CalendarPage,
 });
 

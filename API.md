@@ -397,23 +397,38 @@ GET /api/dashboard?time_zone=Europe%2FMoscow
     "deadline": "2026-07-10T12:00:00Z",
     "status": "ongoing"
   },
+  "overdue_total": 0,
   "overdue_tasks": []
 }
 ```
 
-- `completion_percent` is rounded to two decimals, and is `0` with no tasks.
 The optional `time_zone` query parameter accepts an IANA time zone and defaults
 to UTC. A date-only deadline becomes overdue when that calendar day has ended in
 the selected zone. A timestamp-only deadline becomes overdue after its instant.
 
+- `completion_percent` is rounded to two decimals, and is `0` with no tasks.
 - `nearest_deadline_task` is the unfinished task with the closest future
   deadline, or `null`.
-- `overdue_tasks` holds unfinished tasks whose deadline has passed, latest
+- `overdue_tasks` contains up to 10 unfinished tasks whose deadline has passed, latest
   deadline first.
 - Dashboard tasks only fill `id`, `subject_id`, `name`, `description`,
   `deadline`, and `status`. The other task fields are still present with zero
   values (`""`, `null`, `0001-01-01T00:00:00Z`). The example above leaves them
   out.
+
+## Study plan and calendar
+
+`GET /api/dashboard/plan?time_zone=Europe%2FMoscow&overdue_offset=0` returns
+study-task summaries, subject names, aggregate counts, and up to 10 overdue
+tasks ordered by their earliest missed deadline. Advance `overdue_offset`
+by 10 until it reaches `overdue_total`. The statistics endpoint also accepts
+`overdue_offset` and reports `overdue_total`.
+
+`GET /api/calendar?start_date=2026-11-23&end_date=2026-11-30&time_zone=Europe%2FMoscow`
+returns exams and unfinished work overlapping the visible period. The start
+day is inclusive and the end day is exclusive. The range may span 1–62 days.
+Date-only task values stay on their calendar day. The time zone sets period
+boundaries for exams and legacy timestamps. Omitted time zones default to UTC.
 
 ## Subjects
 

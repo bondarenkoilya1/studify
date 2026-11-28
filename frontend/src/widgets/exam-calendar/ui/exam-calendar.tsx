@@ -1,9 +1,11 @@
-import { addDays } from "date-fns";
+import { addDays, formatISO } from "date-fns";
 import { useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import FullCalendar, {
   type CalendarRef,
   type DatesSetInfo,
+  type DayHeaderInfo,
   type EventClickInfo,
   type EventDisplayInfo,
   type EventInput,
@@ -14,9 +16,10 @@ import listPlugin from "@fullcalendar/react/list";
 import ruLocale from "@fullcalendar/react/locales/ru";
 import "@fullcalendar/react/skeleton.css";
 import {
-  useGetUserSubjectsSuspense,
-  useGetUserTasksSuspense,
+  getGetCalendarQueryOptions,
+  type GetCalendarParams,
 } from "@/shared/api";
+import { Button } from "@/shared/ui/button";
 import {
   subjectToCalendarEvents,
   taskToCalendarEvents,
@@ -41,6 +44,29 @@ function renderEvent(arg: EventDisplayInfo) {
   return <ExamCalendarEvent {...arg} />;
 }
 
+function renderDayHeader(arg: DayHeaderInfo) {
+  return arg.view.type === "timeGridWeek" ? (
+    <div className="flex flex-col items-center justify-center gap-0.5 leading-[1.05]">
+      <span className="text-[11px] font-medium text-muted-foreground">
+        {formatStudyDate(arg.date, "EEEEEE")}
+      </span>
+      <span
+        className={
+          arg.isToday
+            ? "flex size-7 items-center justify-center rounded-full bg-red-500 text-[13px] font-semibold text-white"
+            : "text-[13px] font-semibold tabular-nums text-foreground"
+        }
+      >
+        {arg.date.getDate()}
+      </span>
+    </div>
+  ) : (
+    <span className="text-[11px] font-medium text-muted-foreground">
+      {formatStudyDate(arg.date, "EEEEE")}
+    </span>
+  );
+}
+
 export function ExamCalendar() {
   const router = useRouter();
   const calendarRef = useRef<CalendarRef>(null);
@@ -50,23 +76,34 @@ export function ExamCalendar() {
   const initialView = isMobile ? "listUpcoming" : "dayGridMonth";
   const [view, setView] = useState<CalendarView>(initialView);
   const [title, setTitle] = useState("");
-  const { data: subjects } = useGetUserSubjectsSuspense();
-  const { data: tasks } = useGetUserTasksSuspense();
+  const [range, setRange] = useState<GetCalendarParams>({
+    start_date: "",
+    end_date: "",
+  });
+  const calendar = useQuery({
+    ...getGetCalendarQueryOptions(range),
+    enabled: Boolean(range.start_date),
+  });
+  const data = calendar.data;
 
   const events = useMemo<EventInput[]>(
     () =>
-      [
-        ...subjectToCalendarEvents(subjects),
-        ...taskToCalendarEvents(tasks, subjects),
-      ].map((event) => ({
-        ...event,
-        url: router.buildLocation({
-          to: "/subjects/$id",
-          params: { id: event.extendedProps?.subjectId as number },
-          search: { task: event.extendedProps?.taskId as number | undefined },
-        }).href,
-      })),
-    [router, subjects, tasks],
+      data
+        ? [
+            ...subjectToCalendarEvents(data.subjects),
+            ...taskToCalendarEvents(data.tasks, data.subjects),
+          ].map((event) => ({
+            ...event,
+            url: router.buildLocation({
+              to: "/subjects/$id",
+              params: { id: event.extendedProps?.subjectId as number },
+              search: {
+                task: event.extendedProps?.taskId as number | undefined,
+              },
+            }).href,
+          }))
+        : [],
+    [router, data],
   );
 
   const changeView = (nextView: CalendarView) => {
@@ -94,6 +131,16 @@ export function ExamCalendar() {
   };
 
   const handleDatesSet = (info: DatesSetInfo) => {
+    const start_date = formatISO(info.start, { representation: "date" });
+    const end_date = formatISO(info.end, { representation: "date" });
+    const time_zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    setRange((current) =>
+      current.start_date === start_date &&
+      current.end_date === end_date &&
+      current.time_zone === time_zone
+        ? current
+        : { start_date, end_date, time_zone },
+    );
     setTitle(
       info.view.type === "listUpcoming"
         ? `${formatStudyDate(info.start)} — ${formatStudyDate(addDays(info.end, -1))}`
@@ -116,6 +163,26 @@ export function ExamCalendar() {
       />
 
       <div className="p-3 sm:p-5">
+        {calendar.isPending && (
+          <p className="mb-2 text-sm text-muted-foreground" role="status">
+            Загружаем события…
+          </p>
+        )}
+        {calendar.isError && (
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <p className="text-sm text-destructive" role="alert">
+              Не удалось загрузить события.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void calendar.refetch()}
+            >
+              Повторить
+            </Button>
+          </div>
+        )}
         <FullCalendar
           ref={calendarRef}
           plugins={plugins}
@@ -136,7 +203,11 @@ export function ExamCalendar() {
           eventClick={handleEventClick}
           datesSet={handleDatesSet}
           eventContent={renderEvent}
-          noEventsText="В этом периоде событий нет."
+          noEventsText={
+            calendar.isPending || calendar.isError
+              ? ""
+              : "В этом периоде событий нет."
+          }
           titleFormat={{ year: "numeric", month: "long" }}
           dayCellDidMount={(arg) => {
             if (!arg.isToday) return;
@@ -153,28 +224,7 @@ export function ExamCalendar() {
           }}
           allDaySlot
           allDayText="Весь день"
-          dayHeaderContent={(arg) =>
-            arg.view.type === "timeGridWeek" ? (
-              <div className="flex flex-col items-center justify-center gap-0.5 leading-[1.05]">
-                <span className="text-[11px] font-medium text-muted-foreground">
-                  {formatStudyDate(arg.date, "EEEEEE")}
-                </span>
-                <span
-                  className={
-                    arg.isToday
-                      ? "flex size-7 items-center justify-center rounded-full bg-red-500 text-[13px] font-semibold text-white"
-                      : "text-[13px] font-semibold tabular-nums text-foreground"
-                  }
-                >
-                  {arg.date.getDate()}
-                </span>
-              </div>
-            ) : (
-              <span className="text-[11px] font-medium text-muted-foreground">
-                {formatStudyDate(arg.date, "EEEEE")}
-              </span>
-            )
-          }
+          dayHeaderContent={renderDayHeader}
           listDayFormat={{
             weekday: "long",
             day: "numeric",

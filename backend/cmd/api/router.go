@@ -91,6 +91,7 @@ func newRouter(h *Handler, corsOrigins []string, reg *prometheus.Registry, m *Me
 			registerTaskRoutes(r, h.Task)
 			registerUserRoutes(r, h.User, limits)
 			registerDashboardRoutes(r, h.Dashboard)
+			r.Get("/calendar", h.Calendar.List)
 			registerSharedProjectRoutes(r, h.SharedProjectHandler)
 		})
 	})
@@ -170,6 +171,7 @@ func registerUserRoutes(r chi.Router, h *user.Handler, limits *middlewares.AuthL
 
 func registerDashboardRoutes(r chi.Router, h *dashboard.Handler) {
 	r.Get("/dashboard", h.GetDashboardStatus)
+	r.Get("/dashboard/plan", h.GetStudyPlan)
 }
 
 func registerMfaRoutes(r chi.Router, h *mfa.Handler, limits *middlewares.AuthLimiter) {
