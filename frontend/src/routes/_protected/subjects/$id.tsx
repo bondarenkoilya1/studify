@@ -228,7 +228,7 @@ function SubjectPage() {
                   onClick={() => setEditingSubject(true)}
                 >
                   <Pencil />
-                  Редактировать
+                  Редактировать предмет
                 </Button>
                 <CreateTaskButton subjectId={id} />
               </div>
@@ -274,12 +274,13 @@ function SubjectPage() {
             )}
 
             {types.length > 0 && (
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => selectType("all")}
+                  aria-pressed={activeType === "all"}
                   className={`
-                    rounded-full px-3.5 py-1.5
+                    min-h-10 rounded-full px-3.5
                     text-xs font-medium
                     transition-all duration-200
                     ${
@@ -297,8 +298,9 @@ function SubjectPage() {
                     key={type}
                     type="button"
                     onClick={() => selectType(type)}
+                    aria-pressed={activeType === type}
                     className={`
-                      rounded-full px-3.5 py-1.5
+                      min-h-10 rounded-full px-3.5
                       text-xs font-medium
                       transition-all duration-200
                       ${
@@ -324,7 +326,7 @@ function SubjectPage() {
             )}
           </header>
 
-          <div className="mt-8">
+          <div className="mt-4">
             {missingTask && (
               <p role="status" className="text-sm text-muted-foreground">
                 Эта задача больше не доступна в предмете.
@@ -333,6 +335,9 @@ function SubjectPage() {
             <TaskList
               tasks={filteredTasksByType}
               focusedTaskId={focusedTaskId}
+              emptyMessage={
+                activeType === "all" ? undefined : "Задач этого типа пока нет."
+              }
             />
           </div>
         </div>

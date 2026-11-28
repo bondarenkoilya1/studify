@@ -231,7 +231,7 @@ test("shows work and deadline days in the current month and opens the task", asy
   const calendarResponse = page.waitForResponse(
     (response) => new URL(response.url()).pathname === "/api/calendar",
   );
-  await page.getByRole("link", { name: "Календарь экзаменов", exact: true }).click();
+  await page.getByRole("link", { name: "Календарь", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar\/?$/);
   const visibleCalendar = await calendarResponse;
   expect(visibleCalendar.ok()).toBe(true);
@@ -267,7 +267,7 @@ test("shows work and deadline days in the current month and opens the task", asy
   await expect(card).toBeFocused();
   const taskUrl = page.url();
 
-  await page.getByRole("link", { name: "Дашборд", exact: true }).click();
+  await page.getByRole("link", { name: "План", exact: true }).click();
   const deadlineLink = page.getByRole("link", { name: /Подготовить отчёт/ });
   await expect(deadlineLink).toHaveAttribute(
     "href",
@@ -283,7 +283,7 @@ test("shows work and deadline days in the current month and opens the task", asy
   await status.selectOption("completed");
   await expect(status).toBeEnabled();
   await expect(status).toHaveValue("completed");
-  await page.getByRole("link", { name: "Календарь экзаменов", exact: true }).click();
+  await page.getByRole("link", { name: "Календарь", exact: true }).click();
   await expect(page).toHaveURL(/\/calendar\/?$/);
   await expect(calendar.getByRole("button", { name: "Сегодня" })).toBeVisible();
   await expect(planned).toHaveCount(0);
@@ -452,7 +452,7 @@ test("gives guests a useful home page and sends signed-in visitors to the dashbo
   await page.goto("/");
   await expect(page).toHaveURL(/\/dashboard\/?$/);
   await expect(
-    page.getByRole("heading", { name: "Дашборд", exact: true }),
+    page.getByRole("heading", { name: "План", exact: true }),
   ).toBeVisible();
 });
 
@@ -490,6 +490,12 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   const subjectsLink = navigation.getByRole("link", { name: "Предметы" });
   await expect(subjectsLink).toBeFocused();
   await expect(subjectsLink).toHaveAttribute("aria-current", "page");
+  await expect(
+    navigation.getByRole("link", { name: "Поиск", exact: true }),
+  ).toBeVisible();
+  await expect(
+    navigation.getByRole("link", { name: "Общие предметы" }),
+  ).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 
   await page.keyboard.press("Escape");
@@ -499,7 +505,7 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   await trigger.press("Enter");
   await expect(subjectsLink).toBeFocused();
   await page.keyboard.press("Tab");
-  const dashboardLink = navigation.getByRole("link", { name: "Дашборд" });
+  const dashboardLink = navigation.getByRole("link", { name: "План" });
   await expect(dashboardLink).toBeFocused();
   await dashboardLink.press("Enter");
   await expect(page).toHaveURL(/\/dashboard\/?$/);
@@ -513,6 +519,9 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   const account = page.getByRole("dialog", { name: "Настройки аккаунта" });
   await expect(account.getByText(email, { exact: true })).toBeVisible();
   await expect(account.getByRole("link", { name: "Профиль" })).toBeFocused();
+  await expect(
+    account.getByRole("link", { name: "Общие предметы" }),
+  ).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await page.keyboard.press("Escape");
   await expect(profile).toBeFocused();
@@ -520,8 +529,9 @@ test("keeps navigation and long content usable at 320, 390 and 768 pixels", asyn
   const screens = [
     ["/subjects", "Предметы"],
     [`/subjects/${subjectId}`, subjectName],
-    ["/dashboard", "Дашборд"],
-    ["/calendar", "Календарь экзаменов"],
+    ["/dashboard", "План"],
+    ["/calendar", "Календарь"],
+    ["/search", "Поиск"],
     ["/share", "Общие предметы"],
     ["/settings/profile", "Настройки"],
     ["/settings/security", "Настройки"],

@@ -34,12 +34,6 @@ export const TYPE_LABELS: Record<TaskType, string> = {
   other: "Другое",
 };
 
-export const DIFFICULTY_LEVEL: Record<TaskDifficulty, 1 | 2 | 3> = {
-  low: 1,
-  medium: 2,
-  high: 3,
-};
-
 export const DIFFICULTY_LABELS: Record<TaskDifficulty, string> = {
   low: "Легко",
   medium: "Средне",

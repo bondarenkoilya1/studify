@@ -1,4 +1,4 @@
-import { Laptop, Shield, User } from "lucide-react";
+import { Laptop, Library, Shield, User } from "lucide-react";
 
 export const profileMenuItems = [
   {
@@ -15,5 +15,10 @@ export const profileMenuItems = [
     label: "Сессии",
     to: "/settings/sessions",
     icon: Laptop,
+  },
+  {
+    label: "Общие предметы",
+    to: "/share",
+    icon: Library,
   },
 ] as const;

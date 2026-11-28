@@ -4,16 +4,20 @@ import { DeleteSubjectButton } from "@/features/subject/delete-subject";
 
 interface SubjectListProps {
   subjects: Subject[];
+  filtered: boolean;
 }
 
-export function SubjectList({ subjects }: SubjectListProps) {
+export function SubjectList({ subjects, filtered }: SubjectListProps) {
   if (!subjects.length) {
     return (
-      <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed bg-muted/20 p-8 text-center">
-        <h3 className="text-lg font-semibold">У вас пока нет предметов</h3>
-
-        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-          Добавьте первый предмет, чтобы начать планировать учёбу.
+      <div role="status" className="rounded-2xl border border-dashed p-5">
+        <p className="font-medium">
+          {filtered ? "Нет предметов этого типа" : "Предметов пока нет"}
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {filtered
+            ? "Выберите другой тип, чтобы увидеть предметы."
+            : "Добавьте первый предмет, чтобы начать планировать учёбу."}
         </p>
       </div>
     );

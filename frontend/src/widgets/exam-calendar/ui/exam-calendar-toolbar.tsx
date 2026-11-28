@@ -66,7 +66,7 @@ export function ExamCalendarToolbar({
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 rounded-full border border-black/[0.055] bg-neutral-100/80 p-1">
+      <div className="grid grid-cols-3 rounded-full border border-border bg-muted p-1">
         {views.map((item) => (
           <button
             key={item.value}
@@ -74,10 +74,10 @@ export function ExamCalendarToolbar({
             aria-pressed={view === item.value}
             onClick={() => onViewChange(item.value)}
             className={cn(
-              "min-h-9 rounded-full px-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-studify-active sm:px-3.5",
+              "min-h-11 rounded-full px-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-studify-active sm:px-3.5",
               view === item.value
                 ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-foreground hover:bg-background/70",
             )}
           >
             {item.label}

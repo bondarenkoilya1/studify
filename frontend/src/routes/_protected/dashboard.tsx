@@ -41,7 +41,7 @@ function DashboardPage() {
     <div className="mx-auto w-full max-w-4xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Дашборд</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">План</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {formatStudyDate(plan.weekStart)} — {formatStudyDate(plan.weekEnd)}
           </p>

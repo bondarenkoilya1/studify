@@ -22,22 +22,6 @@ import { toAbsoluteUrl } from "@/shared/utils";
 
 const MAX_LECTURER_ROWS = 2;
 
-const COURSE_COLORS: Record<number, string> = {
-  1: "bg-blue-50 text-blue-700",
-  2: "bg-emerald-50 text-emerald-700",
-  3: "bg-violet-50 text-violet-700",
-  4: "bg-amber-50 text-amber-700",
-  5: "bg-rose-50 text-rose-700",
-  6: "bg-cyan-50 text-cyan-700",
-};
-
-const TERM_COLORS: Record<number, string> = {
-  1: "bg-sky-50 text-sky-700",
-  2: "bg-indigo-50 text-indigo-700",
-  3: "bg-fuchsia-50 text-fuchsia-700",
-  4: "bg-orange-50 text-orange-700",
-};
-
 function MetaRow({
   icon: Icon,
   children,
@@ -98,34 +82,35 @@ export function SubjectCard({
   };
 
   return (
-    <Card className="group relative h-[300px] transition-shadow hover:shadow-md motion-safe:transition-[transform,box-shadow] motion-safe:hover:-translate-y-1">
+    <Card className="relative h-full">
+      <div className="absolute top-4 left-4 z-10">
+        <ImageUpload
+          src={subject.thumbnail_url}
+          resolveUrl={toAbsoluteUrl}
+          alt={subject.name}
+          fallback={subject.name}
+          shape="rounded"
+          size="custom"
+          maxSizeBytes={2 * 1024 * 1024}
+          accept="image/png, image/jpeg, image/webp"
+          loading={uploadThumbnail.isPending}
+          disabled={uploadThumbnail.isPending}
+          onFileSelect={handleThumbnailSelect}
+          onFileReject={toast.error}
+          containerClassName={cn(
+            "size-11 shrink-0 rounded-[13px] shadow-sm text-[14px] font-semibold text-white",
+            `bg-gradient-to-br ${gradient}`,
+          )}
+          className="rounded-[13px]"
+        />
+      </div>
       <Link
         to="/subjects/$id"
         params={{ id: subject.id }}
-        className="flex h-full flex-col rounded-2xl p-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-full flex-col rounded-2xl p-4 transition-colors hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {/* Header */}
-        <div className="flex min-h-11 items-center gap-3.5 pr-8">
-          <ImageUpload
-            src={subject.thumbnail_url}
-            resolveUrl={toAbsoluteUrl}
-            alt={subject.name}
-            fallback={subject.name}
-            shape="rounded"
-            size="custom"
-            maxSizeBytes={2 * 1024 * 1024}
-            accept="image/png, image/jpeg, image/webp"
-            loading={uploadThumbnail.isPending}
-            disabled={uploadThumbnail.isPending}
-            onFileSelect={handleThumbnailSelect}
-            onFileReject={toast.error}
-            containerClassName={cn(
-              "size-11 shrink-0 rounded-[13px] shadow-sm text-[14px] font-semibold text-white",
-              `bg-gradient-to-br ${gradient}`,
-            )}
-            className="rounded-[13px]"
-          />
-
+        <div className="flex min-h-11 items-center pr-10 pl-14">
           <h3
             title={subject.name}
             className="min-w-0 flex-1 line-clamp-2 text-[16px] font-semibold leading-tight tracking-[-0.01em] wrap-anywhere text-foreground"
@@ -138,7 +123,7 @@ export function SubjectCard({
         {subject.note && (
           <p
             title={subject.note}
-            className="mt-3 line-clamp-2 text-[13px] leading-[1.4] text-muted-foreground"
+            className="mt-3 line-clamp-2 text-sm leading-snug wrap-anywhere text-muted-foreground"
           >
             {subject.note}
           </p>
@@ -173,53 +158,22 @@ export function SubjectCard({
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-auto flex items-center gap-2 pt-4">
-          <span className="shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-            {isUniversity ? "Университет" : "Личный"}
-          </span>
-
-          {(subject.course || subject.term) && (
-            <span className="flex shrink-0 overflow-hidden rounded-full border border-border text-[11px] font-medium">
-              {subject.course && (
-                <span
-                  className={`px-2.5 py-0.5 ${
-                    COURSE_COLORS[subject.course] ??
-                    "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {subject.course} курс
-                </span>
-              )}
-
-              {subject.term && (
-                <span
-                  className={`px-2.5 py-0.5 ${
-                    subject.course ? "border-l border-black/[0.06] " : ""
-                  }${TERM_COLORS[subject.term] ?? "bg-muted text-muted-foreground"}`}
-                >
-                  {subject.term} семестр
-                </span>
-              )}
-            </span>
-          )}
-
-          <span className="ml-auto flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+        <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-3 text-xs text-muted-foreground">
+          <span>{isUniversity ? "Университетский" : "Личный"}</span>
+          {subject.course && <span>{subject.course} курс</span>}
+          {subject.term && <span>{subject.term} семестр</span>}
+          <span className="flex min-w-0 items-center gap-1.5">
             <span
-              className={`size-1.5 shrink-0 rounded-full ${
-                SCOPE_DOT_COLORS[subject.scope] ?? "bg-gray-400"
-              }`}
+              aria-hidden="true"
+              className={`size-1.5 shrink-0 rounded-full ${SCOPE_DOT_COLORS[subject.scope]}`}
             />
-
-            <span className="truncate">
-              {SCOPE_LABELS[subject.scope] ?? subject.scope}
-            </span>
+            {SCOPE_LABELS[subject.scope]}
           </span>
         </div>
       </Link>
 
       {children && (
-        <div className="absolute right-4 top-4 z-10">{children}</div>
+        <div className="absolute right-3 top-4 z-10">{children}</div>
       )}
     </Card>
   );

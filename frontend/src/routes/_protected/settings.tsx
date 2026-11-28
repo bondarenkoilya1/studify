@@ -42,14 +42,13 @@ function SettingsHeader({
   avatarUrl?: string | null;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-xs">
-      <div className="relative flex items-center gap-4 p-5 sm:gap-5 sm:p-6">
-        <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/10 blur-3xl" />
+    <header className="rounded-2xl border bg-card text-card-foreground">
+      <div className="flex items-center gap-3 p-4 sm:gap-4 sm:p-5">
         <AvatarUploadField
           email={email}
           currentAvatarUrl={avatarUrl}
-          size={72}
-          className="shrink-0 text-2xl sm:size-24 sm:text-3xl"
+          size={64}
+          className="shrink-0 text-xl"
         />
 
         <div className="relative min-w-0 space-y-1">
@@ -57,20 +56,16 @@ function SettingsHeader({
             Настройки
           </h1>
 
-          <p className="text-sm text-muted-foreground">
-            Управляйте аккаунтом и настройками.
-          </p>
-
-          <p className="truncate pt-1 text-sm font-medium">{email}</p>
+          <p className="text-sm wrap-anywhere text-muted-foreground">{email}</p>
         </div>
       </div>
-    </div>
+    </header>
   );
 }
 
 function SettingsSidebar() {
   const linkClass =
-    "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors";
+    "flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring";
 
   const activeClass = "bg-muted text-foreground border border-border shadow-sm";
 
@@ -78,7 +73,10 @@ function SettingsSidebar() {
     "text-muted-foreground border border-transparent hover:bg-muted/50 hover:text-foreground";
 
   return (
-    <nav className="flex w-full shrink-0 flex-row flex-wrap gap-1 md:w-52 md:flex-col md:flex-nowrap">
+    <nav
+      aria-label="Настройки аккаунта"
+      className="flex w-full shrink-0 flex-row flex-wrap gap-1 md:w-52 md:flex-col md:flex-nowrap"
+    >
       <Link
         to="/settings/profile"
         activeOptions={{ exact: true }}
@@ -100,7 +98,7 @@ function SettingsSidebar() {
         }}
       >
         <Shield className="h-4 w-4" />
-        Пароль и безопасность
+        Безопасность
       </Link>
 
       <Link
